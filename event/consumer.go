@@ -17,21 +17,22 @@ type Handler interface {
 }
 
 // Consume converts messages to event instances, and pass the event to the provided handler.
-func Consume(ctx context.Context, messageConsumer kafka.IConsumerGroup, handler Handler, cfg *config.Config) {
+func Consume(ctx context.Context, consumer kafka.IConsumerGroup, h Handler, cfg *config.Config) {
 	// consume loop, to be executed by each worker
 	var consume = func(workerID int) {
 		for {
 			select {
-			case message, ok := <-messageConsumer.Channels().Upstream:
+			case msg, ok := <-consumer.Channels().Upstream:
 				if !ok {
-					log.Event(ctx, "closing event consumer loop because upstream channel is closed", log.INFO, log.Data{"worker_id": workerID})
+					log.Info(ctx, "upstream channel closed - closing event consumer loop", log.Data{"worker_id": workerID})
 					return
 				}
-				messageCtx := context.Background()
-				processMessage(messageCtx, message, handler, cfg)
-				message.Release()
-			case <-messageConsumer.Channels().Closer:
-				log.Event(ctx, "closing event consumer loop because closer channel is closed", log.INFO, log.Data{"worker_id": workerID})
+
+				processMessage(context.Background(), msg, h, cfg)
+
+				msg.Release()
+			case <-consumer.Channels().Closer:
+				log.Info(ctx, "closer channel closed - closing event consumer loop ", log.Data{"worker_id": workerID})
 				return
 			}
 		}
