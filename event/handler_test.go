@@ -9,11 +9,9 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-// TODO: remove hello called example test
-func TestHelloCalledHandler_Handle(t *testing.T) {
-
+func TestInstanceStartedHandler_Handle(t *testing.T) {
 	Convey("Given a successful event handler, when Handle is triggered", t, func() {
-		eventHandler := &event.HelloCalledHandler{}
+		eventHandler := &event.InstanceStartedHandler{}
 		filePath := "/tmp/helloworld.txt"
 		os.Remove(filePath)
 		err := eventHandler.Handle(testCtx, &config.Config{OutputFilePath: filePath}, &testEvent)
@@ -21,7 +19,7 @@ func TestHelloCalledHandler_Handle(t *testing.T) {
 	})
 
 	Convey("handler returns an error when cannot write to file", t, func() {
-		eventHandler := &event.HelloCalledHandler{}
+		eventHandler := &event.InstanceStartedHandler{}
 		filePath := ""
 		err := eventHandler.Handle(testCtx, &config.Config{OutputFilePath: filePath}, &testEvent)
 		So(err, ShouldNotBeNil)

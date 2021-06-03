@@ -6,7 +6,6 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
-// TODO: remove hello call config options
 // Config represents service configuration for dp-import-cantabular-dataset
 type Config struct {
 	BindAddr                   string        `envconfig:"BIND_ADDR"`
@@ -17,8 +16,8 @@ type Config struct {
 	KafkaVersion               string        `envconfig:"KAFKA_VERSION"`
 	KafkaOffsetOldest          bool          `envconfig:"KAFKA_OFFSET_OLDEST"`
 	KafkaNumWorkers            int           `envconfig:"KAFKA_NUM_WORKERS"`
-	HelloCalledGroup           string        `envconfig:"HELLO_CALLED_GROUP"`
-	HelloCalledTopic           string        `envconfig:"HELLO_CALLED_TOPIC"`
+	InstanceStartedGroup       string        `envconfig:"KAFKA_DATASET_INSTANCE_STARTED_GROUP"`
+	InstanceStartedTopic       string        `envconfig:"KAFKA_DATASET_INSTANCE_STARTED_TOPIC"`
 	OutputFilePath             string        `envconfig:"OUTPUT_FILE_PATH"`
 }
 
@@ -40,8 +39,8 @@ func Get() (*Config, error) {
 		KafkaVersion:               "1.0.2",
 		KafkaOffsetOldest:          true,
 		KafkaNumWorkers:            1,
-		HelloCalledGroup:           "dp-import-cantabular-dataset",
-		HelloCalledTopic:           "hello-called",
+		InstanceStartedGroup:       "dp-import-cantabular-dataset",
+		InstanceStartedTopic:       "cantabular-dataset-instance-started",
 		OutputFilePath:             "/tmp/helloworld.txt",
 	}
 

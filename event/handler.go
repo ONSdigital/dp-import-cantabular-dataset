@@ -9,13 +9,12 @@ import (
 	"github.com/ONSdigital/log.go/log"
 )
 
-// TODO: remove hello called example handler
-// HelloCalledHandler ...
-type HelloCalledHandler struct {
+// InstanceStartedHandler ...
+type InstanceStartedHandler struct {
 }
 
 // Handle takes a single event.
-func (h *HelloCalledHandler) Handle(ctx context.Context, cfg *config.Config, event *HelloCalled) (err error) {
+func (h *InstanceStartedHandler) Handle(ctx context.Context, cfg *config.Config, event *InstanceStarted) (err error) {
 	logData := log.Data{
 		"event": event,
 	}

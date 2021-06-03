@@ -1,7 +1,6 @@
 package event
 
-// TODO: remove hello called example model
-// HelloCalled provides an avro structure for a Hello Called event
-type HelloCalled struct {
+// InstanceStarted provides an avro structure for a Instance Started event
+type InstanceStarted struct {
 	RecipientName string `avro:"recipient_name"`
 }

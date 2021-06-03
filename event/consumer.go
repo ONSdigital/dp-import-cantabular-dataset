@@ -11,15 +11,13 @@ import (
 
 //go:generate moq -out mock/handler.go -pkg mock . Handler
 
-// TODO: remove or replace hello called logic with app specific
 // Handler represents a handler for processing a single event.
 type Handler interface {
-	Handle(ctx context.Context, cfg *config.Config, helloCalled *HelloCalled) error
+	Handle(context.Context, *config.Config, *InstanceStarted) error
 }
 
 // Consume converts messages to event instances, and pass the event to the provided handler.
 func Consume(ctx context.Context, messageConsumer kafka.IConsumerGroup, handler Handler, cfg *config.Config) {
-
 	// consume loop, to be executed by each worker
 	var consume = func(workerID int) {
 		for {
@@ -48,7 +46,6 @@ func Consume(ctx context.Context, messageConsumer kafka.IConsumerGroup, handler 
 // processMessage unmarshals the provided kafka message into an event and calls the handler.
 // After the message is handled, it is committed.
 func processMessage(ctx context.Context, message kafka.Message, handler Handler, cfg *config.Config) {
-
 	// unmarshal - commit on failure (consuming the message again would result in the same error)
 	event, err := unmarshal(message)
 	if err != nil {
@@ -73,8 +70,8 @@ func processMessage(ctx context.Context, message kafka.Message, handler Handler,
 }
 
 // unmarshal converts a event instance to []byte.
-func unmarshal(message kafka.Message) (*HelloCalled, error) {
-	var event HelloCalled
-	err := schema.HelloCalledEvent.Unmarshal(message.GetData(), &event)
+func unmarshal(message kafka.Message) (*InstanceStarted, error) {
+	var event InstanceStarted
+	err := schema.InstanceStartedEvent.Unmarshal(message.GetData(), &event)
 	return &event, err
 }

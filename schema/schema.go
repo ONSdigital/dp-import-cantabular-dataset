@@ -5,15 +5,15 @@ import (
 )
 
 // TODO: remove or replace hello called structure and model with app specific
-var helloCalledEvent = `{
+var instanceStartedEvent = `{
   "type": "record",
-  "name": "hello-called",
+  "name": "cantabular-dataset-instance-started",
   "fields": [
     {"name": "recipient_name", "type": "string", "default": ""}
   ]
 }`
 
-// HelloCalledEvent is the Avro schema for Hello Called messages.
-var HelloCalledEvent = &avro.Schema{
-	Definition: helloCalledEvent,
+// InstanceStartedEvent is the Avro schema for Instance Started messages.
+var InstanceStartedEvent = &avro.Schema{
+	Definition: instanceStartedEvent,
 }
