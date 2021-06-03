@@ -17,21 +17,23 @@ type Handler interface {
 }
 
 // Consume converts messages to event instances, and pass the event to the provided handler.
-func Consume(ctx context.Context, consumer kafka.IConsumerGroup, h Handler, cfg *config.Config) {
+func Consume(ctx context.Context, cg kafka.IConsumerGroup, h Handler, cfg *config.Config) {
 	// consume loop, to be executed by each worker
 	var consume = func(workerID int) {
 		for {
 			select {
-			case msg, ok := <-consumer.Channels().Upstream:
+			case msg, ok := <-cg.Channels().Upstream:
 				if !ok {
 					log.Info(ctx, "upstream channel closed - closing event consumer loop", log.Data{"worker_id": workerID})
 					return
 				}
 
-				processMessage(context.Background(), msg, h, cfg)
+				if err := processMessage(context.Background(), msg, h, cfg); err != nil{
+					log.Error(ctx, "failed to process message", err))
+				}
 
 				msg.Release()
-			case <-consumer.Channels().Closer:
+			case <-cg.Channels().Closer:
 				log.Info(ctx, "closer channel closed - closing event consumer loop ", log.Data{"worker_id": workerID})
 				return
 			}
@@ -47,24 +49,20 @@ func Consume(ctx context.Context, consumer kafka.IConsumerGroup, h Handler, cfg 
 // processMessage unmarshals the provided kafka message into an event and calls the handler.
 // After the message is handled, it is committed, by default even on error to prevent reconsumption
 // of dead messages.
-func processMessage(ctx context.Context, msg kafka.Message, h Handler, cfg *config.Config) {
+func processMessage(ctx context.Context, msg kafka.Message, h Handler, cfg *config.Config) error {
+	defer msg.Commit()
+
 	var e InstanceStarted
 
 	if err := schema.InstanceStartedEvent.Unmarshal(msg.GetData(), &e); err != nil {
-		log.Error(ctx, "failed to unmarshal event", err)
-		msg.Commit()
-		return
+		return fmt.Errorf("failed to unmarshal event: %w", err)
 	}
 
 	log.Info(ctx, "event received", log.Data{"event": e})
 
 	if err := h.Handle(ctx, cfg, &e); err != nil {
-		log.Error(ctx, "failed to handle event", err)
-		msg.Commit()
-		return
+		return fmt.Errorf("failed to handle event: %w", err)
 	}
 
 	log.Info(ctx, "event processed - committing message", log.Data{"event": e})
-
-	msg.Commit()
 }
