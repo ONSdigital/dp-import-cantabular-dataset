@@ -1,4 +1,4 @@
-package event
+package handler
 
 import (
 	"context"
@@ -6,23 +6,22 @@ import (
 	"io/ioutil"
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
+	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
 	"github.com/ONSdigital/log.go/log"
 )
 
-// InstanceStartedHandler ...
-type InstanceStartedHandler struct {
-}
+// InstanceStarted ...
+type InstanceStarted struct {}
 
 // Handle takes a single event.
-func (h *InstanceStartedHandler) Handle(ctx context.Context, cfg *config.Config, event *InstanceStarted) (err error) {
-	logData := log.Data{
-		"event": event,
-	}
+func (h *InstanceStarted) Handle(ctx context.Context, cfg *config.Config, e *event.InstanceStarted) error {
+	logData := log.Data{"event": e}
+
 	log.Event(ctx, "event handler called", log.INFO, logData)
 
-	greeting := fmt.Sprintf("Hello, %s!", event.RecipientName)
-	err = ioutil.WriteFile(cfg.OutputFilePath, []byte(greeting), 0644)
-	if err != nil {
+	greeting := fmt.Sprintf("Hello, %s!", e.RecipientName)
+
+	if err := ioutil.WriteFile(cfg.OutputFilePath, []byte(greeting), 0644); err != nil {
 		return err
 	}
 

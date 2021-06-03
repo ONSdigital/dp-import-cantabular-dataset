@@ -2,19 +2,13 @@ package event
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/log.go/v2/log"
 )
-
-//go:generate moq -out mock/handler.go -pkg mock . Handler
-
-// Handler represents a handler for processing a single event.
-type Handler interface {
-	Handle(context.Context, *config.Config, *InstanceStarted) error
-}
 
 // Consume converts messages to event instances, and pass the event to the provided handler.
 func Consume(ctx context.Context, cg kafka.IConsumerGroup, h Handler, cfg *config.Config) {
@@ -29,7 +23,7 @@ func Consume(ctx context.Context, cg kafka.IConsumerGroup, h Handler, cfg *confi
 				}
 
 				if err := processMessage(context.Background(), msg, h, cfg); err != nil{
-					log.Error(ctx, "failed to process message", err))
+					log.Error(ctx, "failed to process message", err)
 				}
 
 				msg.Release()
@@ -65,4 +59,5 @@ func processMessage(ctx context.Context, msg kafka.Message, h Handler, cfg *conf
 	}
 
 	log.Info(ctx, "event processed - committing message", log.Data{"event": e})
+	return nil
 }

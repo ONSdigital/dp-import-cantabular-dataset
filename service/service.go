@@ -6,8 +6,10 @@ import (
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
+	"github.com/ONSdigital/dp-import-cantabular-dataset/handler"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/log.go/log"
+
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 )
@@ -45,7 +47,7 @@ func Run(ctx context.Context, serviceList *ExternalServiceList, buildTime, gitCo
 	}
 
 	// Event Handler for Kafka Consumer
-	event.Consume(ctx, consumer, &event.InstanceStartedHandler{}, cfg)
+	event.Consume(ctx, consumer, &handler.InstanceStarted{}, cfg)
 
 	// Kafka error logging go-routine
 	consumer.Channels().LogErrors(ctx, "kafka consumer")

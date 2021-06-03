@@ -15,9 +15,10 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-var testCtx = context.Background()
-
-var errHandler = errors.New("Handler Error")
+var (
+	testCtx = context.Background()
+	errHandler = errors.New("Handler Error")
+)
 
 var testEvent = event.InstanceStarted{
 	RecipientName: "World",
