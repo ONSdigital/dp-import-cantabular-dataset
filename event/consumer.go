@@ -6,7 +6,7 @@ import (
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 )
 
 //go:generate moq -out mock/handler.go -pkg mock . Handler
@@ -44,34 +44,26 @@ func Consume(ctx context.Context, messageConsumer kafka.IConsumerGroup, handler 
 }
 
 // processMessage unmarshals the provided kafka message into an event and calls the handler.
-// After the message is handled, it is committed.
-func processMessage(ctx context.Context, message kafka.Message, handler Handler, cfg *config.Config) {
-	// unmarshal - commit on failure (consuming the message again would result in the same error)
-	event, err := unmarshal(message)
-	if err != nil {
-		log.Event(ctx, "failed to unmarshal event", log.ERROR, log.Error(err))
-		message.Commit()
+// After the message is handled, it is committed, by default even on error to prevent reconsumption
+// of dead messages.
+func processMessage(ctx context.Context, msg kafka.Message, h Handler, cfg *config.Config) {
+	var e InstanceStarted
+
+	if err := schema.InstanceStartedEvent.Unmarshal(msg.GetData(), &e); err != nil {
+		log.Error(ctx, "failed to unmarshal event", err)
+		msg.Commit()
 		return
 	}
 
-	log.Event(ctx, "event received", log.INFO, log.Data{"event": event})
+	log.Info(ctx, "event received", log.Data{"event": e})
 
-	// handle - commit on failure (implement error handling to not commit if message needs to be consumed again)
-	err = handler.Handle(ctx, cfg, event)
-	if err != nil {
-		log.Event(ctx, "failed to handle event", log.ERROR, log.Error(err))
-		message.Commit()
+	if err := h.Handle(ctx, cfg, &e); err != nil {
+		log.Error(ctx, "failed to handle event", err)
+		msg.Commit()
 		return
 	}
 
-	log.Event(ctx, "event processed - committing message", log.INFO, log.Data{"event": event})
-	message.Commit()
-	log.Event(ctx, "message committed", log.INFO, log.Data{"event": event})
-}
+	log.Info(ctx, "event processed - committing message", log.Data{"event": e})
 
-// unmarshal converts a event instance to []byte.
-func unmarshal(message kafka.Message) (*InstanceStarted, error) {
-	var event InstanceStarted
-	err := schema.InstanceStartedEvent.Unmarshal(message.GetData(), &event)
-	return &event, err
+	msg.Commit()
 }
