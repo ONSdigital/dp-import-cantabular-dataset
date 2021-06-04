@@ -72,7 +72,19 @@ func scanEvent(scanner *bufio.Scanner) *event.InstanceStarted {
 	scanner.Scan()
 	name := scanner.Text()
 
+	fmt.Println("Please type the datablob name")
+	fmt.Printf("$ ")
+	scanner.Scan()
+	dbName := scanner.Text()
+
+	fmt.Println("Please type the collection id")
+	fmt.Printf("$ ")
+	scanner.Scan()
+	cID := scanner.Text()
+
 	return &event.InstanceStarted{
 		RecipientName: name,
+		DatablobName: dbName,
+		CollectionID: cID,
 	}
 }

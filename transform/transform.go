@@ -6,5 +6,5 @@ import (
 )
 
 func CodebookToDataset(codelist cantabular.Codebook) (*datasetapi.DatasetDetails, error){
-	return nil, nil
+	return &datasetapi.DatasetDetails{}, nil
 }

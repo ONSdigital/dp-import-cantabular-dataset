@@ -8,7 +8,7 @@ import (
 )
 
 type CantabularClient interface{
-	GetCodebook(cantabular.GetCodebookRequest) (*cantabular.GetCodebookResponse, error)
+	GetCodebook(context.Context, cantabular.GetCodebookRequest) (*cantabular.GetCodebookResponse, error)
 }
 
 type DatasetAPIClient interface{
