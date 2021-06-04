@@ -10,8 +10,11 @@ import (
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event/mock"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
+
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
+	"github.com/ONSdigital/go-ns/avro"
+
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -129,7 +132,11 @@ func TestConsume(t *testing.T) {
 
 // marshal helper method to marshal a event into a []byte
 func marshal(event event.InstanceStarted) []byte {
-	bytes, err := schema.InstanceStartedEvent.Marshal(event)
+	s := avro.Schema{
+		Definition: schema.InstanceStarted,
+	}
+
+	bytes, err := s.Marshal(event)
 	So(err, ShouldBeNil)
 	return bytes
 }

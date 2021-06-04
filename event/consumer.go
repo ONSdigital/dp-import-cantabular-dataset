@@ -6,8 +6,10 @@ import (
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
+
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/log.go/v2/log"
+	"github.com/ONSdigital/go-ns/avro"
 )
 
 // Consume converts messages to event instances, and pass the event to the provided handler.
@@ -47,8 +49,11 @@ func processMessage(ctx context.Context, msg kafka.Message, h Handler, cfg *conf
 	defer msg.Commit()
 
 	var e InstanceStarted
+	s := avro.Schema{
+		Definition: schema.InstanceStarted,
+	}
 
-	if err := schema.InstanceStartedEvent.Unmarshal(msg.GetData(), &e); err != nil {
+	if err := s.Unmarshal(msg.GetData(), &e); err != nil {
 		return fmt.Errorf("failed to unmarshal event: %w", err)
 	}
 

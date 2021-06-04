@@ -10,8 +10,10 @@ import (
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
+
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/go-ns/avro"
 )
 
 const serviceName = "dp-import-cantabular-dataset"
@@ -46,7 +48,10 @@ func main() {
 		e := scanEvent(scanner)
 		log.Event(ctx, "sending instance-started event", log.INFO, log.Data{"instanceStartedEvent": e})
 
-		bytes, err := schema.InstanceStartedEvent.Marshal(e)
+		s := avro.Schema{
+			Definition: schema.InstanceStarted,
+		}
+		bytes, err := s.Marshal(e)
 		if err != nil {
 			log.Event(ctx, "instance-started event error", log.FATAL, log.Error(err))
 			os.Exit(1)

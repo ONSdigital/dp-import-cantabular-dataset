@@ -14,6 +14,7 @@ import (
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
 	"github.com/cucumber/godog"
 	"github.com/rdumont/assistdog"
+	"github.com/ONSdigital/go-ns/avro"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -72,7 +73,10 @@ func (c *Component) convertToHelloEvents(table *godog.Table) ([]*event.InstanceS
 }
 
 func (c *Component) sendToConsumer(e *event.InstanceStarted) error {
-	bytes, err := schema.InstanceStartedEvent.Marshal(e)
+	s := avro.Schema{
+		Definition: schema.InstanceStarted,
+	}
+	bytes, err := s.Marshal(e)
 	if err != nil {
 		return err
 	}

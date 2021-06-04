@@ -2,7 +2,6 @@ package event
 
 import (
 	"context"
-
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
 )
 
