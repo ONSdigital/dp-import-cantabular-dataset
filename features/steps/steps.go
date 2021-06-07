@@ -10,7 +10,6 @@ import (
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
-	"github.com/ONSdigital/dp-import-cantabular-dataset/service"
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
 	"github.com/cucumber/godog"
 	"github.com/rdumont/assistdog"
@@ -35,7 +34,7 @@ func (c *Component) iShouldReceiveAHelloworldResponse() error {
 
 func (c *Component) theseHelloEventsAreConsumed(table *godog.Table) error {
 
-	observationEvents, err := c.convertToHelloEvents(table)
+	events, err := c.convertToHelloEvents(table)
 	if err != nil {
 		return err
 	}
@@ -44,11 +43,11 @@ func (c *Component) theseHelloEventsAreConsumed(table *godog.Table) error {
 
 	// run application in separate goroutine
 	go func() {
-		c.svc, err = service.Run(context.Background(), c.serviceList, "", "", "", c.errorChan)
+		c.svc.Start(context.Background(), c.errorChan)
 	}()
 
-	// consume extracted observations
-	for _, e := range observationEvents {
+	// consume extracted hello events
+	for _, e := range events {
 		if err := c.sendToConsumer(e); err != nil {
 			return err
 		}
