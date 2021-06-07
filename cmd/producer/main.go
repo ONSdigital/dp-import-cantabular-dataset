@@ -13,7 +13,6 @@ import (
 
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/log.go/log"
-	"github.com/ONSdigital/go-ns/avro"
 )
 
 const serviceName = "dp-import-cantabular-dataset"
@@ -48,9 +47,8 @@ func main() {
 		e := scanEvent(scanner)
 		log.Event(ctx, "sending instance-started event", log.INFO, log.Data{"instanceStartedEvent": e})
 
-		s := avro.Schema{
-			Definition: schema.InstanceStarted,
-		}
+		s := schema.InstanceStarted
+
 		bytes, err := s.Marshal(e)
 		if err != nil {
 			log.Event(ctx, "instance-started event error", log.FATAL, log.Error(err))
@@ -67,24 +65,30 @@ func main() {
 func scanEvent(scanner *bufio.Scanner) *event.InstanceStarted {
 	fmt.Println("--- [Send Kafka InstanceStarted] ---")
 
-	fmt.Println("Please type the recipient name")
+	fmt.Println("Please type the recipe id")
 	fmt.Printf("$ ")
 	scanner.Scan()
-	name := scanner.Text()
+	rID := scanner.Text()
 
-	fmt.Println("Please type the datablob name")
+	fmt.Println("Please type the instance id")
 	fmt.Printf("$ ")
 	scanner.Scan()
-	dbName := scanner.Text()
+	iID := scanner.Text()
 
-	fmt.Println("Please type the collection id")
+	fmt.Println("Please type the job id")
 	fmt.Printf("$ ")
 	scanner.Scan()
-	cID := scanner.Text()
+	jID := scanner.Text()
+
+	fmt.Println("Please type the Cntabular Type id")
+	fmt.Printf("$ ")
+	scanner.Scan()
+	cType := scanner.Text()
 
 	return &event.InstanceStarted{
-		RecipientName: name,
-		DatablobName: dbName,
-		CollectionID: cID,
+		RecipeID: rID,
+		InstanceID: iID,
+		JobID: jID,
+		CantabularType: cType,
 	}
 }

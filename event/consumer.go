@@ -24,7 +24,10 @@ func Consume(ctx context.Context, cg kafka.IConsumerGroup, h Handler, cfg *confi
 				}
 
 				if err := processMessage(context.Background(), msg, h, cfg); err != nil{
-					log.Error(ctx, "failed to process message", err)
+					log.Error(ctx, "failed to process message", err, log.Data{
+						"status_code": statusCode(err),
+						"log_data": logData(err),
+					})
 				}
 
 				msg.Release()
@@ -51,7 +54,12 @@ func processMessage(ctx context.Context, msg kafka.Message, h Handler, cfg *conf
 	s := schema.InstanceStarted
 
 	if err := s.Unmarshal(msg.GetData(), &e); err != nil {
-		return fmt.Errorf("failed to unmarshal event: %w", err)
+		return &Error{
+			err: fmt.Errorf("failed to unmarshal event: %w", err),
+			logData: map[string]interface{}{
+				"msg_data": msg.GetData(),
+			},
+		}
 	}
 
 	log.Info(ctx, "event received", log.Data{"event": e})

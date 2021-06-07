@@ -6,8 +6,10 @@ import (
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/cantabular"
+	"github.com/ONSdigital/dp-import-cantabular-dataset/recipe"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/handler"
+	dphttp "github.com/ONSdigital/dp-net/http"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/log.go/log"
 
@@ -47,16 +49,26 @@ func Run(ctx context.Context, serviceList *ExternalServiceList, buildTime, gitCo
 		return nil, err
 	}
 
-	cantabularClient := cantabular.NewClient(cantabular.Config{
-		Timeout: "30s",//
-		Host:   "http://localhost:8491",   // Will be environment variables
+	ua := dphttp.NewClient()
+
+	cantabularClient := cantabular.NewClient(ua, cantabular.Config{
+		Host:   "http://localhost:8491",   // Will be environment variable
+	})
+
+	recipeClient := recipe.NewClient(ua, recipe.Config{
+		Host:   "http://localhost:22300",    // Will be environment variable
 	})
 
 	// Event Handler for Kafka Consumer
 	event.Consume(
 		ctx,
 		consumer,
-		handler.NewInstanceStarted(cantabularClient, nil, ""),
+		handler.NewInstanceStarted(
+			cantabularClient,
+			recipeClient,
+			 nil,
+			 "",
+		),
 		cfg,
 	)
 
