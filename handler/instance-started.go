@@ -6,7 +6,7 @@ import (
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
-	// "github.com/ONSdigital/dp-import-cantabular-dataset/transform"
+	"github.com/ONSdigital/dp-import-cantabular-dataset/transform"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/cantabular"
 )
 
@@ -30,7 +30,7 @@ func NewInstanceStarted(ctblrClient CantabularClient, datasetAPIClient DatasetAP
 func (h *InstanceStarted) Handle(ctx context.Context, cfg *config.Config, e *event.InstanceStarted) error {
 	req := cantabular.GetCodebookRequest{
 		DatasetName: e.DatablobName,
-		Variables: []string{"city", "siblings"},//e.Variables,
+		Variables: []string{},//e.Variables, where do we get the list of variables from?
 		Categories: true,
 	}
 
@@ -40,12 +40,14 @@ func (h *InstanceStarted) Handle(ctx context.Context, cfg *config.Config, e *eve
 	}
 
 	fmt.Println(resp)
-	/*
+
 	ds, err := transform.CodebookToDataset(resp.Codebook)
 	if err != nil{
 		return fmt.Errorf("failed to transform codebook to dataset: %w", err)
 	}
 
+	fmt.Println(ds)
+	/*
 	if err := h.datasets.PutDataset(ctx, "", h.authToken, e.CollectionID, e.DatablobName, *ds); err != nil{
 		return fmt.Errorf("failed to save dataset: %w", err)
 	}*/
