@@ -29,8 +29,8 @@ func NewInstanceStarted(ctblrClient CantabularClient, datasetAPIClient DatasetAP
 // Handle takes a single event.
 func (h *InstanceStarted) Handle(ctx context.Context, cfg *config.Config, e *event.InstanceStarted) error {
 	req := cantabular.GetCodebookRequest{
-		DatasetName: e.DatablobName,
-		Variables: []string{},//e.Variables, where do we get the list of variables from?
+		DatasetName: "",//e.DatablobName,
+		Variables: []string{},//e.Variables, call recipe-api
 		Categories: true,
 	}
 
