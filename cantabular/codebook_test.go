@@ -3,6 +3,7 @@ package cantabular_test
 import (
 	"bytes"
 	"fmt"
+	"errors"
 	"context"
 	"io/ioutil"
 	"net/http"
@@ -15,12 +16,14 @@ import (
 
 func TestGetCodebookUnhappy(t *testing.T) {
 
-	Convey("Given a non-200 response from the /Codebook endpoint", t, func() {
+	Convey("Given a Cantabular returns an error response from the /Codebook endpoint", t, func() {
 		testCtx := context.Background()
+
+		errorMessage := "this is what cantabular errors look like"
 
 		mockHttpClient := &dphttp.ClienterMock{
 			GetFunc: func(ctx context.Context, url string) (*http.Response, error) {
-				return Response(make([]byte, 0), http.StatusNotFound), nil
+				return Response(testErrorResponse(errorMessage), http.StatusNotFound), nil
 			},
 		}
 
@@ -36,6 +39,35 @@ func TestGetCodebookUnhappy(t *testing.T) {
 			Convey("Then the expected status code should be recoverable from the error", func() {
 				So(cb, ShouldBeNil)
 				So(cantabular.StatusCode(err), ShouldEqual, http.StatusNotFound)
+			})
+
+			Convey("Then returned error messaage should be extracted correctly", func() {
+				So(err.Error(), ShouldEqual, errorMessage)
+			})
+		})
+	})
+
+	Convey("Given a Cantabular fails to respond", t, func() {
+		testCtx := context.Background()
+
+		mockHttpClient := &dphttp.ClienterMock{
+			GetFunc: func(ctx context.Context, url string) (*http.Response, error) {
+				return nil, errors.New("server failed to respond")
+			},
+		}
+
+		cantabularClient := cantabular.NewClient(
+			mockHttpClient,
+			cantabular.Config{},
+		)
+
+		Convey("When the GetCodebook method is called", func() {
+			req := cantabular.GetCodebookRequest{}
+			cb, err := cantabularClient.GetCodebook(testCtx, req)
+
+			Convey("Then the status code 500 should be recoverable from the error", func() {
+				So(cb, ShouldBeNil)
+				So(cantabular.StatusCode(err), ShouldEqual, http.StatusInternalServerError)
 			})
 		})
 	})
@@ -88,6 +120,10 @@ func Response(body []byte, statusCode int) *http.Response {
 		StatusCode: statusCode,
 		Body:       readCloser,
 	}
+}
+
+func testErrorResponse(errorMsg string) []byte{
+	return []byte(fmt.Sprintf(`{"message":"%s"}`, errorMsg))
 }
 
 func testCodebookResponse() ([]byte, error){

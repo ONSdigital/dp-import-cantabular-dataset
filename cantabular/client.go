@@ -37,7 +37,10 @@ func (c *Client) httpGet(ctx context.Context, path string) (*http.Response, erro
 
 	resp, err := c.ua.Get(ctx, path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to make request: %w", err)
+		return nil, &Error{
+			err: fmt.Errorf("failed to make request: %w", err),
+			statusCode: http.StatusInternalServerError,
+		}
 	}
 
 	return resp, nil
