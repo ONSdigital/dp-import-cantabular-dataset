@@ -26,7 +26,7 @@ func Consume(ctx context.Context, cg kafka.IConsumerGroup, h Handler, cfg *confi
 				if err := processMessage(context.Background(), msg, h, cfg); err != nil{
 					log.Error(ctx, "failed to process message", err, log.Data{
 						"status_code": statusCode(err),
-						"log_data": logData(err),
+						"log_data": unwrapLogData(err),
 					})
 				}
 

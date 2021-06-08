@@ -13,7 +13,6 @@ import (
 type Codebook []Variable
 
 // GetCodebook gets a Codebook from cantabular.
-// TODO: Should this return the entire CodebookResponse or just the Codebook?
 func (c *Client) GetCodebook(ctx context.Context, req GetCodebookRequest) (*GetCodebookResponse, error){
 	var vars string
 	for _, v := range req.Variables{

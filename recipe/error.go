@@ -7,8 +7,9 @@ import (
 
 // Error is the package's error type
 type Error struct{
-	err error
+	err        error
 	statusCode int
+	logData    map[string]interface{}
 }
 
 // Error implements the standard Go error
@@ -33,4 +34,8 @@ func StatusCode(err error) int{
 	}
 
 	return http.StatusInternalServerError
+}
+
+func (e *Error) LogData() map[string]interface{}{
+	return e.logData
 }

@@ -2,6 +2,7 @@ package recipe
 
 import(
 	"context"
+	"io/ioutil"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -14,7 +15,7 @@ import(
 func (c *Client) Get(ctx context.Context, id string) (*models.Recipe, error) {
 	url := fmt.Sprintf("%s/recipes/%s", c.host, id)
 
-	log.Info(ctx, "Getting recipe from recipe-api", log.Data{"id": id, "url": url})
+	log.Info(ctx, "Getting recipe from recipe-api", log.Data{"recipe_id": id, "url": url})
 
 	res, err := c.httpGet(ctx, url)
 	if err != nil {
@@ -27,11 +28,22 @@ func (c *Client) Get(ctx context.Context, id string) (*models.Recipe, error) {
 		return nil, c.errorResponse(res)
 	}
 
-	var r models.Recipe
-	if err = json.NewDecoder(res.Body).Decode(&r); err != nil {
+	b, err := ioutil.ReadAll(res.Body)
+	if err != nil{
 		return nil, &Error{
-			err: fmt.Errorf("failed to decode response from recipe-api: %s", err),
+			err: fmt.Errorf("failed to read response from recipe-api: %s", err),
 			statusCode: res.StatusCode,
+		}
+	}
+
+	var r models.Recipe
+	if err = json.Unmarshal(b, &r); err != nil {
+		return nil, &Error{
+			err: fmt.Errorf("failed to unmarshal response from recipe-api: %s", err),
+			statusCode: res.StatusCode,
+			logData: map[string]interface{}{
+				"response_body": string(b),
+			},
 		}
 	}
 

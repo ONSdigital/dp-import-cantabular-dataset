@@ -55,7 +55,7 @@ func (h *InstanceStarted) Handle(ctx context.Context, cfg *config.Config, e *eve
 	log.Info(ctx, "Successfully got codelists", log.Data{"num_codelists": len(codelists)})
 
 	req := cantabular.GetCodebookRequest{
-		DatasetName: r.CantabularBlob,
+		DatasetName: "Example",// r.CantabularBlob,
 		Variables: codelists,
 		Categories: false,
 	}
@@ -65,7 +65,10 @@ func (h *InstanceStarted) Handle(ctx context.Context, cfg *config.Config, e *eve
 		return fmt.Errorf("failed to get codebook from Cantabular: %w", err)
 	}
 
-	log.Info(ctx, "Successfully got Codebook", log.Data{"codebook": resp})
+	log.Info(ctx, "Successfully got Codebook", log.Data{
+		"datablob": resp.Dataset,
+		"num_variables": len(resp.Codebook),
+	})
 
 	ds, err := transform.CodebookToDataset(resp.Codebook)
 	if err != nil{
