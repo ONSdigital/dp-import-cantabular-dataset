@@ -14,7 +14,6 @@ import (
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
 	"github.com/cucumber/godog"
 	"github.com/rdumont/assistdog"
-	"github.com/ONSdigital/go-ns/avro"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,7 +34,6 @@ func (c *Component) iShouldReceiveAHelloworldResponse() error {
 }
 
 func (c *Component) theseHelloEventsAreConsumed(table *godog.Table) error {
-
 	observationEvents, err := c.convertToHelloEvents(table)
 	if err != nil {
 		return err
@@ -73,9 +71,8 @@ func (c *Component) convertToHelloEvents(table *godog.Table) ([]*event.InstanceS
 }
 
 func (c *Component) sendToConsumer(e *event.InstanceStarted) error {
-	s := avro.Schema{
-		Definition: schema.InstanceStarted,
-	}
+	s := schema.InstanceStarted
+
 	bytes, err := s.Marshal(e)
 	if err != nil {
 		return err

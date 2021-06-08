@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// Variable represents a 'dataset' object returned from Cantabular
+// Dataset represents a 'dataset' object returned from Cantabular
 type Dataset struct{
 	Name              string    `json:"name"`
 	Digest            string    `json:"digest"`

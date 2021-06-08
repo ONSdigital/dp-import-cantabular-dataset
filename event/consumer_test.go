@@ -13,7 +13,6 @@ import (
 
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
-	"github.com/ONSdigital/go-ns/avro"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -24,7 +23,7 @@ var (
 )
 
 var testEvent = event.InstanceStarted{
-	RecipientName: "World",
+	RecipeID: "World",
 }
 
 // kafkaStubConsumer mock which exposes Channels function returning empty channels
@@ -132,9 +131,7 @@ func TestConsume(t *testing.T) {
 
 // marshal helper method to marshal a event into a []byte
 func marshal(event event.InstanceStarted) []byte {
-	s := avro.Schema{
-		Definition: schema.InstanceStarted,
-	}
+	s := schema.InstanceStarted
 
 	bytes, err := s.Marshal(event)
 	So(err, ShouldBeNil)

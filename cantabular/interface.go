@@ -1,5 +1,7 @@
 package cantabular
 
+//go:generate moq -out mock/http-client.go . httpClient
+
 import (
 	"context"
 	"net/http"

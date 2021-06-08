@@ -22,8 +22,8 @@ func (e *Error) Unwrap() error{
 }
 
 // Code returns the statusCode returned by Cantabular.
-// Begrudingly called Code rather than StatusCode but this is
-// how it is named elsewhere accross ONS services and is more useful
+// Begrudgingly called Code rather than StatusCode but this is
+// how it is named elsewhere across ONS services and is more useful
 // being consistent
 func (e *Error) Code() int{
 	return e.statusCode
