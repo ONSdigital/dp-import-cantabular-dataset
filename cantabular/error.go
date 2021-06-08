@@ -16,6 +16,11 @@ func (e *Error) Error() string {
 	return e.err.Error()
 }
 
+// Unwrap implements Go error unwrapping
+func (e *Error) Unwrap() error{
+	return e.err
+}
+
 // Code returns the statusCode returned by Cantabular.
 // Begrudingly called Code rather than StatusCode but this is
 // how it is named elsewhere accross ONS services and is more useful

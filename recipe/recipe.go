@@ -8,14 +8,11 @@ import(
 	"net/http"
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/models"
-	"github.com/ONSdigital/log.go/v2/log"
 )
 
 // Get Recipe from an ID
 func (c *Client) Get(ctx context.Context, id string) (*models.Recipe, error) {
 	url := fmt.Sprintf("%s/recipes/%s", c.host, id)
-
-	log.Info(ctx, "Getting recipe from recipe-api", log.Data{"recipe_id": id, "url": url})
 
 	res, err := c.httpGet(ctx, url)
 	if err != nil {

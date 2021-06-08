@@ -22,7 +22,7 @@ func NewClient(ua httpClient, cfg Config) *Client{
 	}
 }
 
-// errorResponse handles dealing with an error response from Cantabular
+// errorResponse handles dealing with an error response from the Recipe API
 func (c *Client) errorResponse(res *http.Response) error {
 	b, err := ioutil.ReadAll(res.Body)
 	if err != nil{

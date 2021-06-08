@@ -1,6 +1,6 @@
 package models
 
-// File temporarilly copied from dp-recipe-api v2 until v2 is importable
+// File copied from dp-recipe-api v2
 
 import (
 	"context"

@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"encoding/json"
-
-	"github.com/ONSdigital/log.go/v2/log"
 )
 
 // Variable represents a 'codebook' object returned from Cantabular
@@ -20,8 +18,6 @@ func (c *Client) GetCodebook(ctx context.Context, req GetCodebookRequest) (*GetC
 	}
 
 	url := fmt.Sprintf("%s/v8/codebook/%s?cats=%v%s", c.host, req.DatasetName, req.Categories, vars)
-
-	log.Info(ctx, "Getting Codebook from Cantabular API", log.Data{"url": url, "request": fmt.Sprintf("%+v", req)})
 
 	res, err := c.httpGet(ctx, url)
 	if err != nil{

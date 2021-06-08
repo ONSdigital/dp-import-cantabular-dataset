@@ -17,6 +17,10 @@ func (e *Error) LogData() map[string]interface{}{
 	return e.logData
 }
 
+func (e *Error) Unwrap() error{
+	return e.err
+}
+
 // statusCode returns a statusCode from an error if there is one
 func statusCode(err error) int{
 	var cerr coder

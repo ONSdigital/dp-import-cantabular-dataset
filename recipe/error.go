@@ -17,12 +17,20 @@ func (e *Error) Error() string {
 	return e.err.Error()
 }
 
-// Code returns the statusCode returned by Cantabular.
-// Begrudingly called Code rather than StatusCode but this is
-// how it is named elsewhere accross ONS services and is more useful
-// being consistent
+// Unwrap implements Go error unwrapping
+func (e *Error) Unwrap() error{
+	return e.err
+}
+
+// Code returns the statusCode returned by the Recipe API.
 func (e *Error) Code() int{
 	return e.statusCode
+}
+
+// LogData implemented the DataLogger interface and allows
+// log data to be embedded in and retrieved from an error
+func (e *Error) LogData() map[string]interface{}{
+	return e.logData
 }
 
 // StatusCode is a callback function that allows you to extract
@@ -34,8 +42,4 @@ func StatusCode(err error) int{
 	}
 
 	return http.StatusInternalServerError
-}
-
-func (e *Error) LogData() map[string]interface{}{
-	return e.logData
 }
