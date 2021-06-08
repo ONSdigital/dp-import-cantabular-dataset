@@ -2,13 +2,13 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/service"
 	"github.com/ONSdigital/log.go/log"
-	"github.com/pkg/errors"
 )
 
 const serviceName = "dp-import-cantabular-dataset"
@@ -47,7 +47,7 @@ func run(ctx context.Context) error {
 	// Run the service
 	svc := service.New()
 	if err := svc.Init(ctx, cfg, BuildTime, GitCommit, Version); err != nil {
-		return errors.Wrap(err, "running service failed")
+		return fmt.Errorf("running service failed with error: %w", err)
 	}
 	svc.Start(ctx, svcErrors)
 

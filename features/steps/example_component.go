@@ -2,6 +2,7 @@ package steps
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 
@@ -13,7 +14,6 @@ import (
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
 	dphttp "github.com/ONSdigital/dp-net/http"
-	"github.com/pkg/errors"
 )
 
 type Component struct {
@@ -36,7 +36,7 @@ func NewComponent() *Component {
 
 	cfg, err := config.Get()
 	if err != nil {
-		panic(errors.Wrap(err, "unexpected config error in NewComponent"))
+		panic(fmt.Errorf("unexpected config error in NewComponent: %w", err))
 	}
 
 	c.cfg = cfg
@@ -48,7 +48,7 @@ func NewComponent() *Component {
 	c.svc = &service.Service{}
 	err = c.svc.Init(context.Background(), cfg, "", "", "")
 	if err != nil {
-		panic(errors.Wrap(err, "unexpected service Init error in NewComponent"))
+		panic(fmt.Errorf("unexpected service Init error in NewComponent: %w", err))
 	}
 
 	return c

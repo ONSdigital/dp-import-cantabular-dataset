@@ -12,7 +12,6 @@ import (
 	serviceMock "github.com/ONSdigital/dp-import-cantabular-dataset/service/mock"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
-	"github.com/pkg/errors"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -24,10 +23,10 @@ var (
 )
 
 var (
-	errKafkaConsumer = errors.New("Kafka consumer error")
-	errHealthcheck   = errors.New("healthCheck error")
-	errServer        = errors.New("HTTP Server error")
-	errAddCheck      = errors.New("healthcheck add check error")
+	errKafkaConsumer = fmt.Errorf("kafka consumer error")
+	errHealthcheck   = fmt.Errorf("healthCheck error")
+	errServer        = fmt.Errorf("HTTP Server error")
+	errAddCheck      = fmt.Errorf("healthcheck add check error")
 )
 
 func TestInit(t *testing.T) {
@@ -200,7 +199,7 @@ func TestClose(t *testing.T) {
 		serverMock := &serviceMock.HTTPServerMock{
 			ShutdownFunc: func(ctx context.Context) error {
 				if !hcStopped {
-					return errors.New("Server stopped before healthcheck")
+					return fmt.Errorf("Server stopped before healthcheck")
 				}
 				return nil
 			},

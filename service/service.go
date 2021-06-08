@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
@@ -11,7 +12,6 @@ import (
 	dphttp "github.com/ONSdigital/dp-net/http"
 	"github.com/ONSdigital/log.go/log"
 	"github.com/gorilla/mux"
-	"github.com/pkg/errors"
 )
 
 // Service contains all the configs, server and clients to run the event handler service
@@ -83,7 +83,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 		return err
 	}
 	if err := registerCheckers(ctx, svc.healthCheck, svc.consumer); err != nil {
-		return errors.Wrap(err, "unable to register checkers")
+		return fmt.Errorf("unable to register checkers: %w", err)
 	}
 
 	// Get HTTP Server with collectionID checkHeader
@@ -109,7 +109,7 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 	// Run the http server in a new go-routine
 	go func() {
 		if err := svc.server.ListenAndServe(); err != nil {
-			svcErrors <- errors.Wrap(err, "failure in http listen and serve")
+			svcErrors <- fmt.Errorf("failure in http listen and serve: %w", err)
 		}
 	}()
 }
@@ -171,7 +171,7 @@ func (svc *Service) Close(ctx context.Context) error {
 
 	// other error
 	if hasShutdownError {
-		err := errors.New("failed to shutdown gracefully")
+		err := fmt.Errorf("failed to shutdown gracefully")
 		log.Event(ctx, "failed to shutdown gracefully ", log.ERROR, log.Error(err))
 		return err
 	}
@@ -193,7 +193,7 @@ func registerCheckers(ctx context.Context,
 	}
 
 	if hasErrors {
-		return errors.New("Error(s) registering checkers for healthcheck")
+		return fmt.Errorf("Error(s) registering checkers for healthcheck")
 	}
 	return nil
 }
