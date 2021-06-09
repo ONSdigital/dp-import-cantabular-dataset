@@ -32,6 +32,10 @@ func (c *Client) errorResponse(res *http.Response) error {
 		}
 	}
 
+	if len(b) == 0{
+		b = []byte("[response body empty]")
+	}
+
 	return &Error{
 		err: fmt.Errorf("error response from recipe-api: %v", string(b)),
 		statusCode: res.StatusCode,
