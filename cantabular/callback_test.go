@@ -1,8 +1,9 @@
 package cantabular
+
 import (
 	"net/http"
-	"errors"
 	"fmt"
+	"errors"
 	"testing"
 
 	"github.com/ONSdigital/log.go/v2/log"
@@ -106,6 +107,7 @@ func TestCallbackHappy(t *testing.T) {
 			logData: log.Data{
 				"log":"data",
 				"duplicate": "duplicate_data1",
+				"request_id": "ADB45F",
 			},
 		}
 
@@ -114,6 +116,7 @@ func TestCallbackHappy(t *testing.T) {
 			logData: log.Data{
 				"additional": "data",
 				"duplicate": "duplicate_data2",
+				"request_id": "ADB45F",
 			},
 		}
 
@@ -122,6 +125,7 @@ func TestCallbackHappy(t *testing.T) {
 			logData: log.Data{
 				"final": "data",
 				"duplicate": "duplicate_data3",
+				"request_id": "ADB45F",
 			},
 		}
 
@@ -136,6 +140,7 @@ func TestCallbackHappy(t *testing.T) {
 					"duplicate_data2",
 					"duplicate_data1",
 				},
+				"request_id": "ADB45F",
 			}
 
 			So(logData, ShouldResemble,expected)

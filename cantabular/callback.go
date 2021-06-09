@@ -42,16 +42,19 @@ func UnwrapLogData(err error) log.Data{
 	}
 
 	// flatten []log.Data into single log.Data with slice
-	// entries for duplicate keyed values
+	// entries for duplicate keyed entries, but not for duplicate
+	// key-value pairs
 	logData := log.Data{}
 	for _, d := range data{
 		for k, v := range d{
 			if val, ok := logData[k]; ok{
-				if s, ok := val.([]interface{}); ok {
-					s = append(s, v)
-					logData[k] = s
-				} else {
-					logData[k] = []interface{}{val, v}
+				if val != v{
+					if s, ok := val.([]interface{}); ok {
+						s = append(s, v)
+						logData[k] = s
+					} else {
+						logData[k] = []interface{}{val, v}
+					}
 				}
 			} else{
 				logData[k] = v
