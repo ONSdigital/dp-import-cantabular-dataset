@@ -28,7 +28,7 @@ func LogData(err error) log.Data{
 }
 
 // UnwrapLogData recursively unwraps logData from an error
-func UnwrapLogData(err error) []log.Data{
+func UnwrapLogData(err error) log.Data{
 	var data []log.Data
 
 	for err != nil && errors.Unwrap(err) != nil{
@@ -41,5 +41,23 @@ func UnwrapLogData(err error) []log.Data{
 		err = errors.Unwrap(err)
 	}
 
-	return data
+	// flatten []log.Data into single log.Data with slice
+	// entries for duplicate keyed values
+	logData := log.Data{}
+	for _, d := range data{
+		for k, v := range d{
+			if val, ok := logData[k]; ok{
+				if s, ok := val.([]interface{}); ok {
+					s = append(s, v)
+					logData[k] = s
+				} else {
+					logData[k] = []interface{}{val, v}
+				}
+			} else{
+				logData[k] = v
+			}
+		}
+	}
+
+	return logData
 }

@@ -58,17 +58,87 @@ func TestCallbackHappy(t *testing.T) {
 			},
 		}
 
+		Convey("When UnwrapLogData(err) is called", func() {
+			logData := UnwrapLogData(err3)
+			expected := log.Data{
+				"final":"data",
+				"additional":"data",
+				"log":"data",
+			}
+
+			So(logData, ShouldResemble,expected)
+		})
+	})
+
+		Convey("Given an error chain with intermittent wrapped logData", t, func() {
+		err1 := &Error{
+			err: errors.New("original error"),
+			logData: log.Data{
+				"log":"data",
+			},
+		}
+
+		err2 := &Error{
+			err: fmt.Errorf("err1: %w", err1),
+		}
+
+		err3 := &Error{
+			err: fmt.Errorf("err2: %w", err2),
+			logData: log.Data{
+				"final": "data",
+			},
+		}
 
 		Convey("When UnwrapLogData(err) is called", func() {
 			logData := UnwrapLogData(err3)
-			expected := []log.Data{
-				log.Data{"final":"data"},
-				log.Data{"additional":"data"},
-				log.Data{"log":"data"},
+			expected := log.Data{
+				"final":"data",
+				"log":"data",
 			}
-			
-			So(logData, ShouldResemble,expected)
 
+			So(logData, ShouldResemble,expected)
+		})
+	})
+
+	Convey("Given an error chain with wrapped logData with duplicate key values", t, func() {
+		err1 := &Error{
+			err: errors.New("original error"),
+			logData: log.Data{
+				"log":"data",
+				"duplicate": "duplicate_data1",
+			},
+		}
+
+		err2 := &Error{
+			err: fmt.Errorf("err1: %w", err1),
+			logData: log.Data{
+				"additional": "data",
+				"duplicate": "duplicate_data2",
+			},
+		}
+
+		err3 := &Error{
+			err: fmt.Errorf("err2: %w", err2),
+			logData: log.Data{
+				"final": "data",
+				"duplicate": "duplicate_data3",
+			},
+		}
+
+		Convey("When UnwrapLogData(err) is called", func() {
+			logData := UnwrapLogData(err3)
+			expected := log.Data{
+				"final":"data",
+				"additional":"data",
+				"log":"data",
+				"duplicate": []interface{}{
+					"duplicate_data3",
+					"duplicate_data2",
+					"duplicate_data1",
+				},
+			}
+
+			So(logData, ShouldResemble,expected)
 		})
 	})
 }
