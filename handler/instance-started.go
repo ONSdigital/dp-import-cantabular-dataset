@@ -8,12 +8,12 @@ import (
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/models"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
-	"github.com/ONSdigital/dp-import-cantabular-dataset/transform"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/cantabular"
+	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/log.go/v2/log"
 )
 
-// InstanceStarted ...
+// InstanceStarted is the handler for the InstanceStarted event
 type InstanceStarted struct {
 	ctblr      cantabularClient // *cantabular.Client
 	datasets   datasetAPIClient // *dp-api-clients-go/dataset.Client
@@ -70,12 +70,12 @@ func (h *InstanceStarted) Handle(ctx context.Context, cfg *config.Config, e *eve
 		"num_variables": len(resp.Codebook),
 	})
 
-	ds, err := transform.CodebookToDataset(resp.Codebook)
+	iReq, err := h.createInstanceRequest(resp.Codebook)
 	if err != nil{
 		return fmt.Errorf("failed to transform codebook to dataset: %w", err)
 	}
 
-	fmt.Println(ds)
+	fmt.Println(iReq)
 
 	/*
 	if err := h.datasets.PutDataset(ctx, "", h.authToken, e.CollectionID, e.DatablobName, *ds); err != nil{
@@ -114,6 +114,26 @@ func (h *InstanceStarted) getCodeListsFromInstance(i *models.Instance) ([]string
 	}
 
 	return codelists, nil
+}
+
+func (h *InstanceStarted) createInstanceRequest(cb cantabular.Codebook) (*dataset.UpdateInstance, error){
+	req := dataset.UpdateInstance{
+		Edition: "2021",
+		CSVHeader: []string{"ftb_table"},
+	}
+
+	for _, v := range cb{
+		d := dataset.VersionDimension{
+			ID: v.Name,
+			URL: fmt.Sprintf("$DATASET_API_HOST:$DATASET_API_PORT/code-lists/%s", v.Name),
+			Label: v.Label,
+			Name:v.Label,
+		}
+		req.Dimensions = append(req.Dimensions, d)
+		req.CSVHeader  = append(req.CSVHeader, v.Name)
+	}
+
+	return &req, nil
 }
 
 func (h *InstanceStarted) triggerImportDimensionOptions() error {

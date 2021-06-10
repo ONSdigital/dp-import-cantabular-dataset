@@ -2,7 +2,6 @@ package event
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"github.com/ONSdigital/log.go/v2/log"
 )

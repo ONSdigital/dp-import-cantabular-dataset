@@ -28,6 +28,7 @@ func Consume(ctx context.Context, cg kafka.IConsumerGroup, h Handler, cfg *confi
 						"status_code": statusCode(err),
 						"log_data": unwrapLogData(err),
 					})
+					// Need to send response to import-api to notify of failure.
 				}
 
 				msg.Release()
