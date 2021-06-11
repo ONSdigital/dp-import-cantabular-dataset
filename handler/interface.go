@@ -5,7 +5,7 @@ import (
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/cantabular"
-	"github.com/ONSdigital/dp-import-cantabular-dataset/models"
+	"github.com/ONSdigital/dp-api-clients-go/recipe"
 )
 
 type cantabularClient interface{
@@ -17,5 +17,5 @@ type datasetAPIClient interface{
 }
 
 type recipeAPIClient interface{
-	Get(context.Context, string) (*models.Recipe, error)
+	GetRecipe(context.Context, string, string, string) (*recipe.Recipe, error)
 }

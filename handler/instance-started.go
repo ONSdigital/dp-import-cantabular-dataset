@@ -6,10 +6,10 @@ import (
 	"errors"
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
-	"github.com/ONSdigital/dp-import-cantabular-dataset/models"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
 	"github.com/ONSdigital/dp-api-clients-go/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/recipe"
 	"github.com/ONSdigital/log.go/v2/log"
 )
 
@@ -33,7 +33,7 @@ func NewInstanceStarted(c cantabularClient, r recipeAPIClient, d datasetAPIClien
 
 // Handle takes a single event.
 func (h *InstanceStarted) Handle(ctx context.Context, cfg *config.Config, e *event.InstanceStarted) error {
-	r, err := h.recipes.Get(ctx, e.RecipeID)
+	r, err := h.recipes.GetRecipe(ctx, "", h.authToken, e.RecipeID)
 	if err != nil{
 		return fmt.Errorf("failed to get recipe: %w", err)
 	}
@@ -55,9 +55,9 @@ func (h *InstanceStarted) Handle(ctx context.Context, cfg *config.Config, e *eve
 	log.Info(ctx, "Successfully got codelists", log.Data{"num_codelists": len(codelists)})
 
 	req := cantabular.GetCodebookRequest{
-		DatasetName: "Example",// r.CantabularBlob,
+		DatasetName: r.CantabularBlob, // "e.g. 'Example' or 'Teaching-Dataset'"
 		Variables: codelists,
-		Categories: false,
+		Categories: true,
 	}
 
 	resp, err := h.ctblr.GetCodebook(ctx, req)
@@ -69,6 +69,8 @@ func (h *InstanceStarted) Handle(ctx context.Context, cfg *config.Config, e *eve
 		"datablob": resp.Dataset,
 		"num_variables": len(resp.Codebook),
 	})
+
+	// Should be implemented correctly up to here, beyond this is WIP
 
 	iReq, err := h.createInstanceRequest(resp.Codebook)
 	if err != nil{
@@ -89,7 +91,7 @@ func (h *InstanceStarted) Handle(ctx context.Context, cfg *config.Config, e *eve
 	return nil
 }
 
-func (h *InstanceStarted) getInstanceFromRecipe(ctx context.Context, r *models.Recipe) (*models.Instance, error){
+func (h *InstanceStarted) getInstanceFromRecipe(ctx context.Context, r *recipe.Recipe) (*recipe.Instance, error){
 	if len(r.OutputInstances) < 1{
 		return nil, errors.New("no instances found in recipe")
 	}
@@ -103,7 +105,7 @@ func (h *InstanceStarted) getInstanceFromRecipe(ctx context.Context, r *models.R
 	return &r.OutputInstances[0], nil
 }
 
-func (h *InstanceStarted) getCodeListsFromInstance(i *models.Instance) ([]string, error){
+func (h *InstanceStarted) getCodeListsFromInstance(i *recipe.Instance) ([]string, error){
 	if len(i.CodeLists) < 1{
 		return nil, fmt.Errorf("no code-lists (dimensions) found in instance")
 	}
