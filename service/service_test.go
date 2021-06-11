@@ -24,6 +24,7 @@ var (
 
 var (
 	errKafkaConsumer = fmt.Errorf("kafka consumer error")
+	errKafkaProducer = fmt.Errorf("kafka producer error")
 	errHealthcheck   = fmt.Errorf("healthCheck error")
 	errServer        = fmt.Errorf("HTTP Server error")
 	errAddCheck      = fmt.Errorf("healthcheck add check error")
@@ -39,6 +40,11 @@ func TestInit(t *testing.T) {
 		consumerMock := &kafkatest.IConsumerGroupMock{}
 		GetKafkaConsumer = func(ctx context.Context, cfg *config.Config) (kafka.IConsumerGroup, error) {
 			return consumerMock, nil
+		}
+
+		producerMock := &kafkatest.IProducerMock{}
+		GetKafkaProducer = func(ctx context.Context, cfg *config.Config) (kafka.IProducer, error) {
+			return producerMock, nil
 		}
 
 		hcMock := &serviceMock.HealthCheckerMock{
@@ -71,6 +77,22 @@ func TestInit(t *testing.T) {
 			})
 		})
 
+		Convey("Given that initialising Kafka producer returns an error", func() {
+			GetKafkaProducer = func(ctx context.Context, cfg *config.Config) (kafka.IProducer, error) {
+				return nil, errKafkaProducer
+			}
+
+			Convey("Then service Init fails with the same error and no further initialisations are attempted", func() {
+				err := svc.Init(ctx, cfg, testBuildTime, testGitCommit, testVersion)
+				So(err, ShouldResemble, errKafkaProducer)
+				So(svc.cfg, ShouldResemble, cfg)
+
+				Convey("And no checkers are registered ", func() {
+					So(hcMock.AddCheckCalls(), ShouldHaveLength, 0)
+				})
+			})
+		})
+
 		Convey("Given that initialising healthcheck returns an error", func() {
 			GetHealthCheck = func(cfg *config.Config, buildTime, gitCommit, version string) (HealthChecker, error) {
 				return nil, errHealthcheck
@@ -93,13 +115,14 @@ func TestInit(t *testing.T) {
 
 			Convey("Then service Init fails with the expected error", func() {
 				err := svc.Init(ctx, cfg, testBuildTime, testGitCommit, testVersion)
-				So(err.Error(), ShouldResemble, "unable to register checkers: Error(s) registering checkers for healthcheck")
+				So(err.Error(), ShouldResemble, "unable to register checkers: error(s) registering checkers for healthcheck")
 				So(svc.cfg, ShouldResemble, cfg)
 				So(svc.consumer, ShouldResemble, consumerMock)
 
 				Convey("But all checks try to register", func() {
-					So(hcMock.AddCheckCalls(), ShouldHaveLength, 1)
+					So(hcMock.AddCheckCalls(), ShouldHaveLength, 2)
 					So(hcMock.AddCheckCalls()[0].Name, ShouldResemble, "Kafka consumer")
+					So(hcMock.AddCheckCalls()[1].Name, ShouldResemble, "Kafka producer")
 				})
 			})
 		})
@@ -113,8 +136,9 @@ func TestInit(t *testing.T) {
 				So(svc.server, ShouldResemble, serverMock)
 
 				Convey("And all checks are registered", func() {
-					So(hcMock.AddCheckCalls(), ShouldHaveLength, 1)
+					So(hcMock.AddCheckCalls(), ShouldHaveLength, 2)
 					So(hcMock.AddCheckCalls()[0].Name, ShouldResemble, "Kafka consumer")
+					So(hcMock.AddCheckCalls()[1].Name, ShouldResemble, "Kafka producer")
 				})
 			})
 		})
@@ -131,6 +155,10 @@ func TestStart(t *testing.T) {
 			ChannelsFunc: func() *kafka.ConsumerGroupChannels { return &kafka.ConsumerGroupChannels{} },
 		}
 
+		producerMock := &kafkatest.IProducerMock{
+			ChannelsFunc: func() *kafka.ProducerChannels { return &kafka.ProducerChannels{} },
+		}
+
 		hcMock := &serviceMock.HealthCheckerMock{
 			StartFunc: func(ctx context.Context) {},
 		}
@@ -143,6 +171,7 @@ func TestStart(t *testing.T) {
 			server:      serverMock,
 			healthCheck: hcMock,
 			consumer:    consumerMock,
+			producer:    producerMock,
 		}
 
 		Convey("When a service with a successful HTTP server is started", func() {
@@ -184,10 +213,25 @@ func TestClose(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		hcStopped := false
+		consumerListening := true
 
+		// kafka consumer mock, sets consumerListening when StopListeningToConsumer is called
 		consumerMock := &kafkatest.IConsumerGroupMock{
-			StopListeningToConsumerFunc: func(ctx context.Context) error { return nil },
-			CloseFunc:                   func(ctx context.Context) error { return nil },
+			StopListeningToConsumerFunc: func(ctx context.Context) error {
+				consumerListening = false
+				return nil
+			},
+			CloseFunc: func(ctx context.Context) error { return nil },
+		}
+
+		// kafka producer mock, close will fail if consumer is still listening
+		producerMock := &kafkatest.IProducerMock{
+			CloseFunc: func(ctx context.Context) error {
+				if consumerListening {
+					return fmt.Errorf("Kafka producer closed while consumer is still listening")
+				}
+				return nil
+			},
 		}
 
 		// healthcheck Stop does not depend on any other service being closed/stopped
@@ -210,6 +254,7 @@ func TestClose(t *testing.T) {
 			server:      serverMock,
 			healthCheck: hcMock,
 			consumer:    consumerMock,
+			producer:    producerMock,
 		}
 
 		Convey("Closing the service results in all the dependencies being closed in the expected order", func() {
@@ -219,6 +264,7 @@ func TestClose(t *testing.T) {
 			So(hcMock.StopCalls(), ShouldHaveLength, 1)
 			So(consumerMock.CloseCalls(), ShouldHaveLength, 1)
 			So(serverMock.ShutdownCalls(), ShouldHaveLength, 1)
+			So(producerMock.CloseCalls(), ShouldHaveLength, 1)
 		})
 
 		Convey("If services fail to stop, the Close operation tries to close all dependencies and returns an error", func() {
@@ -231,6 +277,9 @@ func TestClose(t *testing.T) {
 			serverMock.ShutdownFunc = func(ctx context.Context) error {
 				return errServer
 			}
+			producerMock.CloseFunc = func(ctx context.Context) error {
+				return errKafkaProducer
+			}
 
 			err = svc.Close(context.Background())
 			So(err, ShouldNotBeNil)
@@ -238,6 +287,7 @@ func TestClose(t *testing.T) {
 			So(consumerMock.CloseCalls(), ShouldHaveLength, 1)
 			So(hcMock.StopCalls(), ShouldHaveLength, 1)
 			So(serverMock.ShutdownCalls(), ShouldHaveLength, 1)
+			So(producerMock.CloseCalls(), ShouldHaveLength, 1)
 		})
 	})
 }

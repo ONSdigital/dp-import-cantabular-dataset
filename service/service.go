@@ -20,6 +20,7 @@ type Service struct {
 	server      HTTPServer
 	healthCheck HealthChecker
 	consumer    kafka.IConsumerGroup
+	producer    kafka.IProducer
 }
 
 // GetKafkaConsumer returns a Kafka consumer with the provided config
@@ -38,6 +39,20 @@ var GetKafkaConsumer = func(ctx context.Context, cfg *config.Config) (kafka.ICon
 		&kafka.ConsumerGroupConfig{
 			KafkaVersion: &cfg.KafkaVersion,
 			Offset:       &kafkaOffset,
+		},
+	)
+}
+
+// GetKafkaProducer returns a kafka producer with the provided config
+var GetKafkaProducer = func(ctx context.Context, cfg *config.Config) (kafka.IProducer, error) {
+	return kafka.NewProducer(
+		ctx,
+		cfg.KafkaAddr,
+		cfg.CantabularDatasetCategoryDimensionImportTopic,
+		kafka.CreateProducerChannels(),
+		&kafka.ProducerConfig{
+			KafkaVersion:    &cfg.KafkaVersion,
+			MaxMessageBytes: &cfg.KafkaMaxBytes,
 		},
 	)
 }
@@ -76,13 +91,20 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 		return err
 	}
 
+	// Get Kafka producer
+	svc.producer, err = GetKafkaProducer(ctx, cfg)
+	if err != nil {
+		log.Event(ctx, "failed to initialise kafka producer", log.FATAL, log.Error(err))
+		return err
+	}
+
 	// Get HealthCheck
 	svc.healthCheck, err = GetHealthCheck(cfg, buildTime, gitCommit, version)
 	if err != nil {
 		log.Event(ctx, "could not instantiate healthcheck", log.FATAL, log.Error(err))
 		return err
 	}
-	if err := registerCheckers(ctx, svc.healthCheck, svc.consumer); err != nil {
+	if err := svc.registerCheckers(ctx); err != nil {
 		return fmt.Errorf("unable to register checkers: %w", err)
 	}
 
@@ -100,10 +122,12 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 
 	// Start kafka error logging
 	svc.consumer.Channels().LogErrors(ctx, "error received from kafka consumer, topic: "+svc.cfg.HelloCalledTopic)
+	svc.producer.Channels().LogErrors(ctx, "error received from kafka producer, topic: "+svc.cfg.CantabularDatasetCategoryDimensionImportTopic)
 
-	// Event Handler for Kafka Consumer
+	// Start consuming Kafka messages with the Event Handler
 	event.Consume(ctx, svc.consumer, &event.HelloCalledHandler{}, svc.cfg)
 
+	// Start health checker
 	svc.healthCheck.Start(ctx)
 
 	// Run the http server in a new go-routine
@@ -150,6 +174,15 @@ func (svc *Service) Close(ctx context.Context) error {
 			log.Event(ctx, "stopped http server", log.INFO)
 		}
 
+		// If kafka producer exists, close it.
+		if svc.producer != nil {
+			if err := svc.producer.Close(ctx); err != nil {
+				log.Event(ctx, "error closing kafka producer", log.ERROR, log.Error(err))
+				hasShutdownError = true
+			}
+			log.Event(ctx, "closed kafka producer", log.INFO)
+		}
+
 		// If kafka consumer exists, close it.
 		if svc.consumer != nil {
 			if err := svc.consumer.Close(ctx); err != nil {
@@ -181,19 +214,22 @@ func (svc *Service) Close(ctx context.Context) error {
 }
 
 // registerCheckers adds the checkers for the service clients to the health check object.
-func registerCheckers(ctx context.Context,
-	hc HealthChecker,
-	consumer kafka.IConsumerGroup) (err error) {
+func (svc *Service) registerCheckers(ctx context.Context) (err error) {
 
 	hasErrors := false
 
-	if err := hc.AddCheck("Kafka consumer", consumer.Checker); err != nil {
+	if err := svc.healthCheck.AddCheck("Kafka consumer", svc.consumer.Checker); err != nil {
 		hasErrors = true
-		log.Event(ctx, "error adding check for Kafka", log.ERROR, log.Error(err))
+		log.Event(ctx, "error adding check for Kafka consumer", log.ERROR, log.Error(err))
+	}
+
+	if err := svc.healthCheck.AddCheck("Kafka producer", svc.producer.Checker); err != nil {
+		hasErrors = true
+		log.Event(ctx, "error adding check for Kafka producer", log.ERROR, log.Error(err))
 	}
 
 	if hasErrors {
-		return fmt.Errorf("Error(s) registering checkers for healthcheck")
+		return fmt.Errorf("error(s) registering checkers for healthcheck")
 	}
 	return nil
 }
