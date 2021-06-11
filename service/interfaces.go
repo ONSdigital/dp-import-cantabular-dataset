@@ -5,20 +5,13 @@ import (
 	"net/http"
 
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
-	kafka "github.com/ONSdigital/dp-kafka/v2"
+	"github.com/ONSdigital/dp-api-clients-go/cantabular"
+	"github.com/ONSdigital/dp-api-clients-go/recipe"
+
 )
 
-//go:generate moq -out mock/initialiser.go -pkg mock . Initialiser
 //go:generate moq -out mock/server.go -pkg mock . HTTPServer
 //go:generate moq -out mock/healthCheck.go -pkg mock . HealthChecker
-
-// Initialiser defines the methods to initialise external services
-type Initialiser interface {
-	DoGetHTTPServer(bindAddr string, router http.Handler) HTTPServer
-	DoGetHealthCheck(cfg *config.Config, buildTime, gitCommit, version string) (HealthChecker, error)
-	DoGetKafkaConsumer(ctx context.Context, cfg *config.Config) (kafka.IConsumerGroup, error)
-}
 
 // HTTPServer defines the required methods from the HTTP server
 type HTTPServer interface {
@@ -34,7 +27,14 @@ type HealthChecker interface {
 	AddCheck(name string, checker healthcheck.Checker) (err error)
 }
 
-// EventConsumer defines the required methods from event Consumer
-type EventConsumer interface {
-	Close(ctx context.Context) (err error)
+type cantabularClient interface{
+	GetCodebook(context.Context, cantabular.GetCodebookRequest) (*cantabular.GetCodebookResponse, error)
+}
+
+type datasetAPIClient interface{
+	// Not sure which calls we will be making yet
+}
+
+type recipeAPIClient interface{
+	GetRecipe(context.Context, string, string, string) (*recipe.Recipe, error)
 }

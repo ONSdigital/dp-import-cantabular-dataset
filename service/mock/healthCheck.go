@@ -6,14 +6,9 @@ package mock
 import (
 	"context"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	"github.com/ONSdigital/dp-import-cantabular-dataset/service"
 	"net/http"
 	"sync"
 )
-
-// Ensure, that HealthCheckerMock does implement service.HealthChecker.
-// If this is not the case, regenerate this file with moq.
-var _ service.HealthChecker = &HealthCheckerMock{}
 
 // HealthCheckerMock is a mock implementation of service.HealthChecker.
 //
