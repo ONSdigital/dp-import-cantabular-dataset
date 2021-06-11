@@ -19,6 +19,9 @@ type Config struct {
 	InstanceStartedGroup       string        `envconfig:"KAFKA_DATASET_INSTANCE_STARTED_GROUP"`
 	InstanceStartedTopic       string        `envconfig:"KAFKA_DATASET_INSTANCE_STARTED_TOPIC"`
 	OutputFilePath             string        `envconfig:"OUTPUT_FILE_PATH"`
+	DatasetAPIURL              string        `envconfig:"DATASET_API_URL"`
+	RecipeAPIURL               string       ` envconfig:"RECIPE_API_URL"`
+	CantabularURL              string        `envconfig:"CANTABULAR_URL"`
 }
 
 var cfg *Config
@@ -42,6 +45,9 @@ func Get() (*Config, error) {
 		InstanceStartedGroup:       "dp-import-cantabular-dataset",
 		InstanceStartedTopic:       "cantabular-dataset-instance-started",
 		OutputFilePath:             "/tmp/helloworld.txt",
+		DatasetAPIURL:              "http://localhost:22000",
+		RecipeAPIURL:               "http://localhost:22300",
+		CantabularURL:              "http://localhost:8491",
 	}
 
 	return cfg, envconfig.Process("", cfg)
