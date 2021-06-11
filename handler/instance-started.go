@@ -8,15 +8,15 @@ import (
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/models"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
-	"github.com/ONSdigital/dp-import-cantabular-dataset/cantabular"
+	"github.com/ONSdigital/dp-api-clients-go/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/log.go/v2/log"
 )
 
 // InstanceStarted is the handler for the InstanceStarted event
 type InstanceStarted struct {
-	ctblr      cantabularClient // *cantabular.Client
-	datasets   datasetAPIClient // *dp-api-clients-go/dataset.Client
+	ctblr      cantabularClient
+	datasets   datasetAPIClient
 	recipes    recipeAPIClient
 	authToken string
 	// Kafka Producer
