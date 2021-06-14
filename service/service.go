@@ -108,7 +108,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 		return fmt.Errorf("could not instantiate healthcheck: %w", err)
 	}
 
-	if err := svc.registerCheckers(ctx); err != nil {
+	if err := svc.registerCheckers(); err != nil {
 		return fmt.Errorf("unable to register checkers: %w", err)
 	}
 
@@ -217,7 +217,7 @@ func (svc *Service) Close(ctx context.Context) error {
 }
 
 // registerCheckers adds the checkers for the service clients to the health check object.
-func (svc *Service) registerCheckers(ctx context.Context) error {
+func (svc *Service) registerCheckers() error {
 	hc := svc.healthCheck
 
 	if err := hc.AddCheck("Kafka consumer", svc.consumer.Checker); err != nil {
