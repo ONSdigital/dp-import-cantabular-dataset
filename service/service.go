@@ -9,6 +9,7 @@ import (
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
 	"github.com/ONSdigital/dp-api-clients-go/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/recipe"
+	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/handler"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
@@ -24,9 +25,9 @@ type Service struct {
 	server           HTTPServer
 	healthCheck      HealthChecker
 	consumer         kafka.IConsumerGroup
-	cantabularClient cantabularClient
-	datasetAPIClient datasetAPIClient
-	recipeAPIClient  recipeAPIClient
+	cantabularClient CantabularClient
+	datasetAPIClient DatasetAPIClient
+	recipeAPIClient  RecipeAPIClient
 }
 
 // GetKafkaConsumer returns a Kafka consumer with the provided config
@@ -66,37 +67,48 @@ var GetHealthCheck = func(cfg *config.Config, buildTime, gitCommit, version stri
 	return &hc, nil
 }
 
+var GetCantabularClient = func (cfg *config.Config) CantabularClient {
+	return cantabular.NewClient(
+		dphttp.NewClient(),
+		cantabular.Config{
+			Host: cfg.CantabularURL,
+		},
+	)
+}
+
+var GetRecipeAPIClient = func (cfg *config.Config) RecipeAPIClient{
+	return recipe.NewClient(cfg.RecipeAPIURL)
+}
+
+var GetDatasetAPIClient = func (cfg *config.Config) DatasetAPIClient{
+	return dataset.NewAPIClient(cfg.DatasetAPIURL)
+}
+
 // New creates a new empty service
 func New() *Service {
 	return &Service{}
 }
 
 // Init initialises all the service dependencies, including healthcheck with checkers, api and middleware
-func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, gitCommit, version string) (err error) {
+func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, gitCommit, version string) error {
+	var err error
 	svc.cfg = cfg
 
 	// Get Kafka consumer
-	svc.consumer, err = GetKafkaConsumer(ctx, cfg)
-	if err != nil {
-		log.Event(ctx, "failed to initialise kafka consumer", log.FATAL, log.Error(err))
-		return err
+	if svc.consumer, err = GetKafkaConsumer(ctx, cfg); err != nil {
+		return fmt.Errorf("failed to initialise kafka consumer: %w", err)
 	}
 
-	ua := dphttp.NewClient()
-
-	svc.cantabularClient = cantabular.NewClient(ua, cantabular.Config{
-		Host:   cfg.CantabularURL,
-	})
-	svc.recipeAPIClient = recipe.NewClient(cfg.RecipeAPIURL)
-	svc.datasetAPIClient = recipe.NewClient(cfg.DatasetAPIURL)
+	svc.cantabularClient = GetCantabularClient(cfg)
+	svc.recipeAPIClient = GetRecipeAPIClient(cfg)
+	svc.datasetAPIClient = GetDatasetAPIClient(cfg)
 
 	// Get HealthCheck
-	svc.healthCheck, err = GetHealthCheck(cfg, buildTime, gitCommit, version)
-	if err != nil {
-		log.Event(ctx, "could not instantiate healthcheck", log.FATAL, log.Error(err))
-		return err
+	if svc.healthCheck, err = GetHealthCheck(cfg, buildTime, gitCommit, version); err != nil {
+		return fmt.Errorf("could not instantiate healthcheck: %w", err)
 	}
-	if err := registerCheckers(ctx, svc.healthCheck, svc.consumer); err != nil {
+
+	if err := svc.registerCheckers(ctx); err != nil {
 		return fmt.Errorf("unable to register checkers: %w", err)
 	}
 
@@ -205,19 +217,24 @@ func (svc *Service) Close(ctx context.Context) error {
 }
 
 // registerCheckers adds the checkers for the service clients to the health check object.
-func registerCheckers(ctx context.Context,
-	hc HealthChecker,
-	consumer kafka.IConsumerGroup) (err error) {
+func (svc *Service) registerCheckers(ctx context.Context) error {
+	hc := svc.healthCheck
 
-	hasErrors := false
-
-	if err := hc.AddCheck("Kafka consumer", consumer.Checker); err != nil {
-		hasErrors = true
-		log.Event(ctx, "error adding check for Kafka", log.ERROR, log.Error(err))
+	if err := hc.AddCheck("Kafka consumer", svc.consumer.Checker); err != nil {
+		return fmt.Errorf("error adding check for Kafka: %w", err)
 	}
 
-	if hasErrors {
-		return fmt.Errorf("Error(s) registering checkers for healthcheck")
+	if err := hc.AddCheck("Recipe API client", svc.recipeAPIClient.Checker); err != nil {
+		return fmt.Errorf("error adding check for Recipe API Client: %w", err)
 	}
+
+	if err := hc.AddCheck("Cantabular client", svc.cantabularClient.Checker); err != nil {
+		return fmt.Errorf("error adding check for Cantabular Client: %w", err)
+	}
+
+	if err := hc.AddCheck("Dataset API client", svc.datasetAPIClient.Checker); err != nil {
+		return fmt.Errorf("error adding check for Dataset API Client: %w", err)
+	}
+
 	return nil
 }

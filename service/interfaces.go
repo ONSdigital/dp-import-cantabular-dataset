@@ -11,7 +11,10 @@ import (
 )
 
 //go:generate moq -out mock/server.go -pkg mock . HTTPServer
-//go:generate moq -out mock/healthCheck.go -pkg mock . HealthChecker
+//go:generate moq -out mock/health-check.go -pkg mock . HealthChecker
+//go:generate moq -out mock/canabular-client.go -pkg mock . CantabularClient
+//go:generate moq -out mock/dataset-api-client.go -pkg mock . DatasetAPIClient
+//go:generate moq -out mock/recipe-api-client.go -pkg mock . RecipeAPIClient
 
 // HTTPServer defines the required methods from the HTTP server
 type HTTPServer interface {
@@ -27,14 +30,17 @@ type HealthChecker interface {
 	AddCheck(name string, checker healthcheck.Checker) (err error)
 }
 
-type cantabularClient interface{
+type CantabularClient interface{
 	GetCodebook(context.Context, cantabular.GetCodebookRequest) (*cantabular.GetCodebookResponse, error)
+	Checker(context.Context, *healthcheck.CheckState) error
 }
 
-type datasetAPIClient interface{
+type DatasetAPIClient interface{
 	// Not sure which calls we will be making yet
+	Checker(context.Context, *healthcheck.CheckState) error
 }
 
-type recipeAPIClient interface{
+type RecipeAPIClient interface{
 	GetRecipe(context.Context, string, string, string) (*recipe.Recipe, error)
+	Checker(context.Context, *healthcheck.CheckState) error
 }
