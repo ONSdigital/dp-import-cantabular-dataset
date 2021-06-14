@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"sync"
@@ -59,6 +60,30 @@ func TestInit(t *testing.T) {
 			return serverMock
 		}
 
+		GetCantabularClient = func(cfg *config.Config) CantabularClient {
+			return &serviceMock.CantabularClientMock{
+				CheckerFunc: func(context.Context, *healthcheck.CheckState) error {
+					return nil
+				},
+			}
+		}
+
+		GetDatasetAPIClient = func(cfg *config.Config) DatasetAPIClient {
+			return &serviceMock.DatasetAPIClientMock{
+				CheckerFunc: func(context.Context, *healthcheck.CheckState) error {
+					return nil
+				},
+			}
+		}
+
+		GetRecipeAPIClient = func(cfg *config.Config) RecipeAPIClient {
+			return &serviceMock.RecipeAPIClientMock{
+				CheckerFunc: func(context.Context, *healthcheck.CheckState) error {
+					return nil
+				},
+			}
+		}
+
 		svc := &Service{}
 
 		Convey("Given that initialising Kafka consumer returns an error", func() {
@@ -68,7 +93,7 @@ func TestInit(t *testing.T) {
 
 			Convey("Then service Init fails with the same error and no further initialisations are attempted", func() {
 				err := svc.Init(ctx, cfg, testBuildTime, testGitCommit, testVersion)
-				So(err, ShouldResemble, errKafkaConsumer)
+				So(errors.Unwrap(err), ShouldResemble, errKafkaConsumer)
 				So(svc.cfg, ShouldResemble, cfg)
 
 				Convey("And no checkers are registered ", func() {
@@ -100,7 +125,7 @@ func TestInit(t *testing.T) {
 
 			Convey("Then service Init fails with the same error and no further initialisations are attempted", func() {
 				err := svc.Init(ctx, cfg, testBuildTime, testGitCommit, testVersion)
-				So(err, ShouldResemble, errHealthcheck)
+				So(errors.Unwrap(err), ShouldResemble, errHealthcheck)
 				So(svc.cfg, ShouldResemble, cfg)
 				So(svc.consumer, ShouldResemble, consumerMock)
 
@@ -115,14 +140,13 @@ func TestInit(t *testing.T) {
 
 			Convey("Then service Init fails with the expected error", func() {
 				err := svc.Init(ctx, cfg, testBuildTime, testGitCommit, testVersion)
-				So(err.Error(), ShouldResemble, "unable to register checkers: error(s) registering checkers for healthcheck")
+				So(err, ShouldNotBeNil)
+				So(errors.Is(err, errAddCheck), ShouldBeTrue)
 				So(svc.cfg, ShouldResemble, cfg)
 				So(svc.consumer, ShouldResemble, consumerMock)
 
-				Convey("But all checks try to register", func() {
-					So(hcMock.AddCheckCalls(), ShouldHaveLength, 2)
-					So(hcMock.AddCheckCalls()[0].Name, ShouldResemble, "Kafka consumer")
-					So(hcMock.AddCheckCalls()[1].Name, ShouldResemble, "Kafka producer")
+				Convey("And other checkers don't try to register", func() {
+					So(hcMock.AddCheckCalls(), ShouldHaveLength, 1)
 				})
 			})
 		})
@@ -136,9 +160,12 @@ func TestInit(t *testing.T) {
 				So(svc.server, ShouldResemble, serverMock)
 
 				Convey("And all checks are registered", func() {
-					So(hcMock.AddCheckCalls(), ShouldHaveLength, 2)
+					So(hcMock.AddCheckCalls(), ShouldHaveLength, 5)
 					So(hcMock.AddCheckCalls()[0].Name, ShouldResemble, "Kafka consumer")
 					So(hcMock.AddCheckCalls()[1].Name, ShouldResemble, "Kafka producer")
+					So(hcMock.AddCheckCalls()[2].Name, ShouldResemble, "Recipe API client")
+					So(hcMock.AddCheckCalls()[3].Name, ShouldResemble, "Cantabular client")
+					So(hcMock.AddCheckCalls()[4].Name, ShouldResemble, "Dataset API client")
 				})
 			})
 		})

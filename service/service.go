@@ -5,22 +5,30 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/ONSdigital/dp-api-clients-go/cantabular"
+	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/recipe"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
+	"github.com/ONSdigital/dp-import-cantabular-dataset/handler"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	dphttp "github.com/ONSdigital/dp-net/http"
 	"github.com/ONSdigital/log.go/log"
+
 	"github.com/gorilla/mux"
 )
 
 // Service contains all the configs, server and clients to run the event handler service
 type Service struct {
-	cfg         *config.Config
-	server      HTTPServer
-	healthCheck HealthChecker
-	consumer    kafka.IConsumerGroup
-	producer    kafka.IProducer
+	cfg              *config.Config
+	server           HTTPServer
+	healthCheck      HealthChecker
+	consumer         kafka.IConsumerGroup
+	producer         kafka.IProducer
+	cantabularClient CantabularClient
+	datasetAPIClient DatasetAPIClient
+	recipeAPIClient  RecipeAPIClient
 }
 
 // GetKafkaConsumer returns a Kafka consumer with the provided config
@@ -33,8 +41,8 @@ var GetKafkaConsumer = func(ctx context.Context, cfg *config.Config) (kafka.ICon
 	return kafka.NewConsumerGroup(
 		ctx,
 		cfg.KafkaAddr,
-		cfg.HelloCalledTopic,
-		cfg.HelloCalledGroup,
+		cfg.InstanceStartedTopic,
+		cfg.InstanceStartedGroup,
 		cgChannels,
 		&kafka.ConsumerGroupConfig{
 			KafkaVersion: &cfg.KafkaVersion,
@@ -74,21 +82,36 @@ var GetHealthCheck = func(cfg *config.Config, buildTime, gitCommit, version stri
 	return &hc, nil
 }
 
+var GetCantabularClient = func(cfg *config.Config) CantabularClient {
+	return cantabular.NewClient(
+		dphttp.NewClient(),
+		cantabular.Config{
+			Host: cfg.CantabularURL,
+		},
+	)
+}
+
+var GetRecipeAPIClient = func(cfg *config.Config) RecipeAPIClient {
+	return recipe.NewClient(cfg.RecipeAPIURL)
+}
+
+var GetDatasetAPIClient = func(cfg *config.Config) DatasetAPIClient {
+	return dataset.NewAPIClient(cfg.DatasetAPIURL)
+}
+
 // New creates a new empty service
 func New() *Service {
 	return &Service{}
 }
 
 // Init initialises all the service dependencies, including healthcheck with checkers, api and middleware
-func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, gitCommit, version string) (err error) {
-
+func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, gitCommit, version string) error {
+	var err error
 	svc.cfg = cfg
 
 	// Get Kafka consumer
-	svc.consumer, err = GetKafkaConsumer(ctx, cfg)
-	if err != nil {
-		log.Event(ctx, "failed to initialise kafka consumer", log.FATAL, log.Error(err))
-		return err
+	if svc.consumer, err = GetKafkaConsumer(ctx, cfg); err != nil {
+		return fmt.Errorf("failed to initialise kafka consumer: %w", err)
 	}
 
 	// Get Kafka producer
@@ -98,13 +121,17 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 		return err
 	}
 
+	// Get API clients
+	svc.cantabularClient = GetCantabularClient(cfg)
+	svc.recipeAPIClient = GetRecipeAPIClient(cfg)
+	svc.datasetAPIClient = GetDatasetAPIClient(cfg)
+
 	// Get HealthCheck
-	svc.healthCheck, err = GetHealthCheck(cfg, buildTime, gitCommit, version)
-	if err != nil {
-		log.Event(ctx, "could not instantiate healthcheck", log.FATAL, log.Error(err))
-		return err
+	if svc.healthCheck, err = GetHealthCheck(cfg, buildTime, gitCommit, version); err != nil {
+		return fmt.Errorf("could not instantiate healthcheck: %w", err)
 	}
-	if err := svc.registerCheckers(ctx); err != nil {
+
+	if err := svc.registerCheckers(); err != nil {
 		return fmt.Errorf("unable to register checkers: %w", err)
 	}
 
@@ -121,11 +148,21 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 	log.Event(ctx, "starting service...", log.INFO)
 
 	// Start kafka error logging
-	svc.consumer.Channels().LogErrors(ctx, "error received from kafka consumer, topic: "+svc.cfg.HelloCalledTopic)
+	svc.consumer.Channels().LogErrors(ctx, "error received from kafka consumer, topic: "+svc.cfg.InstanceStartedTopic)
 	svc.producer.Channels().LogErrors(ctx, "error received from kafka producer, topic: "+svc.cfg.CantabularDatasetCategoryDimensionImportTopic)
 
 	// Start consuming Kafka messages with the Event Handler
-	event.Consume(ctx, svc.consumer, &event.HelloCalledHandler{}, svc.cfg)
+	event.Consume(
+		ctx,
+		svc.consumer,
+		handler.NewInstanceStarted(
+			svc.cantabularClient,
+			svc.recipeAPIClient,
+			svc.datasetAPIClient,
+			"",
+		),
+		svc.cfg,
+	)
 
 	// Start health checker
 	svc.healthCheck.Start(ctx)
@@ -214,22 +251,28 @@ func (svc *Service) Close(ctx context.Context) error {
 }
 
 // registerCheckers adds the checkers for the service clients to the health check object.
-func (svc *Service) registerCheckers(ctx context.Context) (err error) {
+func (svc *Service) registerCheckers() (err error) {
+	hc := svc.healthCheck
 
-	hasErrors := false
-
-	if err := svc.healthCheck.AddCheck("Kafka consumer", svc.consumer.Checker); err != nil {
-		hasErrors = true
-		log.Event(ctx, "error adding check for Kafka consumer", log.ERROR, log.Error(err))
+	if err := hc.AddCheck("Kafka consumer", svc.consumer.Checker); err != nil {
+		return fmt.Errorf("error adding check for Kafka: %w", err)
 	}
 
-	if err := svc.healthCheck.AddCheck("Kafka producer", svc.producer.Checker); err != nil {
-		hasErrors = true
-		log.Event(ctx, "error adding check for Kafka producer", log.ERROR, log.Error(err))
+	if err := hc.AddCheck("Kafka producer", svc.producer.Checker); err != nil {
+		return fmt.Errorf("error adding check for Kafka producer: %w", err)
 	}
 
-	if hasErrors {
-		return fmt.Errorf("error(s) registering checkers for healthcheck")
+	if err := hc.AddCheck("Recipe API client", svc.recipeAPIClient.Checker); err != nil {
+		return fmt.Errorf("error adding check for Recipe API Client: %w", err)
 	}
+
+	if err := hc.AddCheck("Cantabular client", svc.cantabularClient.Checker); err != nil {
+		return fmt.Errorf("error adding check for Cantabular Client: %w", err)
+	}
+
+	if err := hc.AddCheck("Dataset API client", svc.datasetAPIClient.Checker); err != nil {
+		return fmt.Errorf("error adding check for Dataset API Client: %w", err)
+	}
+
 	return nil
 }

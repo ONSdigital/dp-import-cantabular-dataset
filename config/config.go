@@ -6,7 +6,6 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
-// TODO: remove hello call config options
 // Config represents service configuration for dp-import-cantabular-dataset
 type Config struct {
 	BindAddr                                      string        `envconfig:"BIND_ADDR"`
@@ -18,10 +17,13 @@ type Config struct {
 	KafkaOffsetOldest                             bool          `envconfig:"KAFKA_OFFSET_OLDEST"`
 	KafkaNumWorkers                               int           `envconfig:"KAFKA_NUM_WORKERS"`
 	KafkaMaxBytes                                 int           `envconfig:"KAFKA_MAX_BYTES"`
-	HelloCalledGroup                              string        `envconfig:"HELLO_CALLED_GROUP"`
-	HelloCalledTopic                              string        `envconfig:"HELLO_CALLED_TOPIC"`
+	InstanceStartedGroup                          string        `envconfig:"KAFKA_DATASET_INSTANCE_STARTED_GROUP"`
+	InstanceStartedTopic                          string        `envconfig:"KAFKA_DATASET_INSTANCE_STARTED_TOPIC"`
 	CantabularDatasetCategoryDimensionImportTopic string        `envconfig:"CANTABULAR_DATASET_CATEGORY_DIMENSION_IMPORT"`
 	OutputFilePath                                string        `envconfig:"OUTPUT_FILE_PATH"`
+	DatasetAPIURL                                 string        `envconfig:"DATASET_API_URL"`
+	RecipeAPIURL                                  string        ` envconfig:"RECIPE_API_URL"`
+	CantabularURL                                 string        `envconfig:"CANTABULAR_URL"`
 }
 
 var cfg *Config
@@ -43,10 +45,13 @@ func Get() (*Config, error) {
 		KafkaOffsetOldest:          true,
 		KafkaNumWorkers:            1,
 		KafkaMaxBytes:              2000000,
-		HelloCalledGroup:           "dp-import-cantabular-dataset",
-		HelloCalledTopic:           "hello-called",
+		InstanceStartedGroup:       "dp-import-cantabular-dataset",
+		InstanceStartedTopic:       "cantabular-dataset-instance-started",
 		CantabularDatasetCategoryDimensionImportTopic: "cantabular-dataset-category-dimension-import",
 		OutputFilePath: "/tmp/helloworld.txt",
+		DatasetAPIURL:  "http://localhost:22000",
+		RecipeAPIURL:   "http://localhost:22300",
+		CantabularURL:  "http://localhost:8491",
 	}
 
 	return cfg, envconfig.Process("", cfg)
