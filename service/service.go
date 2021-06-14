@@ -251,11 +251,11 @@ func (svc *Service) Close(ctx context.Context) error {
 }
 
 // registerCheckers adds the checkers for the service clients to the health check object.
-func (svc *Service) registerCheckers() (err error) {
+func (svc *Service) registerCheckers() error {
 	hc := svc.healthCheck
 
 	if err := hc.AddCheck("Kafka consumer", svc.consumer.Checker); err != nil {
-		return fmt.Errorf("error adding check for Kafka: %w", err)
+		return fmt.Errorf("error adding check for Kafka consumer: %w", err)
 	}
 
 	if err := hc.AddCheck("Kafka producer", svc.producer.Checker); err != nil {
