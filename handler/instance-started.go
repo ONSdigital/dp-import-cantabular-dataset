@@ -18,22 +18,21 @@ type InstanceStarted struct {
 	ctblr      cantabularClient
 	datasets   datasetAPIClient
 	recipes    recipeAPIClient
-	authToken string
 	// Kafka Producer
 }
 
-func NewInstanceStarted(c cantabularClient, r recipeAPIClient, d datasetAPIClient, t string) *InstanceStarted {
+func NewInstanceStarted(c cantabularClient, r recipeAPIClient, d datasetAPIClient) *InstanceStarted {
 	return &InstanceStarted{
 		ctblr: c,
 		recipes: r,
 		datasets: d,
-		authToken: t,
 	}
 }
 
+// Note to self: why pass cfg rathe than have as part of struct?
 // Handle takes a single event.
 func (h *InstanceStarted) Handle(ctx context.Context, cfg *config.Config, e *event.InstanceStarted) error {
-	r, err := h.recipes.GetRecipe(ctx, "", h.authToken, e.RecipeID)
+	r, err := h.recipes.GetRecipe(ctx, "", cfg.ServiceAuthToken, e.RecipeID)
 	if err != nil{
 		return fmt.Errorf("failed to get recipe: %w", err)
 	}
@@ -55,34 +54,37 @@ func (h *InstanceStarted) Handle(ctx context.Context, cfg *config.Config, e *eve
 	log.Info(ctx, "Successfully got codelists", log.Data{"num_codelists": len(codelists)})
 
 	req := cantabular.GetCodebookRequest{
-		DatasetName: r.CantabularBlob, // "e.g. 'Example' or 'Teaching-Dataset'"
-		Variables: codelists,
-		Categories: true,
+		DatasetName: r.CantabularBlob,
+		Variables:   codelists,
+		Categories:  false,
 	}
 
+	// Validation happens here, if any variables are incorrect, will throw an error
 	resp, err := h.ctblr.GetCodebook(ctx, req)
 	if err != nil{
 		return fmt.Errorf("failed to get codebook from Cantabular: %w", err)
 	}
 
 	log.Info(ctx, "Successfully got Codebook", log.Data{
-		"datablob": resp.Dataset,
+		"datablob":      resp.Dataset,
 		"num_variables": len(resp.Codebook),
+		"codebook":      resp.Codebook,
 	})
 
-	// Should be implemented correctly up to here, beyond this is WIP
+	ireq := h.createUpdateInstanceRequest(resp.Codebook, e, cfg.CodelistAPIURL)
+	
+	log.Info(ctx, "Updating instance", log.Data{
+		"instance_id":    ireq.InstanceID,
+		"csv_headers":    ireq.CSVHeader,
+		"edition":        ireq.Edition,
+		"num_dimensions": len(ireq.Dimensions),
+	})
 
-	iReq, err := h.createInstanceRequest(resp.Codebook)
-	if err != nil{
-		return fmt.Errorf("failed to transform codebook to dataset: %w", err)
+	if err := h.datasets.PutInstance(ctx, "", cfg.ServiceAuthToken, "", e.InstanceID, ireq); err != nil{
+		return fmt.Errorf("failed to update instance: %w", err)
 	}
 
-	fmt.Println(iReq)
-
-	/*
-	if err := h.datasets.PutDataset(ctx, "", h.authToken, e.CollectionID, e.DatablobName, *ds); err != nil{
-		return fmt.Errorf("failed to save dataset: %w", err)
-	}*/
+	log.Info(ctx, "Triggering dimension options import")
 
 	if err := h.triggerImportDimensionOptions(); err != nil{
 		return fmt.Errorf("failed to import dimension options: %w", err)
@@ -112,22 +114,31 @@ func (h *InstanceStarted) getCodeListsFromInstance(i *recipe.Instance) ([]string
 
 	var codelists []string
 	for _, cl := range i.CodeLists{
-		codelists = append(codelists, cl.Name)
+		codelists = append(codelists, cl.ID)
 	}
 
 	return codelists, nil
 }
 
-func (h *InstanceStarted) createInstanceRequest(cb cantabular.Codebook) (*dataset.UpdateInstance, error){
+func (h *InstanceStarted) createUpdateInstanceRequest(cb cantabular.Codebook, e *event.InstanceStarted, clURL string) dataset.UpdateInstance{
 	req := dataset.UpdateInstance{
 		Edition: "2021",
 		CSVHeader: []string{"ftb_table"},
+		InstanceID: e.InstanceID,
 	}
 
 	for _, v := range cb{
+		sourceName := v.Name
+
+		if len(v.MapFrom) > 0{
+			if len(v.MapFrom[0].SourceNames) > 0{
+				sourceName = v.MapFrom[0].SourceNames[0]
+			}
+		}
+
 		d := dataset.VersionDimension{
-			ID: v.Name,
-			URL: fmt.Sprintf("$DATASET_API_HOST:$DATASET_API_PORT/code-lists/%s", v.Name),
+			ID: sourceName,
+			URL: fmt.Sprintf("%s/code-lists/%s", clURL, sourceName),
 			Label: v.Label,
 			Name:v.Label,
 		}
@@ -135,7 +146,7 @@ func (h *InstanceStarted) createInstanceRequest(cb cantabular.Codebook) (*datase
 		req.CSVHeader  = append(req.CSVHeader, v.Name)
 	}
 
-	return &req, nil
+	return req
 }
 
 func (h *InstanceStarted) triggerImportDimensionOptions() error {

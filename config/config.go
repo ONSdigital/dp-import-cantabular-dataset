@@ -20,8 +20,10 @@ type Config struct {
 	InstanceStartedTopic       string        `envconfig:"KAFKA_DATASET_INSTANCE_STARTED_TOPIC"`
 	OutputFilePath             string        `envconfig:"OUTPUT_FILE_PATH"`
 	DatasetAPIURL              string        `envconfig:"DATASET_API_URL"`
+	CodelistAPIURL             string        `envconfig:"CODELIST_API_URL"`
 	RecipeAPIURL               string       ` envconfig:"RECIPE_API_URL"`
 	CantabularURL              string        `envconfig:"CANTABULAR_URL"`
+	ServiceAuthToken           string        `envconfig:"SERVICE_AUTH_TOKEN"         json:"-"`
 }
 
 var cfg *Config
@@ -46,8 +48,10 @@ func Get() (*Config, error) {
 		InstanceStartedTopic:       "cantabular-dataset-instance-started",
 		OutputFilePath:             "/tmp/helloworld.txt",
 		DatasetAPIURL:              "http://localhost:22000",
+		CodelistAPIURL:             "http://localhost:22400",
 		RecipeAPIURL:               "http://localhost:22300",
 		CantabularURL:              "http://localhost:8491",
+		ServiceAuthToken:           "",
 	}
 
 	return cfg, envconfig.Process("", cfg)

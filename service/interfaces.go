@@ -7,6 +7,7 @@ import (
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"github.com/ONSdigital/dp-api-clients-go/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/recipe"
+	"github.com/ONSdigital/dp-api-clients-go/dataset"
 
 )
 
@@ -36,7 +37,7 @@ type CantabularClient interface{
 }
 
 type DatasetAPIClient interface{
-	// Not sure which calls we will be making yet
+	PutInstance(context.Context, string, string, string, string, dataset.UpdateInstance) error
 	Checker(context.Context, *healthcheck.CheckState) error
 }
 

@@ -3,6 +3,7 @@ module github.com/ONSdigital/dp-import-cantabular-dataset
 go 1.16
 
 replace github.com/coreos/etcd => github.com/coreos/etcd v3.3.24+incompatible
+replace github.com/ONSdigital/dp-api-clients-go => /home/jpm/go-modules/onsdigital/dp-api-clients-go
 
 require (
 	github.com/ONSdigital/dp-api-clients-go v1.37.0

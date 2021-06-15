@@ -135,7 +135,6 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 			svc.cantabularClient,
 			svc.recipeAPIClient,
 			 svc.datasetAPIClient,
-			 "",
 		),
 		svc.cfg,
 	)
