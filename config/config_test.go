@@ -27,9 +27,16 @@ func TestConfig(t *testing.T) {
 				So(cfg.KafkaAddr, ShouldHaveLength, 1)
 				So(cfg.KafkaAddr[0], ShouldEqual, "localhost:9092")
 				So(cfg.KafkaVersion, ShouldEqual, "1.0.2")
+				So(cfg.KafkaOffsetOldest, ShouldBeTrue)
 				So(cfg.KafkaNumWorkers, ShouldEqual, 1)
+				So(cfg.KafkaMaxBytes, ShouldEqual, 2000000)
 				So(cfg.InstanceStartedGroup, ShouldEqual, "dp-import-cantabular-dataset")
 				So(cfg.InstanceStartedTopic, ShouldEqual, "cantabular-dataset-instance-started")
+				So(cfg.CantabularDatasetCategoryDimensionImportTopic, ShouldEqual, "cantabular-dataset-category-dimension-import")
+				So(cfg.OutputFilePath, ShouldEqual, "/tmp/helloworld.txt")
+				So(cfg.DatasetAPIURL, ShouldEqual, "http://localhost:22000")
+				So(cfg.RecipeAPIURL, ShouldEqual, "http://localhost:22300")
+				So(cfg.CantabularURL, ShouldEqual, "http://localhost:8491")
 			})
 
 			Convey("Then a second call to config should return the same config", func() {

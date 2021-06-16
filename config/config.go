@@ -18,6 +18,7 @@ type Config struct {
 	KafkaNumWorkers            int           `envconfig:"KAFKA_NUM_WORKERS"`
 	InstanceStartedGroup       string        `envconfig:"KAFKA_DATASET_INSTANCE_STARTED_GROUP"`
 	InstanceStartedTopic       string        `envconfig:"KAFKA_DATASET_INSTANCE_STARTED_TOPIC"`
+	CantabularDatasetCategoryDimensionImportTopic string        `envconfig:"CANTABULAR_DATASET_CATEGORY_DIMENSION_IMPORT"`
 	OutputFilePath             string        `envconfig:"OUTPUT_FILE_PATH"`
 	DatasetAPIURL              string        `envconfig:"DATASET_API_URL"`
 	CodelistAPIURL             string        `envconfig:"CODELIST_API_URL"`
@@ -44,6 +45,7 @@ func Get() (*Config, error) {
 		KafkaVersion:               "1.0.2",
 		KafkaOffsetOldest:          true,
 		KafkaNumWorkers:            1,
+		KafkaMaxBytes:              2000000,
 		InstanceStartedGroup:       "dp-import-cantabular-dataset",
 		InstanceStartedTopic:       "cantabular-dataset-instance-started",
 		OutputFilePath:             "/tmp/helloworld.txt",
@@ -52,6 +54,7 @@ func Get() (*Config, error) {
 		RecipeAPIURL:               "http://localhost:22300",
 		CantabularURL:              "http://localhost:8491",
 		ServiceAuthToken:           "",
+		CantabularDatasetCategoryDimensionImportTopic: "cantabular-dataset-category-dimension-import",
 	}
 
 	return cfg, envconfig.Process("", cfg)

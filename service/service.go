@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/ONSdigital/dp-api-clients-go/cantabular"
+	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/recipe"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
-	"github.com/ONSdigital/dp-api-clients-go/cantabular"
-	"github.com/ONSdigital/dp-api-clients-go/recipe"
-	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/handler"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
@@ -25,6 +25,7 @@ type Service struct {
 	server           HTTPServer
 	healthCheck      HealthChecker
 	consumer         kafka.IConsumerGroup
+	producer         kafka.IProducer
 	cantabularClient CantabularClient
 	datasetAPIClient DatasetAPIClient
 	recipeAPIClient  RecipeAPIClient
@@ -50,6 +51,20 @@ var GetKafkaConsumer = func(ctx context.Context, cfg *config.Config) (kafka.ICon
 	)
 }
 
+// GetKafkaProducer returns a kafka producer with the provided config
+var GetKafkaProducer = func(ctx context.Context, cfg *config.Config) (kafka.IProducer, error) {
+	return kafka.NewProducer(
+		ctx,
+		cfg.KafkaAddr,
+		cfg.CantabularDatasetCategoryDimensionImportTopic,
+		kafka.CreateProducerChannels(),
+		&kafka.ProducerConfig{
+			KafkaVersion:    &cfg.KafkaVersion,
+			MaxMessageBytes: &cfg.KafkaMaxBytes,
+		},
+	)
+}
+
 // GetHTTPServer returns an http server
 var GetHTTPServer = func(bindAddr string, router http.Handler) HTTPServer {
 	s := dphttp.NewServer(bindAddr, router)
@@ -67,7 +82,7 @@ var GetHealthCheck = func(cfg *config.Config, buildTime, gitCommit, version stri
 	return &hc, nil
 }
 
-var GetCantabularClient = func (cfg *config.Config) CantabularClient {
+var GetCantabularClient = func(cfg *config.Config) CantabularClient {
 	return cantabular.NewClient(
 		dphttp.NewClient(),
 		cantabular.Config{
@@ -76,11 +91,11 @@ var GetCantabularClient = func (cfg *config.Config) CantabularClient {
 	)
 }
 
-var GetRecipeAPIClient = func (cfg *config.Config) RecipeAPIClient{
+var GetRecipeAPIClient = func(cfg *config.Config) RecipeAPIClient {
 	return recipe.NewClient(cfg.RecipeAPIURL)
 }
 
-var GetDatasetAPIClient = func (cfg *config.Config) DatasetAPIClient{
+var GetDatasetAPIClient = func(cfg *config.Config) DatasetAPIClient {
 	return dataset.NewAPIClient(cfg.DatasetAPIURL)
 }
 
@@ -99,6 +114,14 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 		return fmt.Errorf("failed to initialise kafka consumer: %w", err)
 	}
 
+	// Get Kafka producer
+	svc.producer, err = GetKafkaProducer(ctx, cfg)
+	if err != nil {
+		log.Event(ctx, "failed to initialise kafka producer", log.FATAL, log.Error(err))
+		return err
+	}
+
+	// Get API clients
 	svc.cantabularClient = GetCantabularClient(cfg)
 	svc.recipeAPIClient = GetRecipeAPIClient(cfg)
 	svc.datasetAPIClient = GetDatasetAPIClient(cfg)
@@ -126,19 +149,21 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 
 	// Start kafka error logging
 	svc.consumer.Channels().LogErrors(ctx, "error received from kafka consumer, topic: "+svc.cfg.InstanceStartedTopic)
+	svc.producer.Channels().LogErrors(ctx, "error received from kafka producer, topic: "+svc.cfg.CantabularDatasetCategoryDimensionImportTopic)
 
-	// Event Handler for Kafka Consumer
+	// Start consuming Kafka messages with the Event Handler
 	event.Consume(
 		ctx,
 		svc.consumer,
 		handler.NewInstanceStarted(
 			svc.cantabularClient,
 			svc.recipeAPIClient,
-			 svc.datasetAPIClient,
+			svc.datasetAPIClient,
 		),
 		svc.cfg,
 	)
 
+	// Start health checker
 	svc.healthCheck.Start(ctx)
 
 	// Run the http server in a new go-routine
@@ -185,6 +210,15 @@ func (svc *Service) Close(ctx context.Context) error {
 			log.Event(ctx, "stopped http server", log.INFO)
 		}
 
+		// If kafka producer exists, close it.
+		if svc.producer != nil {
+			if err := svc.producer.Close(ctx); err != nil {
+				log.Event(ctx, "error closing kafka producer", log.ERROR, log.Error(err))
+				hasShutdownError = true
+			}
+			log.Event(ctx, "closed kafka producer", log.INFO)
+		}
+
 		// If kafka consumer exists, close it.
 		if svc.consumer != nil {
 			if err := svc.consumer.Close(ctx); err != nil {
@@ -220,7 +254,11 @@ func (svc *Service) registerCheckers() error {
 	hc := svc.healthCheck
 
 	if err := hc.AddCheck("Kafka consumer", svc.consumer.Checker); err != nil {
-		return fmt.Errorf("error adding check for Kafka: %w", err)
+		return fmt.Errorf("error adding check for Kafka consumer: %w", err)
+	}
+
+	if err := hc.AddCheck("Kafka producer", svc.producer.Checker); err != nil {
+		return fmt.Errorf("error adding check for Kafka producer: %w", err)
 	}
 
 	if err := hc.AddCheck("Recipe API client", svc.recipeAPIClient.Checker); err != nil {
