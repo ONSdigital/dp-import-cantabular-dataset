@@ -18,14 +18,15 @@ type InstanceStarted struct {
 	ctblr      cantabularClient
 	datasets   datasetAPIClient
 	recipes    recipeAPIClient
-	// Kafka Producer
+	producer   kafkaProducer
 }
 
-func NewInstanceStarted(c cantabularClient, r recipeAPIClient, d datasetAPIClient) *InstanceStarted {
+func NewInstanceStarted(c cantabularClient, r recipeAPIClient, d datasetAPIClient, p kafkaProducer) *InstanceStarted {
 	return &InstanceStarted{
-		ctblr: c,
-		recipes: r,
+		ctblr:    c,
+		recipes:  r,
 		datasets: d,
+		producer: p,
 	}
 }
 

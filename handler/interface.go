@@ -19,3 +19,7 @@ type datasetAPIClient interface{
 type recipeAPIClient interface{
 	GetRecipe(context.Context, string, string, string) (*recipe.Recipe, error)
 }
+
+type kafkaProducer interface{
+	// TBC
+}

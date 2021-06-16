@@ -16,6 +16,7 @@ type Config struct {
 	KafkaVersion                 string        `envconfig:"KAFKA_VERSION"`
 	KafkaOffsetOldest            bool          `envconfig:"KAFKA_OFFSET_OLDEST"`
 	KafkaNumWorkers              int           `envconfig:"KAFKA_NUM_WORKERS"`
+	KafkaMaxBytes                int           `envconfig:"KAFKA_MAX_BYTES"`
 	InstanceStartedGroup         string        `envconfig:"KAFKA_DATASET_INSTANCE_STARTED_GROUP"`
 	InstanceStartedTopic         string        `envconfig:"KAFKA_DATASET_INSTANCE_STARTED_TOPIC"`
 	CategoryDimensionImportTopic string        `envconfig:"CANTABULAR_DATASET_CATEGORY_DIMENSION_IMPORT"`

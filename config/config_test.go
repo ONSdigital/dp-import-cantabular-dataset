@@ -32,7 +32,7 @@ func TestConfig(t *testing.T) {
 				So(cfg.KafkaMaxBytes, ShouldEqual, 2000000)
 				So(cfg.InstanceStartedGroup, ShouldEqual, "dp-import-cantabular-dataset")
 				So(cfg.InstanceStartedTopic, ShouldEqual, "cantabular-dataset-instance-started")
-				So(cfg.CantabularDatasetCategoryDimensionImportTopic, ShouldEqual, "cantabular-dataset-category-dimension-import")
+				So(cfg.CategoryDimensionImportTopic, ShouldEqual, "cantabular-dataset-category-dimension-import")
 				So(cfg.OutputFilePath, ShouldEqual, "/tmp/helloworld.txt")
 				So(cfg.DatasetAPIURL, ShouldEqual, "http://localhost:22000")
 				So(cfg.RecipeAPIURL, ShouldEqual, "http://localhost:22300")

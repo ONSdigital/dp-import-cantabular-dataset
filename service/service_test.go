@@ -109,7 +109,7 @@ func TestInit(t *testing.T) {
 
 			Convey("Then service Init fails with the same error and no further initialisations are attempted", func() {
 				err := svc.Init(ctx, cfg, testBuildTime, testGitCommit, testVersion)
-				So(err, ShouldResemble, errKafkaProducer)
+				So(errors.Unwrap(err), ShouldResemble, errKafkaProducer)
 				So(svc.cfg, ShouldResemble, cfg)
 
 				Convey("And no checkers are registered ", func() {

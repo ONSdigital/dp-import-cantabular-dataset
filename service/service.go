@@ -56,7 +56,7 @@ var GetKafkaProducer = func(ctx context.Context, cfg *config.Config) (kafka.IPro
 	return kafka.NewProducer(
 		ctx,
 		cfg.KafkaAddr,
-		cfg.CantabularDatasetCategoryDimensionImportTopic,
+		cfg.CategoryDimensionImportTopic,
 		kafka.CreateProducerChannels(),
 		&kafka.ProducerConfig{
 			KafkaVersion:    &cfg.KafkaVersion,
@@ -117,8 +117,7 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	// Get Kafka producer
 	svc.producer, err = GetKafkaProducer(ctx, cfg)
 	if err != nil {
-		log.Event(ctx, "failed to initialise kafka producer", log.FATAL, log.Error(err))
-		return err
+		return fmt.Errorf("failed to initialise kafka producer: %w", err)
 	}
 
 	// Get API clients
@@ -149,7 +148,7 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 
 	// Start kafka error logging
 	svc.consumer.Channels().LogErrors(ctx, "error received from kafka consumer, topic: "+svc.cfg.InstanceStartedTopic)
-	svc.producer.Channels().LogErrors(ctx, "error received from kafka producer, topic: "+svc.cfg.CantabularDatasetCategoryDimensionImportTopic)
+	svc.producer.Channels().LogErrors(ctx, "error received from kafka producer, topic: "+svc.cfg.CategoryDimensionImportTopic)
 
 	// Start consuming Kafka messages with the Event Handler
 	event.Consume(
@@ -159,6 +158,7 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 			svc.cantabularClient,
 			svc.recipeAPIClient,
 			svc.datasetAPIClient,
+			svc.producer,
 		),
 		svc.cfg,
 	)
