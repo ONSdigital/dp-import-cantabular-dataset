@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
 
 	kafka "github.com/ONSdigital/dp-kafka/v2"
@@ -12,7 +11,7 @@ import (
 )
 
 // Consume converts messages to event instances, and pass the event to the provided handler.
-func Consume(ctx context.Context, cg kafka.IConsumerGroup, h Handler, cfg *config.Config) {
+func Consume(ctx context.Context, cg kafka.IConsumerGroup, h Handler, numWorkers int) {
 	// consume loop, to be executed by each worker
 	var consume = func(workerID int) {
 		for {
@@ -23,7 +22,7 @@ func Consume(ctx context.Context, cg kafka.IConsumerGroup, h Handler, cfg *confi
 					return
 				}
 
-				if err := processMessage(context.Background(), msg, h, cfg); err != nil{
+				if err := processMessage(context.Background(), msg, h); err != nil{
 					log.Error(ctx, "failed to process message", err, log.Data{
 						"status_code": statusCode(err),
 						"log_data": unwrapLogData(err),
@@ -40,7 +39,7 @@ func Consume(ctx context.Context, cg kafka.IConsumerGroup, h Handler, cfg *confi
 	}
 
 	// workers to consume messages in parallel
-	for w := 1; w <= cfg.KafkaNumWorkers; w++ {
+	for w := 1; w <= numWorkers; w++ {
 		go consume(w)
 	}
 }
@@ -48,7 +47,7 @@ func Consume(ctx context.Context, cg kafka.IConsumerGroup, h Handler, cfg *confi
 // processMessage unmarshals the provided kafka message into an event and calls the handler.
 // After the message is handled, it is committed, by default even on error to prevent reconsumption
 // of dead messages.
-func processMessage(ctx context.Context, msg kafka.Message, h Handler, cfg *config.Config) error {
+func processMessage(ctx context.Context, msg kafka.Message, h Handler) error {
 	defer msg.Commit()
 
 	var e InstanceStarted
@@ -65,7 +64,7 @@ func processMessage(ctx context.Context, msg kafka.Message, h Handler, cfg *conf
 
 	log.Info(ctx, "event received", log.Data{"event": e})
 
-	if err := h.Handle(ctx, cfg, &e); err != nil {
+	if err := h.Handle(ctx, &e); err != nil {
 		return fmt.Errorf("failed to handle event: %w", err)
 	}
 

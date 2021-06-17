@@ -15,14 +15,16 @@ import (
 
 // InstanceStarted is the handler for the InstanceStarted event
 type InstanceStarted struct {
+	cfg        config.Config
 	ctblr      cantabularClient
 	datasets   datasetAPIClient
 	recipes    recipeAPIClient
 	producer   kafkaProducer
 }
 
-func NewInstanceStarted(c cantabularClient, r recipeAPIClient, d datasetAPIClient, p kafkaProducer) *InstanceStarted {
+func NewInstanceStarted(cfg config.Config, c cantabularClient, r recipeAPIClient, d datasetAPIClient, p kafkaProducer) *InstanceStarted {
 	return &InstanceStarted{
+		cfg:      cfg,
 		ctblr:    c,
 		recipes:  r,
 		datasets: d,
@@ -32,8 +34,8 @@ func NewInstanceStarted(c cantabularClient, r recipeAPIClient, d datasetAPIClien
 
 // Note to self: why pass cfg rathe than have as part of struct?
 // Handle takes a single event.
-func (h *InstanceStarted) Handle(ctx context.Context, cfg *config.Config, e *event.InstanceStarted) error {
-	r, err := h.recipes.GetRecipe(ctx, "", cfg.ServiceAuthToken, e.RecipeID)
+func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) error {
+	r, err := h.recipes.GetRecipe(ctx, "", h.cfg.ServiceAuthToken, e.RecipeID)
 	if err != nil{
 		return fmt.Errorf("failed to get recipe: %w", err)
 	}
@@ -72,7 +74,7 @@ func (h *InstanceStarted) Handle(ctx context.Context, cfg *config.Config, e *eve
 		"codebook":      resp.Codebook,
 	})
 
-	ireq := h.createUpdateInstanceRequest(resp.Codebook, e, cfg.CodelistAPIURL)
+	ireq := h.createUpdateInstanceRequest(resp.Codebook, e)
 	
 	log.Info(ctx, "Updating instance", log.Data{
 		"instance_id":    ireq.InstanceID,
@@ -81,7 +83,7 @@ func (h *InstanceStarted) Handle(ctx context.Context, cfg *config.Config, e *eve
 		"num_dimensions": len(ireq.Dimensions),
 	})
 
-	if err := h.datasets.PutInstance(ctx, "", cfg.ServiceAuthToken, "", e.InstanceID, ireq); err != nil{
+	if err := h.datasets.PutInstance(ctx, "", h.cfg.ServiceAuthToken, "", e.InstanceID, ireq); err != nil{
 		return fmt.Errorf("failed to update instance: %w", err)
 	}
 
@@ -121,7 +123,7 @@ func (h *InstanceStarted) getCodeListsFromInstance(i *recipe.Instance) ([]string
 	return codelists, nil
 }
 
-func (h *InstanceStarted) createUpdateInstanceRequest(cb cantabular.Codebook, e *event.InstanceStarted, clURL string) dataset.UpdateInstance{
+func (h *InstanceStarted) createUpdateInstanceRequest(cb cantabular.Codebook, e *event.InstanceStarted) dataset.UpdateInstance{
 	req := dataset.UpdateInstance{
 		Edition: "2021",
 		CSVHeader: []string{"ftb_table"},
@@ -139,7 +141,7 @@ func (h *InstanceStarted) createUpdateInstanceRequest(cb cantabular.Codebook, e 
 
 		d := dataset.VersionDimension{
 			ID: sourceName,
-			URL: fmt.Sprintf("%s/code-lists/%s", clURL, sourceName),
+			URL: fmt.Sprintf("%s/code-lists/%s", h.cfg.RecipeAPIURL, sourceName),
 			Label: v.Label,
 			Name:v.Label,
 		}

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"errors"
 	"net/http"
 
 	"github.com/ONSdigital/dp-api-clients-go/cantabular"
@@ -107,6 +108,11 @@ func New() *Service {
 // Init initialises all the service dependencies, including healthcheck with checkers, api and middleware
 func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, gitCommit, version string) error {
 	var err error
+
+	if cfg == nil{
+		return errors.New("nil config passed to service init")
+	}
+
 	svc.cfg = cfg
 
 	// Get Kafka consumer
@@ -155,12 +161,13 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 		ctx,
 		svc.consumer,
 		handler.NewInstanceStarted(
+			*svc.cfg,
 			svc.cantabularClient,
 			svc.recipeAPIClient,
 			svc.datasetAPIClient,
 			svc.producer,
 		),
-		svc.cfg,
+		svc.cfg.KafkaNumWorkers,
 	)
 
 	// Start health checker
