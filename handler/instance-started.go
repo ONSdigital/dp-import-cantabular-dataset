@@ -7,6 +7,7 @@ import (
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
+	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
 
 	"github.com/ONSdigital/dp-api-clients-go/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
@@ -92,9 +93,25 @@ func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) 
 
 	log.Info(ctx, "Triggering dimension options import")
 
-	if err := h.triggerImportDimensionOptions(); err != nil{
-		return fmt.Errorf("failed to import dimension options: %w", err)
+	if errs := h.triggerImportDimensionOptions(ctx, codelists, e.JobID); len(errs) != 0 {
+		var errdata []map[string]interface{}
+
+		for _, err := range errs {
+			errdata = append(errdata, map[string]interface{}{
+				"error": err,
+				"log_data": logData(err),
+			})
+		}
+
+		return &Error{
+			err: errors.New("failed to successfully trigger options import for all dimensions"),
+			logData: log.Data{
+				"errors": errdata,
+			},
+		}
 	}
+
+	log.Info(ctx, "Successfully triggered options import for all dimensions")
 
 	return nil
 }
@@ -155,7 +172,29 @@ func (h *InstanceStarted) createUpdateInstanceRequest(cb cantabular.Codebook, e 
 	return req
 }
 
-func (h *InstanceStarted) triggerImportDimensionOptions() error {
-	// Kafka producer loop
-	return nil
+func (h *InstanceStarted) triggerImportDimensionOptions(ctx context.Context, dimensions []string, jobID string) []error {
+	var errs []error
+
+	log.Info(ctx, "Triggering dimension-option import process")
+
+	for _, d := range dimensions{
+		var e event.CategoryDimensionImport
+		var s = schema.CategoryDimensionImport
+
+		b, err := s.Marshal(e)
+		if err != nil{
+			errs = append(errs, &Error{
+				err: fmt.Errorf("avro: failed to marshal dimension '%s': %w", d, err),
+				logData: log.Data{
+					"schema_definition": s.Definition,
+					"dimension_id":      d, 
+				},
+			})
+			continue
+		}
+
+		h.producer.Channels().Output <- b
+	}
+
+	return errs
 }
