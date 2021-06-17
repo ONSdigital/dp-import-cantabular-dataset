@@ -7,9 +7,12 @@ import (
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
+
 	"github.com/ONSdigital/dp-api-clients-go/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/recipe"
+	kafka "github.com/ONSdigital/dp-kafka/v2"
+
 	"github.com/ONSdigital/log.go/v2/log"
 )
 
@@ -19,10 +22,10 @@ type InstanceStarted struct {
 	ctblr      cantabularClient
 	datasets   datasetAPIClient
 	recipes    recipeAPIClient
-	producer   kafkaProducer
+	producer   kafka.IProducer
 }
 
-func NewInstanceStarted(cfg config.Config, c cantabularClient, r recipeAPIClient, d datasetAPIClient, p kafkaProducer) *InstanceStarted {
+func NewInstanceStarted(cfg config.Config, c cantabularClient, r recipeAPIClient, d datasetAPIClient, p kafka.IProducer) *InstanceStarted {
 	return &InstanceStarted{
 		cfg:      cfg,
 		ctblr:    c,
