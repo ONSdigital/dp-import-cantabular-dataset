@@ -93,7 +93,7 @@ func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) 
 
 	log.Info(ctx, "Triggering dimension options import")
 
-	if errs := h.triggerImportDimensionOptions(ctx, codelists, e.JobID); len(errs) != 0 {
+	if errs := h.triggerImportDimensionOptions(ctx, codelists, e); len(errs) != 0 {
 		var errdata []map[string]interface{}
 
 		for _, err := range errs {
@@ -106,7 +106,9 @@ func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) 
 		return &Error{
 			err: errors.New("failed to successfully trigger options import for all dimensions"),
 			logData: log.Data{
-				"errors": errdata,
+				"errors":      errdata,
+				"instance_id": e.InstanceID,
+				"job_id":      e.JobID,
 			},
 		}
 	}
@@ -172,24 +174,26 @@ func (h *InstanceStarted) createUpdateInstanceRequest(cb cantabular.Codebook, e 
 	return req
 }
 
-func (h *InstanceStarted) triggerImportDimensionOptions(ctx context.Context, dimensions []string, jobID string) []error {
+func (h *InstanceStarted) triggerImportDimensionOptions(ctx context.Context, dimensions []string, e *event.InstanceStarted) []error {
 	var errs []error
 
 	log.Info(ctx, "Triggering dimension-option import process")
 
 	for _, d := range dimensions{
-		e := event.CategoryDimensionImport{
+		ie := event.CategoryDimensionImport{
 			DimensionID: d,
-			JobID: jobID,
+			JobID:       e.JobID,
+			InstanceID:  e.InstanceID,
 		}
+
 		s := schema.CategoryDimensionImport
 
-		b, err := s.Marshal(e)
+		b, err := s.Marshal(ie)
 		if err != nil{
 			errs = append(errs, &Error{
 				err: fmt.Errorf("avro: failed to marshal dimension: %w", err),
 				logData: log.Data{
-					"dimension_id": d, 
+					"dimension_id": d,
 				},
 			})
 			continue
