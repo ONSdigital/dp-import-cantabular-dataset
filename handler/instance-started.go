@@ -39,23 +39,37 @@ func NewInstanceStarted(cfg config.Config, c cantabularClient, r recipeAPIClient
 // Note to self: why pass cfg rathe than have as part of struct?
 // Handle takes a single event.
 func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) error {
+	ld := log.Data{
+		"job_id":      e.JobID,
+		"instance_id": e.InstanceID,
+	}
+
 	r, err := h.recipes.GetRecipe(ctx, "", h.cfg.ServiceAuthToken, e.RecipeID)
 	if err != nil{
-		return fmt.Errorf("failed to get recipe: %w", err)
+		return &Error{
+			err:     fmt.Errorf("failed to get recipe: %w", err),
+			logData: ld,
+		}
 	}
 
 	log.Info(ctx, "Successfully got Recipe", log.Data{"recipe_alias": r.Alias})
 
 	i, err := h.getInstanceFromRecipe(ctx, r)
 	if err != nil{
-		return fmt.Errorf("failed to get instance from recipe: %s", err)
+		return &Error{
+			err:     fmt.Errorf("failed to get instance from recipe: %s", err),
+			logData: ld,
+		}
 	}
 
 	log.Info(ctx, "Successfully got instance", log.Data{"instance_title": i.Title})
 
 	codelists, err := h.getCodeListsFromInstance(i)
 	if err != nil{
-		return fmt.Errorf("failed to get code-lists (dimensions) from recipe instance: %s", err)
+		return &Error{
+			err:     fmt.Errorf("failed to get code-lists (dimensions) from recipe instance: %s", err),
+			logData: ld,
+		}
 	}
 
 	log.Info(ctx, "Successfully got codelists", log.Data{"num_codelists": len(codelists)})
@@ -69,7 +83,10 @@ func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) 
 	// Validation happens here, if any variables are incorrect, will throw an error
 	resp, err := h.ctblr.GetCodebook(ctx, req)
 	if err != nil{
-		return fmt.Errorf("failed to get codebook from Cantabular: %w", err)
+		return &Error{
+			err:     fmt.Errorf("failed to get codebook from Cantabular: %w", err),
+			logData: ld,
+		}
 	}
 
 	log.Info(ctx, "Successfully got Codebook", log.Data{
@@ -88,7 +105,10 @@ func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) 
 	})
 
 	if err := h.datasets.PutInstance(ctx, "", h.cfg.ServiceAuthToken, "", e.InstanceID, ireq); err != nil{
-		return fmt.Errorf("failed to update instance: %w", err)
+		return &Error{
+			err:     fmt.Errorf("failed to update instance: %w", err),
+			logData: ld,
+		}
 	}
 
 	log.Info(ctx, "Triggering dimension options import")
@@ -98,18 +118,16 @@ func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) 
 
 		for _, err := range errs {
 			errdata = append(errdata, map[string]interface{}{
-				"error": err.Error(),
+				"error":    err.Error(),
 				"log_data": logData(err),
 			})
 		}
 
+		ld["errors"] = errdata
+
 		return &Error{
 			err: errors.New("failed to successfully trigger options import for all dimensions"),
-			logData: log.Data{
-				"errors":      errdata,
-				"instance_id": e.InstanceID,
-				"job_id":      e.JobID,
-			},
+			logData: ld,
 		}
 	}
 
@@ -147,8 +165,8 @@ func (h *InstanceStarted) getCodeListsFromInstance(i *recipe.Instance) ([]string
 
 func (h *InstanceStarted) createUpdateInstanceRequest(cb cantabular.Codebook, e *event.InstanceStarted) dataset.UpdateInstance{
 	req := dataset.UpdateInstance{
-		Edition: "2021",
-		CSVHeader: []string{"ftb_table"},
+		Edition:    "2021",
+		CSVHeader:  []string{"ftb_table"},
 		InstanceID: e.InstanceID,
 	}
 
@@ -162,10 +180,10 @@ func (h *InstanceStarted) createUpdateInstanceRequest(cb cantabular.Codebook, e 
 		}
 
 		d := dataset.VersionDimension{
-			ID: sourceName,
-			URL: fmt.Sprintf("%s/code-lists/%s", h.cfg.RecipeAPIURL, sourceName),
+			ID:    sourceName,
+			URL:   fmt.Sprintf("%s/code-lists/%s", h.cfg.RecipeAPIURL, sourceName),
 			Label: v.Label,
-			Name:v.Label,
+			Name:  v.Label,
 		}
 		req.Dimensions = append(req.Dimensions, d)
 		req.CSVHeader  = append(req.CSVHeader, v.Name)
@@ -191,7 +209,7 @@ func (h *InstanceStarted) triggerImportDimensionOptions(ctx context.Context, dim
 		b, err := s.Marshal(ie)
 		if err != nil{
 			errs = append(errs, &Error{
-				err: fmt.Errorf("avro: failed to marshal dimension: %w", err),
+				err:     fmt.Errorf("avro: failed to marshal dimension: %w", err),
 				logData: log.Data{
 					"dimension_id": d,
 				},
