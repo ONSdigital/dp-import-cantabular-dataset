@@ -98,7 +98,7 @@ func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) 
 
 		for _, err := range errs {
 			errdata = append(errdata, map[string]interface{}{
-				"error": err,
+				"error": err.Error(),
 				"log_data": logData(err),
 			})
 		}
@@ -178,16 +178,18 @@ func (h *InstanceStarted) triggerImportDimensionOptions(ctx context.Context, dim
 	log.Info(ctx, "Triggering dimension-option import process")
 
 	for _, d := range dimensions{
-		var e event.CategoryDimensionImport
-		var s = schema.CategoryDimensionImport
+		e := event.CategoryDimensionImport{
+			DimensionID: d,
+			JobID: jobID,
+		}
+		s := schema.CategoryDimensionImport
 
 		b, err := s.Marshal(e)
 		if err != nil{
 			errs = append(errs, &Error{
-				err: fmt.Errorf("avro: failed to marshal dimension '%s': %w", d, err),
+				err: fmt.Errorf("avro: failed to marshal dimension: %w", err),
 				logData: log.Data{
-					"schema_definition": s.Definition,
-					"dimension_id":      d, 
+					"dimension_id": d, 
 				},
 			})
 			continue

@@ -18,5 +18,6 @@ type CantabularDatasetInstanceStarted struct {
 
 type CategoryDimensionImport struct {
 	JobID          string `avro:"job_id"`
+	InstanceID     string `avro:"instance_id"`
 	DimensionID    string `avro:"dimension_id"`
 }
