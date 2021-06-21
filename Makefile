@@ -24,7 +24,7 @@ debug:
 
 .PHONY: test
 test:
-	go test -race -cover ./...
+	go test -v -race -cover ./...
 
 .PHONY: produce
 produce:

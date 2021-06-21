@@ -8,15 +8,19 @@ import (
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 )
 
-type cantabularClient interface{
+//go:generate moq -out mock/cantabular-client.go -pkg mock . CantabularClient
+//go:generate moq -out mock/dataset-api-client.go -pkg mock . DatasetAPIClient
+//go:generate moq -out mock/recipe-api-client.go -pkg mock . RecipeAPIClient
+
+type CantabularClient interface{
 	GetCodebook(context.Context, cantabular.GetCodebookRequest) (*cantabular.GetCodebookResponse, error)
 }
 
-type datasetAPIClient interface{
+type DatasetAPIClient interface{
 	PutInstance(context.Context, string, string, string, string, dataset.UpdateInstance) error
 }
 
-type recipeAPIClient interface{
+type RecipeAPIClient interface{
 	GetRecipe(context.Context, string, string, string) (*recipe.Recipe, error)
 }
 

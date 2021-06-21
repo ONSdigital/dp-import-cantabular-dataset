@@ -20,13 +20,13 @@ import (
 // InstanceStarted is the handler for the InstanceStarted event
 type InstanceStarted struct {
 	cfg        config.Config
-	ctblr      cantabularClient
-	datasets   datasetAPIClient
-	recipes    recipeAPIClient
+	ctblr      CantabularClient
+	datasets   DatasetAPIClient
+	recipes    RecipeAPIClient
 	producer   kafka.IProducer
 }
 
-func NewInstanceStarted(cfg config.Config, c cantabularClient, r recipeAPIClient, d datasetAPIClient, p kafka.IProducer) *InstanceStarted {
+func NewInstanceStarted(cfg config.Config, c CantabularClient, r RecipeAPIClient, d DatasetAPIClient, p kafka.IProducer) *InstanceStarted {
 	return &InstanceStarted{
 		cfg:      cfg,
 		ctblr:    c,
@@ -109,7 +109,7 @@ func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) 
 			err:     fmt.Errorf("failed to update instance: %w", err),
 			logData: ld,
 		}
-	}
+	}	
 
 	log.Info(ctx, "Triggering dimension options import")
 
@@ -216,8 +216,9 @@ func (h *InstanceStarted) triggerImportDimensionOptions(ctx context.Context, dim
 			})
 			continue
 		}
-
+		log.Info(ctx, "Sending output")
 		h.producer.Channels().Output <- b
+		log.Info(ctx, "output sent")
 	}
 
 	return errs
