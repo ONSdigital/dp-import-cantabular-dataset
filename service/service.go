@@ -27,6 +27,7 @@ type Service struct {
 	healthCheck      HealthChecker
 	consumer         kafka.IConsumerGroup
 	producer         kafka.IProducer
+	processor        Processor
 	cantabularClient CantabularClient
 	datasetAPIClient DatasetAPIClient
 	recipeAPIClient  RecipeAPIClient
@@ -100,6 +101,10 @@ var GetDatasetAPIClient = func(cfg *config.Config) DatasetAPIClient {
 	return dataset.NewAPIClient(cfg.DatasetAPIURL)
 }
 
+var GetProcessor = func(cfg *config.Config) Processor{
+	return event.New(cfg.KafkaNumWorkers)
+}
+
 // New creates a new empty service
 func New() *Service {
 	return &Service{}
@@ -131,6 +136,9 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	svc.recipeAPIClient = GetRecipeAPIClient(cfg)
 	svc.datasetAPIClient = GetDatasetAPIClient(cfg)
 
+	// Get processor
+	svc.processor = GetProcessor(cfg)
+
 	// Get HealthCheck
 	if svc.healthCheck, err = GetHealthCheck(cfg, buildTime, gitCommit, version); err != nil {
 		return fmt.Errorf("could not instantiate healthcheck: %w", err)
@@ -157,7 +165,7 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 	svc.producer.Channels().LogErrors(ctx, "error received from kafka producer, topic: "+svc.cfg.CategoryDimensionImportTopic)
 
 	// Start consuming Kafka messages with the Event Handler
-	event.Consume(
+	svc.processor.Consume(
 		ctx,
 		svc.consumer,
 		handler.NewInstanceStarted(
@@ -167,7 +175,6 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 			svc.datasetAPIClient,
 			svc.producer,
 		),
-		svc.cfg.KafkaNumWorkers,
 	)
 
 	// Start health checker

@@ -6,8 +6,13 @@ package mock
 import (
 	"context"
 	"github.com/ONSdigital/dp-api-clients-go/recipe"
+	"github.com/ONSdigital/dp-import-cantabular-dataset/handler"
 	"sync"
 )
+
+// Ensure, that RecipeAPIClientMock does implement handler.RecipeAPIClient.
+// If this is not the case, regenerate this file with moq.
+var _ handler.RecipeAPIClient = &RecipeAPIClientMock{}
 
 // RecipeAPIClientMock is a mock implementation of handler.RecipeAPIClient.
 //

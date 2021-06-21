@@ -25,6 +25,8 @@ var testEvent = event.InstanceStarted{
 	RecipeID: "World",
 }
 
+var processor = event.New()
+
 // kafkaStubConsumer mock which exposes Channels function returning empty channels
 // to be used on tests that are not supposed to receive any kafka message
 var kafkaStubConsumer = &kafkatest.IConsumerGroupMock{
@@ -33,7 +35,6 @@ var kafkaStubConsumer = &kafkatest.IConsumerGroupMock{
 	},
 }
 
-// TODO: remove or replace hello called logic with app specific
 func TestConsume(t *testing.T) {
 	Convey("Given kafka consumer and event handler mocks", t, func() {
 		cgChannels := &kafka.ConsumerGroupChannels{Upstream: make(chan kafka.Message, 2)}
@@ -55,7 +56,7 @@ func TestConsume(t *testing.T) {
 
 			Convey("When consume message is called", func() {
 				handlerWg.Add(1)
-				event.Consume(testCtx, mockConsumer, mockEventHandler, 1)
+				processor.Consume(testCtx, mockConsumer, mockEventHandler, 1)
 				handlerWg.Wait()
 
 				Convey("An event is sent to the mockEventHandler ", func() {
@@ -80,7 +81,7 @@ func TestConsume(t *testing.T) {
 			Convey("When consume messages is called", func() {
 
 				handlerWg.Add(1)
-				event.Consume(testCtx, mockConsumer, mockEventHandler, 1)
+				processor.Consume(testCtx, mockConsumer, mockEventHandler, 1)
 				handlerWg.Wait()
 
 				Convey("Only the valid event is sent to the mockEventHandler ", func() {
@@ -110,7 +111,7 @@ func TestConsume(t *testing.T) {
 
 			Convey("When consume message is called", func() {
 				handlerWg.Add(1)
-				event.Consume(testCtx, mockConsumer, mockEventHandler, 1)
+				processor.Consume(testCtx, mockConsumer, mockEventHandler, 1)
 				handlerWg.Wait()
 
 				Convey("An event is sent to the mockEventHandler ", func() {

@@ -11,7 +11,7 @@ import (
 )
 
 // Consume converts messages to event instances, and pass the event to the provided handler.
-func Consume(ctx context.Context, cg kafka.IConsumerGroup, h Handler, numWorkers int) {
+func (p *Processor) Consume(ctx context.Context, cg kafka.IConsumerGroup, h Handler) {
 	// consume loop, to be executed by each worker
 	var consume = func(workerID int) {
 		for {
@@ -22,7 +22,7 @@ func Consume(ctx context.Context, cg kafka.IConsumerGroup, h Handler, numWorkers
 					return
 				}
 
-				if err := processMessage(context.Background(), msg, h); err != nil{
+				if err := p.processMessage(context.Background(), msg, h); err != nil{
 					log.Error(ctx, "failed to process message", err, log.Data{
 						"status_code": statusCode(err),
 						"log_data": unwrapLogData(err),
@@ -39,7 +39,7 @@ func Consume(ctx context.Context, cg kafka.IConsumerGroup, h Handler, numWorkers
 	}
 
 	// workers to consume messages in parallel
-	for w := 1; w <= numWorkers; w++ {
+	for w := 1; w <= p.numWorkers; w++ {
 		go consume(w)
 	}
 }
@@ -47,7 +47,7 @@ func Consume(ctx context.Context, cg kafka.IConsumerGroup, h Handler, numWorkers
 // processMessage unmarshals the provided kafka message into an event and calls the handler.
 // After the message is handled, it is committed, by default even on error to prevent reconsumption
 // of dead messages.
-func processMessage(ctx context.Context, msg kafka.Message, h Handler) error {
+func (p *Processor) processMessage(ctx context.Context, msg kafka.Message, h Handler) error {
 	defer msg.Commit()
 
 	var e InstanceStarted
