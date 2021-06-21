@@ -96,7 +96,7 @@ func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) 
 	})
 
 	ireq := h.createUpdateInstanceRequest(resp.Codebook, e)
-	
+
 	log.Info(ctx, "Updating instance", log.Data{
 		"instance_id":    ireq.InstanceID,
 		"csv_headers":    ireq.CSVHeader,
@@ -109,7 +109,7 @@ func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) 
 			err:     fmt.Errorf("failed to update instance: %w", err),
 			logData: ld,
 		}
-	}	
+	}
 
 	log.Info(ctx, "Triggering dimension options import")
 
@@ -216,9 +216,8 @@ func (h *InstanceStarted) triggerImportDimensionOptions(ctx context.Context, dim
 			})
 			continue
 		}
-		log.Info(ctx, "Sending output")
+
 		h.producer.Channels().Output <- b
-		log.Info(ctx, "output sent")
 	}
 
 	return errs
