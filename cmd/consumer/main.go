@@ -10,10 +10,10 @@ import (
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
+	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
 
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/log.go/log"
-	"github.com/kelseyhightower/envconfig"
 )
 
 const serviceName = "kafka-example-consumer"
@@ -31,9 +31,6 @@ type Config struct {
 	OverSleep               bool          `envconfig:"OVERSLEEP"`
 }
 
-// period of time between tickers
-const ticker = 3 * time.Second
-
 func main() {
 	log.Namespace = serviceName
 	ctx := context.Background()
@@ -48,6 +45,7 @@ func run(ctx context.Context) error {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, os.Kill)
 
+	/*
 	// Read Config
 	cfg := &Config{
 		Brokers:                 []string{"localhost:9092", "localhost:9093", "localhost:9094"},
@@ -62,6 +60,10 @@ func run(ctx context.Context) error {
 	}
 	if err := envconfig.Process("", cfg); err != nil {
 		return err
+	}*/
+	cfg, err := config.Get()
+	if err != nil{
+		return fmt.Errorf("failed to get config: %s", err)
 	}
 
 	// run kafka Consumer Group
@@ -76,14 +78,15 @@ func run(ctx context.Context) error {
 	return closeConsumerGroup(ctx, consumerGroup, cfg.GracefulShutdownTimeout)
 }
 
-func runConsumerGroup(ctx context.Context, cfg *Config) (*kafka.ConsumerGroup, error) {
+func runConsumerGroup(ctx context.Context, cfg *config.Config) (*kafka.ConsumerGroup, error) {
 	log.Event(ctx, "[KAFKA-TEST] Starting ConsumerGroup (messages sent to stdout)", log.INFO, log.Data{"config": cfg})
 	kafka.SetMaxMessageSize(int32(cfg.KafkaMaxBytes))
 
 	// Create ConsumerGroup with channels and config
 	cgChannels := kafka.CreateConsumerGroupChannels(1)
 	cgConfig := &kafka.ConsumerGroupConfig{KafkaVersion: &cfg.KafkaVersion}
-	cg, err := kafka.NewConsumerGroup(ctx, cfg.Brokers, cfg.ConsumedTopic, cfg.ConsumedGroup, cgChannels, cgConfig)
+
+	cg, err := kafka.NewConsumerGroup(ctx, cfg.KafkaAddr, cfg.InstanceStartedTopic, cfg.InstanceStartedGroup, cgChannels, cgConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -93,13 +96,8 @@ func runConsumerGroup(ctx context.Context, cfg *Config) (*kafka.ConsumerGroup, e
 
 	// Consumer not initialised at creation time. We need to retry to initialise it.
 	if !cg.IsInitialised() {
-		if cfg.WaitForConsumerReady {
-			log.Event(ctx, "[KAFKA-TEST] Consumer could not be initialised at creation time. Waiting until we can initialise it.", log.WARN)
-			waitForInitialised(ctx, cg.Channels())
-		} else {
-			log.Event(ctx, "[KAFKA-TEST] Consumer could not be initialised at creation time. Will be initialised later.", log.WARN)
-			go waitForInitialised(ctx, cg.Channels())
-		}
+		log.Event(ctx, "[KAFKA-TEST] Consumer could not be initialised at creation time. Waiting until we can initialise it.", log.WARN)
+		waitForInitialised(ctx, cg.Channels())
 	}
 
 	// eventLoop
@@ -107,9 +105,6 @@ func runConsumerGroup(ctx context.Context, cfg *Config) (*kafka.ConsumerGroup, e
 	go func() {
 		for {
 			select {
-
-			case <-time.After(ticker):
-				log.Event(ctx, "[KAFKA-TEST] tick", log.INFO)
 
 			case consumedMessage, ok := <-cgChannels.Upstream:
 				if !ok {
@@ -133,9 +128,6 @@ func runConsumerGroup(ctx context.Context, cfg *Config) (*kafka.ConsumerGroup, e
 				logData["messageString"] = string(consumedData)
 				logData["messageRaw"] = consumedData
 				logData["messageLen"] = len(consumedData)
-
-				// Allows us to dictate the process for shutting down and how fast we consume messages in this example app, (should not be used in applications)
-				sleepIfRequired(ctx, cfg, logData)
 
 				consumedMessage.CommitAndRelease()
 				log.Event(ctx, "[KAFKA-TEST] committed and released message", log.INFO, log.Data{"messageOffset": consumedMessage.Offset()})
@@ -178,28 +170,6 @@ func closeConsumerGroup(ctx context.Context, cg *kafka.ConsumerGroup, gracefulSh
 
 	log.Event(ctx, "graceful shutdown was successful", log.INFO)
 	return nil
-}
-
-// sleepIfRequired sleeps if config requires to do so, in order to simulate a delay.
-// Snooze will cause a delay of 500ms, and OverSleep will cause a delay of the timeout plus 500 ms.
-// This function is for testing purposes only and should not be used in applications.
-func sleepIfRequired(ctx context.Context, cfg *Config, logData log.Data) {
-	var sleep time.Duration
-	if cfg.Snooze || cfg.OverSleep {
-		// Snooze slows consumption for testing
-		sleep = 500 * time.Millisecond
-		if cfg.OverSleep {
-			// OverSleep tests taking more than shutdown timeout to process a message
-			sleep += cfg.GracefulShutdownTimeout + time.Second*2
-		}
-		logData["sleep"] = sleep
-	}
-
-	log.Event(ctx, "[KAFKA-TEST] Message consumed", log.INFO, logData)
-	if sleep > time.Duration(0) {
-		time.Sleep(sleep)
-		log.Event(ctx, "[KAFKA-TEST] done sleeping", log.INFO)
-	}
 }
 
 // waitForInitialised blocks until the consumer is initialised or closed
