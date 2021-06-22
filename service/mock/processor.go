@@ -16,7 +16,7 @@ import (
 //
 // 		// make and configure a mocked service.Processor
 // 		mockedProcessor := &ProcessorMock{
-// 			ConsumeFunc: func(contextMoqParam context.Context, iConsumerGroup kafka.IConsumerGroup, handler event.Handler, n int)  {
+// 			ConsumeFunc: func(contextMoqParam context.Context, iConsumerGroup kafka.IConsumerGroup, handler event.Handler)  {
 // 				panic("mock out the Consume method")
 // 			},
 // 		}
@@ -27,7 +27,7 @@ import (
 // 	}
 type ProcessorMock struct {
 	// ConsumeFunc mocks the Consume method.
-	ConsumeFunc func(contextMoqParam context.Context, iConsumerGroup kafka.IConsumerGroup, handler event.Handler, n int)
+	ConsumeFunc func(contextMoqParam context.Context, iConsumerGroup kafka.IConsumerGroup, handler event.Handler)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -39,15 +39,13 @@ type ProcessorMock struct {
 			IConsumerGroup kafka.IConsumerGroup
 			// Handler is the handler argument value.
 			Handler event.Handler
-			// N is the n argument value.
-			N int
 		}
 	}
 	lockConsume sync.RWMutex
 }
 
 // Consume calls ConsumeFunc.
-func (mock *ProcessorMock) Consume(contextMoqParam context.Context, iConsumerGroup kafka.IConsumerGroup, handler event.Handler, n int) {
+func (mock *ProcessorMock) Consume(contextMoqParam context.Context, iConsumerGroup kafka.IConsumerGroup, handler event.Handler) {
 	if mock.ConsumeFunc == nil {
 		panic("ProcessorMock.ConsumeFunc: method is nil but Processor.Consume was just called")
 	}
@@ -55,17 +53,15 @@ func (mock *ProcessorMock) Consume(contextMoqParam context.Context, iConsumerGro
 		ContextMoqParam context.Context
 		IConsumerGroup  kafka.IConsumerGroup
 		Handler         event.Handler
-		N               int
 	}{
 		ContextMoqParam: contextMoqParam,
 		IConsumerGroup:  iConsumerGroup,
 		Handler:         handler,
-		N:               n,
 	}
 	mock.lockConsume.Lock()
 	mock.calls.Consume = append(mock.calls.Consume, callInfo)
 	mock.lockConsume.Unlock()
-	mock.ConsumeFunc(contextMoqParam, iConsumerGroup, handler, n)
+	mock.ConsumeFunc(contextMoqParam, iConsumerGroup, handler)
 }
 
 // ConsumeCalls gets all the calls that were made to Consume.
@@ -75,13 +71,11 @@ func (mock *ProcessorMock) ConsumeCalls() []struct {
 	ContextMoqParam context.Context
 	IConsumerGroup  kafka.IConsumerGroup
 	Handler         event.Handler
-	N               int
 } {
 	var calls []struct {
 		ContextMoqParam context.Context
 		IConsumerGroup  kafka.IConsumerGroup
 		Handler         event.Handler
-		N               int
 	}
 	mock.lockConsume.RLock()
 	calls = mock.calls.Consume

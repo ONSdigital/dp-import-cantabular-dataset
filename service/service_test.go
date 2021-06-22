@@ -88,7 +88,7 @@ func TestInit(t *testing.T) {
 
 		GetProcessor = func(cfg *config.Config) Processor{
 			return &serviceMock.ProcessorMock{
-				ConsumeFunc: func(context.Context, kafka.IConsumerGroup, event.Handler, int){},
+				ConsumeFunc: func(context.Context, kafka.IConsumerGroup, event.Handler){},
 			}
 		}
 
@@ -199,7 +199,7 @@ func TestStart(t *testing.T) {
 		}
 
 		processorMock := &serviceMock.ProcessorMock{
-			ConsumeFunc: func(context.Context, kafka.IConsumerGroup, event.Handler, int){},
+			ConsumeFunc: func(context.Context, kafka.IConsumerGroup, event.Handler){},
 		}
 
 		serverWg := &sync.WaitGroup{}
