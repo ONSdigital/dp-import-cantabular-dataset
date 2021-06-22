@@ -5,6 +5,7 @@ import (
 	"context"
 	"time"
 	"net/http"
+	"sync"
 	"errors"
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
@@ -17,6 +18,7 @@ import (
 	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
 
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
+	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/handler/mock"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -55,16 +57,28 @@ func TestInstanceStartedHandler_HandleHappy(t *testing.T) {
 	)
 	ctx := context.Background()
 
-	Convey("Given a successful event handler, when Handle is triggered", t, func() {
-		input := make(chan []byte, 2)
-		go func(){
-			for {
-				select{
-					case b := <-producer.Channels().Output:
-						input <- b
-					case <-time.After(time.Second * 1):
-						return
-				}
+	Convey("Given a successful event handler, when Handle is triggered", t, func(c C) {
+		wg := &sync.WaitGroup{}
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			expected := []event.CategoryDimensionImport{
+				event.CategoryDimensionImport{
+					JobID:       "test-job-id",
+					InstanceID:  "test-instance-id",
+					DimensionID: "test-variable",
+				},
+				event.CategoryDimensionImport{
+					JobID:       "test-job-id",
+					InstanceID:  "test-instance-id",
+					DimensionID: "test-mapped-variable",
+				},
+			}
+
+			for _, e := range expected{
+				validateMessage(t, producer, c, e)
 			}
 		}()
 
@@ -76,35 +90,25 @@ func TestInstanceStartedHandler_HandleHappy(t *testing.T) {
 		})
 		So(err, ShouldBeNil)
 
-		time.Sleep(time.Second * 1)
-		So(len(input), ShouldEqual, 2)
 
 		err = producer.Close(ctx)
 		So(err, ShouldBeNil)
-
-		got := make([]event.CategoryDimensionImport, 2)
-		for i := 0; i < 2; i++{
-			b := <- input
-			s := schema.CategoryDimensionImport
-			err := s.Unmarshal(b, &got[i])
-			So(err, ShouldBeNil)
-		}
-
-		expected := []event.CategoryDimensionImport{
-			event.CategoryDimensionImport{
-				JobID:       "test-job-id",
-				InstanceID:  "test-instance-id",
-				DimensionID: "test-variable",
-			},
-			event.CategoryDimensionImport{
-				JobID:       "test-job-id",
-				InstanceID:  "test-instance-id",
-				DimensionID: "test-mapped-variable",
-			},
-		}
-
-		So(got, ShouldResemble, expected)
 	})
+}
+
+func validateMessage(t *testing.T, producer kafka.IProducer, c C, expected event.CategoryDimensionImport) {
+	timeout := time.Second * 1
+
+	select {
+	case b := <-producer.Channels().Output:
+		var got event.CategoryDimensionImport
+		s := schema.CategoryDimensionImport
+		err := s.Unmarshal(b, &got)
+		c.So(err, ShouldBeNil)
+		c.So(got, ShouldResemble, expected)
+	case <-time.After(timeout):
+		t.Fail()
+	}
 }
 
 func TestInstanceStartedHandler_HandleUnhappy(t *testing.T) {
