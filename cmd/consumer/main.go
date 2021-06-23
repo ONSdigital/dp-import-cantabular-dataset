@@ -45,22 +45,6 @@ func run(ctx context.Context) error {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, os.Kill)
 
-	/*
-	// Read Config
-	cfg := &Config{
-		Brokers:                 []string{"localhost:9092", "localhost:9093", "localhost:9094"},
-		KafkaMaxBytes:           50 * 1024 * 1024,
-		KafkaVersion:            "1.0.2",
-		ConsumedTopic:           "cantabular-dataset-category-dimension-import",
-		ConsumedGroup:           "dp-import-cantabular-dataset",
-		WaitForConsumerReady:    true,
-		GracefulShutdownTimeout: 5 * time.Second,
-		Snooze:                  true,
-		OverSleep:               false,
-	}
-	if err := envconfig.Process("", cfg); err != nil {
-		return err
-	}*/
 	cfg, err := config.Get()
 	if err != nil{
 		return fmt.Errorf("failed to get config: %s", err)
@@ -86,7 +70,7 @@ func runConsumerGroup(ctx context.Context, cfg *config.Config) (*kafka.ConsumerG
 	cgChannels := kafka.CreateConsumerGroupChannels(1)
 	cgConfig := &kafka.ConsumerGroupConfig{KafkaVersion: &cfg.KafkaVersion}
 
-	cg, err := kafka.NewConsumerGroup(ctx, cfg.KafkaAddr, cfg.InstanceStartedTopic, cfg.InstanceStartedGroup, cgChannels, cgConfig)
+	cg, err := kafka.NewConsumerGroup(ctx, cfg.KafkaAddr, cfg.CategoryDimensionImportTopic, cfg.InstanceStartedGroup, cgChannels, cgConfig)
 	if err != nil {
 		return nil, err
 	}

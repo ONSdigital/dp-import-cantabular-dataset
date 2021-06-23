@@ -198,7 +198,6 @@ func (h *InstanceStarted) triggerImportDimensionOptions(ctx context.Context, dim
 	log.Info(ctx, "Triggering dimension-option import process")
 
 	for _, d := range dimensions{
-		log.Info(ctx, "TIRIGERRERER")
 		ie := event.CategoryDimensionImport{
 			DimensionID: d,
 			JobID:       e.JobID,
