@@ -111,6 +111,13 @@ func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) 
 		}
 	}
 
+	if err := h.datasets.PutInstanceState(ctx, h.cfg.ServiceAuthToken, e.InstanceID, dataset.StateCompleted); err != nil{
+		return &Error{
+			err:     fmt.Errorf("failed to update instance state: %w", err),
+			logData: ld,
+		}
+	}
+
 	log.Info(ctx, "Triggering dimension options import")
 
 	if errs := h.triggerImportDimensionOptions(ctx, codelists, e); len(errs) != 0 {
