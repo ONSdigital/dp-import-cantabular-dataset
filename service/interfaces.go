@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	kafka "github.com/ONSdigital/dp-kafka/v2"
-	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
+	"github.com/ONSdigital/dp-import-cantabular-dataset/processor"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"github.com/ONSdigital/dp-api-clients-go/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/recipe"
@@ -50,5 +50,5 @@ type RecipeAPIClient interface{
 }
 
 type Processor interface{
-	Consume (context.Context, kafka.IConsumerGroup, event.Handler)
+	Consume (context.Context, kafka.IConsumerGroup, processor.Handler)
 }

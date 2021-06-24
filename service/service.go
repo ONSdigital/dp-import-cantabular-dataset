@@ -11,7 +11,7 @@ import (
 	"github.com/ONSdigital/dp-api-clients-go/recipe"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
-	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
+	"github.com/ONSdigital/dp-import-cantabular-dataset/processor"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/handler"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	dphttp "github.com/ONSdigital/dp-net/http"
@@ -102,7 +102,7 @@ var GetDatasetAPIClient = func(cfg *config.Config) DatasetAPIClient {
 }
 
 var GetProcessor = func(cfg *config.Config) Processor{
-	return event.New(cfg.KafkaNumWorkers)
+	return processor.New(cfg.KafkaNumWorkers)
 }
 
 // New creates a new empty service

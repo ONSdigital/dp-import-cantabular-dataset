@@ -1,4 +1,4 @@
-package event
+package processor
 
 type Processor struct{
 	numWorkers int

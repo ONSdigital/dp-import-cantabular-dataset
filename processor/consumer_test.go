@@ -1,4 +1,4 @@
-package event_test
+package processor_test
 
 import (
 	"context"
@@ -7,7 +7,8 @@ import (
 	"testing"
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
-	"github.com/ONSdigital/dp-import-cantabular-dataset/event/mock"
+	"github.com/ONSdigital/dp-import-cantabular-dataset/processor"
+	"github.com/ONSdigital/dp-import-cantabular-dataset/processor/mock"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
 
 	kafka "github.com/ONSdigital/dp-kafka/v2"
@@ -25,7 +26,7 @@ var testEvent = event.InstanceStarted{
 	RecipeID: "World",
 }
 
-var processor = event.New(1)
+var proc = processor.New(1)
 
 // kafkaStubConsumer mock which exposes Channels function returning empty channels
 // to be used on tests that are not supposed to receive any kafka message
@@ -56,7 +57,7 @@ func TestConsume(t *testing.T) {
 
 			Convey("When consume message is called", func() {
 				handlerWg.Add(1)
-				processor.Consume(testCtx, mockConsumer, mockEventHandler)
+				proc.Consume(testCtx, mockConsumer, mockEventHandler)
 				handlerWg.Wait()
 
 				Convey("An event is sent to the mockEventHandler ", func() {
@@ -81,7 +82,7 @@ func TestConsume(t *testing.T) {
 			Convey("When consume messages is called", func() {
 
 				handlerWg.Add(1)
-				processor.Consume(testCtx, mockConsumer, mockEventHandler)
+				proc.Consume(testCtx, mockConsumer, mockEventHandler)
 				handlerWg.Wait()
 
 				Convey("Only the valid event is sent to the mockEventHandler ", func() {
@@ -111,7 +112,7 @@ func TestConsume(t *testing.T) {
 
 			Convey("When consume message is called", func() {
 				handlerWg.Add(1)
-				processor.Consume(testCtx, mockConsumer, mockEventHandler)
+				proc.Consume(testCtx, mockConsumer, mockEventHandler)
 				handlerWg.Wait()
 
 				Convey("An event is sent to the mockEventHandler ", func() {
