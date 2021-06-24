@@ -41,12 +41,17 @@ type CantabularClient interface{
 
 type DatasetAPIClient interface{
 	PutInstance(context.Context, string, string, string, string, dataset.UpdateInstance) error
+	PutInstanceState(context.Context, string, string, dataset.State) error
 	Checker(context.Context, *healthcheck.CheckState) error
 }
 
 type RecipeAPIClient interface{
 	GetRecipe(context.Context, string, string, string) (*recipe.Recipe, error)
 	Checker(context.Context, *healthcheck.CheckState) error
+}
+
+type ImportAPIClient interface{
+	UpdateImportJobState(context.Context, string, string, string) error
 }
 
 type Processor interface{

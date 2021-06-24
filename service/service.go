@@ -9,6 +9,7 @@ import (
 	"github.com/ONSdigital/dp-api-clients-go/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/recipe"
+	"github.com/ONSdigital/dp-api-clients-go/importapi"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/processor"
@@ -31,6 +32,7 @@ type Service struct {
 	cantabularClient CantabularClient
 	datasetAPIClient DatasetAPIClient
 	recipeAPIClient  RecipeAPIClient
+	importAPIClient  ImportAPIClient
 }
 
 // GetKafkaConsumer returns a Kafka consumer with the provided config
@@ -101,8 +103,12 @@ var GetDatasetAPIClient = func(cfg *config.Config) DatasetAPIClient {
 	return dataset.NewAPIClient(cfg.DatasetAPIURL)
 }
 
-var GetProcessor = func(cfg *config.Config) Processor{
-	return processor.New(cfg.KafkaNumWorkers)
+var GetImportAPIClient = func(cfg *config.Config) ImportAPIClient {
+	return importapi.New(cfg.ImportAPIURL)
+}
+
+var GetProcessor = func(cfg *config.Config, i ImportAPIClient, d DatasetAPIClient) Processor{
+	return processor.New(cfg.KafkaNumWorkers, i, d)
 }
 
 // New creates a new empty service
@@ -135,9 +141,10 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	svc.cantabularClient = GetCantabularClient(cfg)
 	svc.recipeAPIClient = GetRecipeAPIClient(cfg)
 	svc.datasetAPIClient = GetDatasetAPIClient(cfg)
+	svc.importAPIClient = GetImportAPIClient(cfg)
 
 	// Get processor
-	svc.processor = GetProcessor(cfg)
+	svc.processor = GetProcessor(cfg, svc.importAPIClient, svc.datasetAPIClient)
 
 	// Get HealthCheck
 	if svc.healthCheck, err = GetHealthCheck(cfg, buildTime, gitCommit, version); err != nil {

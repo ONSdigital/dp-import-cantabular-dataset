@@ -86,7 +86,7 @@ func TestInit(t *testing.T) {
 			}
 		}
 
-		GetProcessor = func(cfg *config.Config) Processor{
+		GetProcessor = func(cfg *config.Config, i ImportAPIClient, d DatasetAPIClient) Processor{
 			return &serviceMock.ProcessorMock{
 				ConsumeFunc: func(context.Context, kafka.IConsumerGroup, processor.Handler){},
 			}

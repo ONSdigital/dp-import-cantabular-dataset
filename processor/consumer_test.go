@@ -26,7 +26,7 @@ var testEvent = event.InstanceStarted{
 	RecipeID: "World",
 }
 
-var proc = processor.New(1)
+var proc = processor.New(1, nil, nil)
 
 // kafkaStubConsumer mock which exposes Channels function returning empty channels
 // to be used on tests that are not supposed to receive any kafka message

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
+	"github.com/ONSdigital/dp-api-clients-go/dataset"
 )
 
 //go:generate moq -out mock/handler.go -pkg mock . Handler
@@ -19,4 +20,12 @@ type coder interface{
 
 type dataLogger interface{
 	LogData() map[string]interface{}
+}
+
+type ImportAPIClient interface{
+	UpdateImportJobState(context.Context, string, string, string) error
+}
+
+type DatasetAPIClient interface{
+	PutInstanceState(context.Context, string, string, dataset.State) error
 }
