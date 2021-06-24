@@ -108,7 +108,7 @@ var GetImportAPIClient = func(cfg *config.Config) ImportAPIClient {
 }
 
 var GetProcessor = func(cfg *config.Config, i ImportAPIClient, d DatasetAPIClient) Processor{
-	return processor.New(cfg.KafkaNumWorkers, i, d)
+	return processor.New(*cfg, i, d)
 }
 
 // New creates a new empty service

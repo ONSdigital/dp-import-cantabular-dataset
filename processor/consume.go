@@ -6,6 +6,8 @@ import (
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
+	importapi "github.com/ONSdigital/dp-import-api/models"
+	"github.com/ONSdigital/dp-api-clients-go/dataset"
 
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/log.go/v2/log"
@@ -23,12 +25,22 @@ func (p *Processor) Consume(ctx context.Context, cg kafka.IConsumerGroup, h Hand
 					return
 				}
 
-				if err := p.processMessage(context.Background(), msg, h); err != nil{
-					log.Error(ctx, "failed to process message", err, log.Data{
-						"status_code": statusCode(err),
-						"log_data": unwrapLogData(err),
-					})
-					// Need to send response to import-api to notify of failure.
+				ctx := context.Background()
+
+				if errs := p.processMessage(ctx, msg, h); len(errs) != 0{
+					var errdata []map[string]interface{}
+
+					for _, err := range errs {
+						errdata = append(errdata, map[string]interface{}{
+							"error":    err.Error(),
+							"log_data": unwrapLogData(err),
+							"status_code": statusCode(err),
+						})
+
+						log.Error(ctx, "failed to process message", err, log.Data{
+							"errors": errdata,
+						})
+					}
 				}
 
 				msg.Release()
@@ -40,7 +52,7 @@ func (p *Processor) Consume(ctx context.Context, cg kafka.IConsumerGroup, h Hand
 	}
 
 	// workers to consume messages in parallel
-	for w := 1; w <= p.numWorkers; w++ {
+	for w := 1; w <= p.cfg.KafkaNumWorkers; w++ {
 		go consume(w)
 	}
 }
@@ -48,27 +60,42 @@ func (p *Processor) Consume(ctx context.Context, cg kafka.IConsumerGroup, h Hand
 // processMessage unmarshals the provided kafka message into an event and calls the handler.
 // After the message is handled, it is committed, by default even on error to prevent reconsumption
 // of dead messages.
-func (p *Processor) processMessage(ctx context.Context, msg kafka.Message, h Handler) error {
+func (p *Processor) processMessage(ctx context.Context, msg kafka.Message, h Handler) []error {
 	defer msg.Commit()
 
 	var e event.InstanceStarted
 	s := schema.InstanceStarted
 
 	if err := s.Unmarshal(msg.GetData(), &e); err != nil {
-		return &Error{
-			err: fmt.Errorf("failed to unmarshal event: %w", err),
-			logData: map[string]interface{}{
-				"msg_data": msg.GetData(),
+		return []error{
+			&Error{
+				err: fmt.Errorf("failed to unmarshal event: %w", err),
+				logData: map[string]interface{}{
+					"msg_data": msg.GetData(),
+				},
 			},
 		}
 	}
 
 	log.Info(ctx, "event received", log.Data{"event": e})
+	var errs []error
 
 	if err := h.Handle(ctx, &e); err != nil {
-		return fmt.Errorf("failed to handle event: %w", err)
+		errs = append(errs, fmt.Errorf("failed to handle event: %w", err))
+
+		if err := p.importAPI.UpdateImportJobState(ctx, e.JobID, p.cfg.ServiceAuthToken, importapi.FailedState); err != nil{
+			errs = append(errs, fmt.Errorf("failed to update job state: %w", err))
+		}
+
+		if !instanceCompleted(err){
+			if err := p.datasetAPI.PutInstanceState(ctx, p.cfg.ServiceAuthToken, e.InstanceID, dataset.StateFailed); err != nil{
+				errs = append(errs, fmt.Errorf("failed to update instance state: %w", err))
+			}
+		}
+
+		return errs
 	}
 
-	log.Info(ctx, "event processed - committing message", log.Data{"event": e})
+	log.Info(ctx, "event successfully processed - committing message", log.Data{"event": e})
 	return nil
 }

@@ -1,14 +1,18 @@
 package processor
 
+import (
+	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
+)
+
 type Processor struct{
-	numWorkers int
 	importAPI  ImportAPIClient
 	datasetAPI DatasetAPIClient
+	cfg config.Config
 }
 
-func New(n int, i ImportAPIClient, d DatasetAPIClient) *Processor{
+func New(cfg config.Config, i ImportAPIClient, d DatasetAPIClient) *Processor{
 	return &Processor{
-		numWorkers: n,
+		cfg:        cfg,
 		importAPI:  i,
 		datasetAPI: d,
 	}
