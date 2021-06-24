@@ -36,11 +36,11 @@ func (p *Processor) Consume(ctx context.Context, cg kafka.IConsumerGroup, h Hand
 							"log_data": unwrapLogData(err),
 							"status_code": statusCode(err),
 						})
-
-						log.Error(ctx, "failed to process message", err, log.Data{
-							"errors": errdata,
-						})
 					}
+
+					log.Event(ctx, "failed to process message", log.ERROR, log.Data{
+						"errors": errdata,
+					})
 				}
 
 				msg.Release()
@@ -78,18 +78,30 @@ func (p *Processor) processMessage(ctx context.Context, msg kafka.Message, h Han
 	}
 
 	log.Info(ctx, "event received", log.Data{"event": e})
+
 	var errs []error
 
 	if err := h.Handle(ctx, &e); err != nil {
 		errs = append(errs, fmt.Errorf("failed to handle event: %w", err))
 
 		if err := p.importAPI.UpdateImportJobState(ctx, e.JobID, p.cfg.ServiceAuthToken, importapi.FailedState); err != nil{
-			errs = append(errs, fmt.Errorf("failed to update job state: %w", err))
+			errs = append(errs, &Error{
+				err:     fmt.Errorf("failed to update job state: %w", err),
+				logData: log.Data{
+					"job_id": e.JobID,
+				},
+			})
 		}
 
 		if !instanceCompleted(err){
 			if err := p.datasetAPI.PutInstanceState(ctx, p.cfg.ServiceAuthToken, e.InstanceID, dataset.StateFailed); err != nil{
-				errs = append(errs, fmt.Errorf("failed to update instance state: %w", err))
+				errs = append(errs, &Error{
+					err:     fmt.Errorf("failed to update instance state: %w", err),
+					logData: log.Data{
+						"instance_id": e.InstanceID,
+						"job_id":      e.JobID,
+					},
+				})
 			}
 		}
 
