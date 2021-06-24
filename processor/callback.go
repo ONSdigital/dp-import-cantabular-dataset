@@ -64,3 +64,14 @@ func unwrapLogData(err error) log.Data{
 
 	return logData
 }
+
+// logData returns whether or not the instance was successfully completed
+// before the error was thrown
+func instanceCompleted(err error) bool{
+	var icerr instanceCompleteder
+	if errors.As(err, &icerr){
+		return icerr.InstanceCompleted()
+	}
+
+	return false
+}

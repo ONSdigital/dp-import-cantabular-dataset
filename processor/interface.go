@@ -22,6 +22,10 @@ type dataLogger interface{
 	LogData() map[string]interface{}
 }
 
+type instanceCompleteder interface{
+	InstanceCompleted() bool
+}
+
 type ImportAPIClient interface{
 	UpdateImportJobState(context.Context, string, string, string) error
 }
@@ -29,3 +33,5 @@ type ImportAPIClient interface{
 type DatasetAPIClient interface{
 	PutInstanceState(context.Context, string, string, dataset.State) error
 }
+
+

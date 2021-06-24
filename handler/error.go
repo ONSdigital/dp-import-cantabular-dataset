@@ -3,6 +3,7 @@ package handler
 type Error struct{
 	err error
 	logData map[string]interface{}
+	instanceCompleted bool
 }
 
 func (e *Error) Error() string{
@@ -15,4 +16,8 @@ func (e *Error) LogData() map[string]interface{}{
 
 func (e *Error) Unwrap() error{
 	return e.err
+}
+
+func (e *Error) InstanceCompleted() bool{
+	return e.instanceCompleted
 }

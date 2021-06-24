@@ -128,6 +128,7 @@ func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) 
 		return &Error{
 			err: errors.New("failed to successfully trigger options import for all dimensions"),
 			logData: ld,
+			instanceCompleted: true,
 		}
 	}
 
