@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
+	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/processor"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/processor/mock"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
@@ -23,10 +25,11 @@ var (
 )
 
 var testEvent = event.InstanceStarted{
-	RecipeID: "World",
+	RecipeID:       "test-recipe-id",
+	InstanceID:     "test-instance-id",
+	JobID:          "test-job-id",
+	CantabularType: "cantabular-table",
 }
-
-var proc = processor.New(1, nil, nil)
 
 // kafkaStubConsumer mock which exposes Channels function returning empty channels
 // to be used on tests that are not supposed to receive any kafka message
@@ -37,6 +40,13 @@ var kafkaStubConsumer = &kafkatest.IConsumerGroupMock{
 }
 
 func TestConsume(t *testing.T) {
+	cfg, err := config.Get()
+	if err != nil{
+		t.Fatalf("failed to get config: %s", err)
+	}
+
+	var proc = processor.New(*cfg, importAPIClientHappy(), datasetAPIClientHappy())
+
 	Convey("Given kafka consumer and event handler mocks", t, func() {
 		cgChannels := &kafka.ConsumerGroupChannels{Upstream: make(chan kafka.Message, 2)}
 		mockConsumer := &kafkatest.IConsumerGroupMock{
@@ -125,6 +135,28 @@ func TestConsume(t *testing.T) {
 					So(len(message.CommitCalls()), ShouldEqual, 1)
 					So(len(message.ReleaseCalls()), ShouldEqual, 1)
 				})
+
+			})
+
+			Convey("With also broken dataset-api and import-api clients", func() {
+				proc = processor.New(*cfg, importAPIClientUnhappy(), datasetAPIClientUnhappy())
+
+				Convey("When consume message is called", func() {
+					handlerWg.Add(1)
+					proc.Consume(testCtx, mockConsumer, mockEventHandler)
+					handlerWg.Wait()
+
+					Convey("An event is sent to the mockEventHandler ", func() {
+						So(len(mockEventHandler.HandleCalls()), ShouldEqual, 1)
+						So(*mockEventHandler.HandleCalls()[0].InstanceStarted, ShouldResemble, testEvent)
+					})
+
+					Convey("The message is committed and the consumer is released", func() {
+						<-message.UpstreamDone()
+						So(len(message.CommitCalls()), ShouldEqual, 1)
+						So(len(message.ReleaseCalls()), ShouldEqual, 1)
+					})
+				})
 			})
 		})
 	})
@@ -137,4 +169,36 @@ func marshal(event event.InstanceStarted) []byte {
 	bytes, err := s.Marshal(event)
 	So(err, ShouldBeNil)
 	return bytes
+}
+
+func datasetAPIClientHappy() *mock.DatasetAPIClientMock{
+	return &mock.DatasetAPIClientMock{
+		PutInstanceStateFunc: func(ctx context.Context, uaToken, instanceID string, s dataset.State) error {
+			return nil
+		},
+	}
+}
+
+func importAPIClientHappy() *mock.ImportAPIClientMock{
+	return &mock.ImportAPIClientMock{
+		UpdateImportJobStateFunc: func(ctx context.Context, uaToken, jobID, state string) error {
+			return nil
+		},
+	}
+}
+
+func datasetAPIClientUnhappy() *mock.DatasetAPIClientMock{
+	return &mock.DatasetAPIClientMock{
+		PutInstanceStateFunc: func(ctx context.Context, uaToken, instanceID string, s dataset.State) error {
+			return errors.New("invalid instance id")
+		},
+	}
+}
+
+func importAPIClientUnhappy() *mock.ImportAPIClientMock{
+	return &mock.ImportAPIClientMock{
+		UpdateImportJobStateFunc: func(ctx context.Context, uaToken, jobID, state string) error {
+			return errors.New("invalid state")
+		},
+	}
 }

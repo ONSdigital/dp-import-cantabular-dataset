@@ -264,6 +264,9 @@ func datasetAPIClientHappy() mock.DatasetAPIClientMock{
 		PutInstanceFunc: func(ctx context.Context, uaToken, saToken, collectionID, instanceID string, i dataset.UpdateInstance) error {
 			return nil
 		},
+		PutInstanceStateFunc: func(ctx context.Context, uaToken, instanceID string, s dataset.State) error {
+			return nil
+		},
 	}
 }
 
