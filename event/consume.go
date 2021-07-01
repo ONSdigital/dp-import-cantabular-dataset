@@ -24,9 +24,9 @@ func (p *Processor) Consume(ctx context.Context, cg kafka.IConsumerGroup, h Hand
 					return
 				}
 
-				ctx := context.Background()
+				msgCtx, _ := context.WithCancel(ctx)
 
-				if errs := p.processMessage(ctx, msg, h); len(errs) != 0{
+				if errs := p.processMessage(msgCtx, msg, h); len(errs) != 0{
 					var errdata []map[string]interface{}
 
 					for _, err := range errs {
@@ -46,6 +46,9 @@ func (p *Processor) Consume(ctx context.Context, cg kafka.IConsumerGroup, h Hand
 			case <-cg.Channels().Closer:
 				log.Info(ctx, "closer channel closed - closing event consumer loop ", log.Data{"worker_id": workerID})
 				return
+			case <-ctx.Done():
+				log.Info(ctx, "parent context closed - closing event consumer loop ", log.Data{"worker_id": workerID})
+				return
 			}
 		}
 	}
@@ -62,10 +65,10 @@ func (p *Processor) Consume(ctx context.Context, cg kafka.IConsumerGroup, h Hand
 func (p *Processor) processMessage(ctx context.Context, msg kafka.Message, h Handler) []error {
 	defer msg.Commit()
 
-	var e InstanceStarted
+	var event InstanceStarted
 	s := schema.InstanceStarted
 
-	if err := s.Unmarshal(msg.GetData(), &e); err != nil {
+	if err := s.Unmarshal(msg.GetData(), &event); err != nil {
 		return []error{
 			&Error{
 				err: fmt.Errorf("failed to unmarshal event: %w", err),
@@ -76,29 +79,29 @@ func (p *Processor) processMessage(ctx context.Context, msg kafka.Message, h Han
 		}
 	}
 
-	log.Info(ctx, "event received", log.Data{"event": e})
+	log.Info(ctx, "event received", log.Data{"event": event})
 
 	var errs []error
 
-	if err := h.Handle(ctx, &e); err != nil {
+	if err := h.Handle(ctx, &event); err != nil {
 		errs = append(errs, fmt.Errorf("failed to handle event: %w", err))
 
-		if err := p.importAPI.UpdateImportJobState(ctx, e.JobID, p.cfg.ServiceAuthToken, importapi.FailedState); err != nil{
+		if err := p.importAPI.UpdateImportJobState(ctx, event.JobID, p.cfg.ServiceAuthToken, importapi.FailedState); err != nil{
 			errs = append(errs, &Error{
 				err:     fmt.Errorf("failed to update job state: %w", err),
 				logData: log.Data{
-					"job_id": e.JobID,
+					"job_id": event.JobID,
 				},
 			})
 		}
 
 		if !instanceCompleted(err){
-			if err := p.datasetAPI.PutInstanceState(ctx, p.cfg.ServiceAuthToken, e.InstanceID, dataset.StateFailed); err != nil{
+			if err := p.datasetAPI.PutInstanceState(ctx, p.cfg.ServiceAuthToken, event.InstanceID, dataset.StateFailed); err != nil{
 				errs = append(errs, &Error{
 					err:     fmt.Errorf("failed to update instance state: %w", err),
 					logData: log.Data{
-						"instance_id": e.InstanceID,
-						"job_id":      e.JobID,
+						"instance_id": event.InstanceID,
+						"job_id":      event.JobID,
 					},
 				})
 			}
@@ -107,6 +110,6 @@ func (p *Processor) processMessage(ctx context.Context, msg kafka.Message, h Han
 		return errs
 	}
 
-	log.Info(ctx, "event successfully processed - committing message", log.Data{"event": e})
+	log.Info(ctx, "event successfully processed - committing message", log.Data{"event": event})
 	return nil
 }
