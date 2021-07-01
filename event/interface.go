@@ -1,9 +1,8 @@
-package processor
+package event
 
 import (
 	"context"
 
-	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 )
 
@@ -13,7 +12,7 @@ import (
 
 // Handler represents a handler for processing a single event.
 type Handler interface {
-	Handle(context.Context, *event.InstanceStarted) error
+	Handle(context.Context, *InstanceStarted) error
 }
 
 type coder interface{

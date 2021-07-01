@@ -5,26 +5,26 @@ package mock
 
 import (
 	"context"
-	"github.com/ONSdigital/dp-import-cantabular-dataset/processor"
+	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
 	"sync"
 )
 
-// Ensure, that ImportAPIClientMock does implement processor.ImportAPIClient.
+// Ensure, that ImportAPIClientMock does implement event.ImportAPIClient.
 // If this is not the case, regenerate this file with moq.
-var _ processor.ImportAPIClient = &ImportAPIClientMock{}
+var _ event.ImportAPIClient = &ImportAPIClientMock{}
 
-// ImportAPIClientMock is a mock implementation of processor.ImportAPIClient.
+// ImportAPIClientMock is a mock implementation of event.ImportAPIClient.
 //
 // 	func TestSomethingThatUsesImportAPIClient(t *testing.T) {
 //
-// 		// make and configure a mocked processor.ImportAPIClient
+// 		// make and configure a mocked event.ImportAPIClient
 // 		mockedImportAPIClient := &ImportAPIClientMock{
 // 			UpdateImportJobStateFunc: func(contextMoqParam context.Context, s1 string, s2 string, s3 string) error {
 // 				panic("mock out the UpdateImportJobState method")
 // 			},
 // 		}
 //
-// 		// use mockedImportAPIClient in code that requires processor.ImportAPIClient
+// 		// use mockedImportAPIClient in code that requires event.ImportAPIClient
 // 		// and then make assertions.
 //
 // 	}

@@ -5,12 +5,11 @@ import (
 	"net/http"
 
 	kafka "github.com/ONSdigital/dp-kafka/v2"
-	"github.com/ONSdigital/dp-import-cantabular-dataset/processor"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"github.com/ONSdigital/dp-api-clients-go/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/recipe"
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
-
+	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
 )
 
 //go:generate moq -out mock/server.go -pkg mock . HTTPServer
@@ -55,5 +54,5 @@ type ImportAPIClient interface{
 }
 
 type Processor interface{
-	Consume (context.Context, kafka.IConsumerGroup, processor.Handler)
+	Consume (context.Context, kafka.IConsumerGroup, event.Handler)
 }

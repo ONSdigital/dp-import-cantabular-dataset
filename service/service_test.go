@@ -10,7 +10,7 @@ import (
 
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
-	"github.com/ONSdigital/dp-import-cantabular-dataset/processor"
+	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
 
 	serviceMock "github.com/ONSdigital/dp-import-cantabular-dataset/service/mock"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
@@ -88,7 +88,7 @@ func TestInit(t *testing.T) {
 
 		GetProcessor = func(cfg *config.Config, i ImportAPIClient, d DatasetAPIClient) Processor{
 			return &serviceMock.ProcessorMock{
-				ConsumeFunc: func(context.Context, kafka.IConsumerGroup, processor.Handler){},
+				ConsumeFunc: func(context.Context, kafka.IConsumerGroup, event.Handler){},
 			}
 		}
 
@@ -199,7 +199,7 @@ func TestStart(t *testing.T) {
 		}
 
 		processorMock := &serviceMock.ProcessorMock{
-			ConsumeFunc: func(context.Context, kafka.IConsumerGroup, processor.Handler){},
+			ConsumeFunc: func(context.Context, kafka.IConsumerGroup, event.Handler){},
 		}
 
 		serverWg := &sync.WaitGroup{}

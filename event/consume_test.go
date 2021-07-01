@@ -1,4 +1,4 @@
-package processor_test
+package event_test
 
 import (
 	"context"
@@ -6,11 +6,10 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
-	"github.com/ONSdigital/dp-import-cantabular-dataset/processor"
-	"github.com/ONSdigital/dp-import-cantabular-dataset/processor/mock"
+	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
+	"github.com/ONSdigital/dp-import-cantabular-dataset/event/mock"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
 
 	kafka "github.com/ONSdigital/dp-kafka/v2"
@@ -45,7 +44,7 @@ func TestConsume(t *testing.T) {
 		t.Fatalf("failed to get config: %s", err)
 	}
 
-	var proc = processor.New(*cfg, importAPIClientHappy(), datasetAPIClientHappy())
+	var proc = event.NewProcessor(*cfg, importAPIClientHappy(), datasetAPIClientHappy())
 
 	Convey("Given kafka consumer and event handler mocks", t, func() {
 		cgChannels := &kafka.ConsumerGroupChannels{Upstream: make(chan kafka.Message, 2)}
@@ -139,7 +138,7 @@ func TestConsume(t *testing.T) {
 			})
 
 			Convey("With also broken dataset-api and import-api clients", func() {
-				proc = processor.New(*cfg, importAPIClientUnhappy(), datasetAPIClientUnhappy())
+				proc = event.NewProcessor(*cfg, importAPIClientUnhappy(), datasetAPIClientUnhappy())
 
 				Convey("When consume message is called", func() {
 					handlerWg.Add(1)

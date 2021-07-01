@@ -1,4 +1,4 @@
-package processor
+package event
 
 type Error struct{
 	err error

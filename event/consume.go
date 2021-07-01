@@ -1,11 +1,10 @@
-package processor
+package event
 
 import (
 	"context"
 	"fmt"
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
-	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
 	importapi "github.com/ONSdigital/dp-import-api/models"
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 
@@ -63,7 +62,7 @@ func (p *Processor) Consume(ctx context.Context, cg kafka.IConsumerGroup, h Hand
 func (p *Processor) processMessage(ctx context.Context, msg kafka.Message, h Handler) []error {
 	defer msg.Commit()
 
-	var e event.InstanceStarted
+	var e InstanceStarted
 	s := schema.InstanceStarted
 
 	if err := s.Unmarshal(msg.GetData(), &e); err != nil {

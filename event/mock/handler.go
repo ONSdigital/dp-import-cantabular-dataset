@@ -6,26 +6,25 @@ package mock
 import (
 	"context"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
-	"github.com/ONSdigital/dp-import-cantabular-dataset/processor"
 	"sync"
 )
 
-// Ensure, that HandlerMock does implement processor.Handler.
+// Ensure, that HandlerMock does implement event.Handler.
 // If this is not the case, regenerate this file with moq.
-var _ processor.Handler = &HandlerMock{}
+var _ event.Handler = &HandlerMock{}
 
-// HandlerMock is a mock implementation of processor.Handler.
+// HandlerMock is a mock implementation of event.Handler.
 //
 // 	func TestSomethingThatUsesHandler(t *testing.T) {
 //
-// 		// make and configure a mocked processor.Handler
+// 		// make and configure a mocked event.Handler
 // 		mockedHandler := &HandlerMock{
 // 			HandleFunc: func(contextMoqParam context.Context, instanceStarted *event.InstanceStarted) error {
 // 				panic("mock out the Handle method")
 // 			},
 // 		}
 //
-// 		// use mockedHandler in code that requires processor.Handler
+// 		// use mockedHandler in code that requires event.Handler
 // 		// and then make assertions.
 //
 // 	}

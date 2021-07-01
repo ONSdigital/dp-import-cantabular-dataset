@@ -6,26 +6,26 @@ package mock
 import (
 	"context"
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
-	"github.com/ONSdigital/dp-import-cantabular-dataset/processor"
+	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
 	"sync"
 )
 
-// Ensure, that DatasetAPIClientMock does implement processor.DatasetAPIClient.
+// Ensure, that DatasetAPIClientMock does implement event.DatasetAPIClient.
 // If this is not the case, regenerate this file with moq.
-var _ processor.DatasetAPIClient = &DatasetAPIClientMock{}
+var _ event.DatasetAPIClient = &DatasetAPIClientMock{}
 
-// DatasetAPIClientMock is a mock implementation of processor.DatasetAPIClient.
+// DatasetAPIClientMock is a mock implementation of event.DatasetAPIClient.
 //
 // 	func TestSomethingThatUsesDatasetAPIClient(t *testing.T) {
 //
-// 		// make and configure a mocked processor.DatasetAPIClient
+// 		// make and configure a mocked event.DatasetAPIClient
 // 		mockedDatasetAPIClient := &DatasetAPIClientMock{
 // 			PutInstanceStateFunc: func(contextMoqParam context.Context, s1 string, s2 string, state dataset.State) error {
 // 				panic("mock out the PutInstanceState method")
 // 			},
 // 		}
 //
-// 		// use mockedDatasetAPIClient in code that requires processor.DatasetAPIClient
+// 		// use mockedDatasetAPIClient in code that requires event.DatasetAPIClient
 // 		// and then make assertions.
 //
 // 	}
