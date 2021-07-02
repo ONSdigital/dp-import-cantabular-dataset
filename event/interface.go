@@ -15,22 +15,22 @@ type Handler interface {
 	Handle(context.Context, *InstanceStarted) error
 }
 
-type coder interface{
+type coder interface {
 	Code() int
 }
 
-type dataLogger interface{
+type dataLogger interface {
 	LogData() map[string]interface{}
 }
 
-type instanceCompleteder interface{
+type instanceCompleteder interface {
 	InstanceCompleted() bool
 }
 
-type ImportAPIClient interface{
+type ImportAPIClient interface {
 	UpdateImportJobState(context.Context, string, string, string) error
 }
 
-type DatasetAPIClient interface{
+type DatasetAPIClient interface {
 	PutInstanceState(context.Context, string, string, dataset.State) error
 }

@@ -23,8 +23,8 @@ type Config struct {
 	OutputFilePath               string        `envconfig:"OUTPUT_FILE_PATH"`
 	DatasetAPIURL                string        `envconfig:"DATASET_API_URL"`
 	CodelistAPIURL               string        `envconfig:"CODELIST_API_URL"`
-	RecipeAPIURL                 string       ` envconfig:"RECIPE_API_URL"`
-	ImportAPIURL                 string       ` envconfig:"IMPORT_API_URL"`
+	RecipeAPIURL                 string        ` envconfig:"RECIPE_API_URL"`
+	ImportAPIURL                 string        ` envconfig:"IMPORT_API_URL"`
 	CantabularURL                string        `envconfig:"CANTABULAR_URL"`
 	ServiceAuthToken             string        `envconfig:"SERVICE_AUTH_TOKEN"         json:"-"`
 }
@@ -39,24 +39,24 @@ func Get() (*Config, error) {
 	}
 
 	cfg = &Config{
-		BindAddr:                   "localhost:26100",
-		GracefulShutdownTimeout:    5 * time.Second,
-		HealthCheckInterval:        30 * time.Second,
-		HealthCheckCriticalTimeout: 90 * time.Second,
-		KafkaAddr:                  []string{"localhost:9092"},
-		KafkaVersion:               "1.0.2",
-		KafkaOffsetOldest:          true,
-		KafkaNumWorkers:            1,
-		KafkaMaxBytes:              2000000,
-		InstanceStartedGroup:       "dp-import-cantabular-dataset",
-		InstanceStartedTopic:       "cantabular-dataset-instance-started",
-		OutputFilePath:             "/tmp/helloworld.txt",
-		DatasetAPIURL:              "http://localhost:22000",
-		CodelistAPIURL:             "http://localhost:22400",
-		RecipeAPIURL:               "http://localhost:22300",
-		ImportAPIURL:               "http://localhost:21800",
-		CantabularURL:              "http://localhost:8491",
-		ServiceAuthToken:           "",
+		BindAddr:                     "localhost:26100",
+		GracefulShutdownTimeout:      5 * time.Second,
+		HealthCheckInterval:          30 * time.Second,
+		HealthCheckCriticalTimeout:   90 * time.Second,
+		KafkaAddr:                    []string{"localhost:9092"},
+		KafkaVersion:                 "1.0.2",
+		KafkaOffsetOldest:            true,
+		KafkaNumWorkers:              1,
+		KafkaMaxBytes:                2000000,
+		InstanceStartedGroup:         "dp-import-cantabular-dataset",
+		InstanceStartedTopic:         "cantabular-dataset-instance-started",
+		OutputFilePath:               "/tmp/helloworld.txt",
+		DatasetAPIURL:                "http://localhost:22000",
+		CodelistAPIURL:               "http://localhost:22400",
+		RecipeAPIURL:                 "http://localhost:22300",
+		ImportAPIURL:                 "http://localhost:21800",
+		CantabularURL:                "http://localhost:8491",
+		ServiceAuthToken:             "",
 		CategoryDimensionImportTopic: "cantabular-dataset-category-dimension-import",
 	}
 

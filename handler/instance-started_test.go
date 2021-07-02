@@ -1,30 +1,30 @@
 package handler_test
 
 import (
-	"testing"
 	"context"
-	"time"
+	"errors"
 	"net/http"
 	"sync"
-	"errors"
+	"testing"
+	"time"
 
+	"github.com/ONSdigital/dp-api-clients-go/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/recipe"
-	"github.com/ONSdigital/dp-api-clients-go/cantabular"
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
-	"github.com/ONSdigital/dp-import-cantabular-dataset/handler"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
+	"github.com/ONSdigital/dp-import-cantabular-dataset/handler"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
 
-	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
-	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/handler/mock"
+	kafka "github.com/ONSdigital/dp-kafka/v2"
+	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-type testError struct{
+type testError struct {
 	statusCode int
 }
 
@@ -36,7 +36,7 @@ func (e *testError) StatusCode() int {
 	return e.statusCode
 }
 
-type statusCoder interface{
+type statusCoder interface {
 	StatusCode() int
 }
 
@@ -77,19 +77,18 @@ func TestInstanceStartedHandler_HandleHappy(t *testing.T) {
 				},
 			}
 
-			for _, e := range expected{
+			for _, e := range expected {
 				validateMessage(t, producer, c, e)
 			}
 		}()
 
 		err := h.Handle(ctx, &event.InstanceStarted{
-			RecipeID: "test-recipe-id",
-			InstanceID: "test-instance-id",
-			JobID: "test-job-id",
+			RecipeID:       "test-recipe-id",
+			InstanceID:     "test-instance-id",
+			JobID:          "test-job-id",
 			CantabularType: "cantabular-table",
 		})
 		So(err, ShouldBeNil)
-
 
 		err = producer.Close(ctx)
 		So(err, ShouldBeNil)
@@ -122,8 +121,8 @@ func TestInstanceStartedHandler_HandleUnhappy(t *testing.T) {
 	ctx := context.Background()
 
 	Convey("Given an event handler, when Handle is triggered with but recipe cannot be found", t, func() {
-		recipeAPIClient.GetRecipeFunc = func(ctx context.Context, uaToken, saToken, recipeID string)(*recipe.Recipe, error){
-				return nil, &testError{http.StatusNotFound}
+		recipeAPIClient.GetRecipeFunc = func(ctx context.Context, uaToken, saToken, recipeID string) (*recipe.Recipe, error) {
+			return nil, &testError{http.StatusNotFound}
 		}
 
 		h := handler.NewInstanceStarted(
@@ -135,9 +134,9 @@ func TestInstanceStartedHandler_HandleUnhappy(t *testing.T) {
 		)
 
 		err := h.Handle(ctx, &event.InstanceStarted{
-			RecipeID: "test-recipe-id",
-			InstanceID: "test-instance-id",
-			JobID: "test-job-id",
+			RecipeID:       "test-recipe-id",
+			InstanceID:     "test-instance-id",
+			JobID:          "test-job-id",
 			CantabularType: "cantabular-table",
 		})
 		So(err, ShouldNotBeNil)
@@ -161,9 +160,9 @@ func TestInstanceStartedHandler_HandleUnhappy(t *testing.T) {
 		)
 
 		err := h.Handle(ctx, &event.InstanceStarted{
-			RecipeID: "test-recipe-id",
-			InstanceID: "test-instance-id",
-			JobID: "test-job-id",
+			RecipeID:       "test-recipe-id",
+			InstanceID:     "test-instance-id",
+			JobID:          "test-job-id",
 			CantabularType: "cantabular-table",
 		})
 		So(err, ShouldNotBeNil)
@@ -174,12 +173,12 @@ func TestInstanceStartedHandler_HandleUnhappy(t *testing.T) {
 	})
 }
 
-func testCodebook() cantabular.Codebook{
+func testCodebook() cantabular.Codebook {
 	return cantabular.Codebook{
 		cantabular.Variable{
-			Name: "test-variable",
+			Name:  "test-variable",
 			Label: "Test Variable",
-			Len: 3,
+			Len:   3,
 			Codes: []string{
 				"code1",
 				"code2",
@@ -192,9 +191,9 @@ func testCodebook() cantabular.Codebook{
 			},
 		},
 		cantabular.Variable{
-			Name: "test-mapped-variable",
+			Name:  "test-mapped-variable",
 			Label: "Test Mapped Variable",
-			Len: 2,
+			Len:   2,
 			Codes: []string{
 				"code-values-1-2",
 				"code-value-3",
@@ -219,20 +218,20 @@ func testCodebook() cantabular.Codebook{
 	}
 }
 
-func testRecipe() *recipe.Recipe{
+func testRecipe() *recipe.Recipe {
 	return &recipe.Recipe{
 		ID: "test-recipe-id",
 		OutputInstances: []recipe.Instance{
 			recipe.Instance{
 				DatasetID: "test-dataset-id",
-				Title: "Test Instance",
+				Title:     "Test Instance",
 				CodeLists: []recipe.CodeList{
 					recipe.CodeList{
-						ID: "test-variable",
+						ID:   "test-variable",
 						Name: "Test Variable",
 					},
 					recipe.CodeList{
-						ID: "test-mapped-variable",
+						ID:   "test-mapped-variable",
 						Name: "Test Mapped Variable",
 					},
 				},
@@ -241,9 +240,9 @@ func testRecipe() *recipe.Recipe{
 	}
 }
 
-func cantabularClientHappy() mock.CantabularClientMock{
+func cantabularClientHappy() mock.CantabularClientMock {
 	return mock.CantabularClientMock{
-		GetCodebookFunc: func(ctx context.Context, req cantabular.GetCodebookRequest) (*cantabular.GetCodebookResponse, error){
+		GetCodebookFunc: func(ctx context.Context, req cantabular.GetCodebookRequest) (*cantabular.GetCodebookResponse, error) {
 			return &cantabular.GetCodebookResponse{
 				Codebook: testCodebook(),
 			}, nil
@@ -251,15 +250,15 @@ func cantabularClientHappy() mock.CantabularClientMock{
 	}
 }
 
-func recipeAPIClientHappy() mock.RecipeAPIClientMock{
+func recipeAPIClientHappy() mock.RecipeAPIClientMock {
 	return mock.RecipeAPIClientMock{
-		GetRecipeFunc: func(ctx context.Context, uaToken, saToken, recipeID string) (*recipe.Recipe, error){
+		GetRecipeFunc: func(ctx context.Context, uaToken, saToken, recipeID string) (*recipe.Recipe, error) {
 			return testRecipe(), nil
 		},
 	}
 }
 
-func datasetAPIClientHappy() mock.DatasetAPIClientMock{
+func datasetAPIClientHappy() mock.DatasetAPIClientMock {
 	return mock.DatasetAPIClientMock{
 		PutInstanceFunc: func(ctx context.Context, uaToken, saToken, collectionID, instanceID string, i dataset.UpdateInstance) error {
 			return nil
@@ -270,7 +269,7 @@ func datasetAPIClientHappy() mock.DatasetAPIClientMock{
 	}
 }
 
-func datasetAPIClientUnhappy() mock.DatasetAPIClientMock{
+func datasetAPIClientUnhappy() mock.DatasetAPIClientMock {
 	return mock.DatasetAPIClientMock{
 		PutInstanceFunc: func(ctx context.Context, uaToken, saToken, collectionID, instanceID string, i dataset.UpdateInstance) error {
 			return &testError{http.StatusInternalServerError}

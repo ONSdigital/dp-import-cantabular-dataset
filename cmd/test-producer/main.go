@@ -86,9 +86,9 @@ func scanEvent(scanner *bufio.Scanner) *event.InstanceStarted {
 	cType := scanner.Text()
 
 	return &event.InstanceStarted{
-		RecipeID: rID,
-		InstanceID: iID,
-		JobID: jID,
+		RecipeID:       rID,
+		InstanceID:     iID,
+		JobID:          jID,
 		CantabularType: cType,
 	}
 }

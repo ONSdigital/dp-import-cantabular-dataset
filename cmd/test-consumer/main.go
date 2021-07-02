@@ -2,15 +2,15 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"errors"
+	"fmt"
 	"os"
 	"os/signal"
 	"time"
 
-	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
-	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
+	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
+	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
 
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/log.go/log"
@@ -46,7 +46,7 @@ func run(ctx context.Context) error {
 	signal.Notify(signals, os.Interrupt, os.Kill)
 
 	cfg, err := config.Get()
-	if err != nil{
+	if err != nil {
 		return fmt.Errorf("failed to get config: %s", err)
 	}
 

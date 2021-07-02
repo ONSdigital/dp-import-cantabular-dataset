@@ -1,8 +1,8 @@
 package event
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/ONSdigital/log.go/v2/log"
@@ -15,13 +15,13 @@ func TestCallbackHappy(t *testing.T) {
 	Convey("Given an error with embedded logData", t, func() {
 		err := &Error{
 			logData: log.Data{
-				"log":"data",
+				"log": "data",
 			},
 		}
 
 		Convey("When logData(err) is called", func() {
 			ld := logData(err)
-			So(ld, ShouldResemble, log.Data{"log":"data"})
+			So(ld, ShouldResemble, log.Data{"log": "data"})
 		})
 	})
 
@@ -29,7 +29,7 @@ func TestCallbackHappy(t *testing.T) {
 		err1 := &Error{
 			err: errors.New("original error"),
 			logData: log.Data{
-				"log":"data",
+				"log": "data",
 			},
 		}
 
@@ -50,12 +50,12 @@ func TestCallbackHappy(t *testing.T) {
 		Convey("When unwrapLogData(err) is called", func() {
 			logData := unwrapLogData(err3)
 			expected := log.Data{
-				"final":"data",
-				"additional":"data",
-				"log":"data",
+				"final":      "data",
+				"additional": "data",
+				"log":        "data",
 			}
 
-			So(logData, ShouldResemble,expected)
+			So(logData, ShouldResemble, expected)
 		})
 	})
 
@@ -63,7 +63,7 @@ func TestCallbackHappy(t *testing.T) {
 		err1 := &Error{
 			err: errors.New("original error"),
 			logData: log.Data{
-				"log":"data",
+				"log": "data",
 			},
 		}
 
@@ -81,11 +81,11 @@ func TestCallbackHappy(t *testing.T) {
 		Convey("When unwrapLogData(err) is called", func() {
 			logData := unwrapLogData(err3)
 			expected := log.Data{
-				"final":"data",
-				"log":"data",
+				"final": "data",
+				"log":   "data",
 			}
 
-			So(logData, ShouldResemble,expected)
+			So(logData, ShouldResemble, expected)
 		})
 	})
 
@@ -93,8 +93,8 @@ func TestCallbackHappy(t *testing.T) {
 		err1 := &Error{
 			err: errors.New("original error"),
 			logData: log.Data{
-				"log":"data",
-				"duplicate": "duplicate_data1",
+				"log":        "data",
+				"duplicate":  "duplicate_data1",
 				"request_id": "ADB45F",
 			},
 		}
@@ -103,7 +103,7 @@ func TestCallbackHappy(t *testing.T) {
 			err: fmt.Errorf("err1: %w", err1),
 			logData: log.Data{
 				"additional": "data",
-				"duplicate": "duplicate_data2",
+				"duplicate":  "duplicate_data2",
 				"request_id": "ADB45F",
 			},
 		}
@@ -111,8 +111,8 @@ func TestCallbackHappy(t *testing.T) {
 		err3 := &Error{
 			err: fmt.Errorf("err2: %w", err2),
 			logData: log.Data{
-				"final": "data",
-				"duplicate": "duplicate_data3",
+				"final":      "data",
+				"duplicate":  "duplicate_data3",
 				"request_id": "ADB45F",
 			},
 		}
@@ -120,9 +120,9 @@ func TestCallbackHappy(t *testing.T) {
 		Convey("When unwrapLogData(err) is called", func() {
 			logData := unwrapLogData(err3)
 			expected := log.Data{
-				"final":"data",
-				"additional":"data",
-				"log":"data",
+				"final":      "data",
+				"additional": "data",
+				"log":        "data",
 				"duplicate": []interface{}{
 					"duplicate_data3",
 					"duplicate_data2",
@@ -131,7 +131,7 @@ func TestCallbackHappy(t *testing.T) {
 				"request_id": "ADB45F",
 			}
 
-			So(logData, ShouldResemble,expected)
+			So(logData, ShouldResemble, expected)
 		})
 	})
 }

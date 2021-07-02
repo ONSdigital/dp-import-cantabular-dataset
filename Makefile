@@ -42,6 +42,9 @@ convey:
 test-component:
 	go test -v -cover -coverpkg=github.com/ONSdigital/dp-import-cantabular-dataset/... -component
 
+.PHONY: fmt
+fmt:
+	go fmt ./...
 .PHONY: lint
 lint:
 	exit

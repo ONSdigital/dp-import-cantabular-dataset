@@ -4,12 +4,12 @@ import (
 	"context"
 	"net/http"
 
-	kafka "github.com/ONSdigital/dp-kafka/v2"
-	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"github.com/ONSdigital/dp-api-clients-go/cantabular"
-	"github.com/ONSdigital/dp-api-clients-go/recipe"
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/recipe"
+	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
+	kafka "github.com/ONSdigital/dp-kafka/v2"
 )
 
 //go:generate moq -out mock/server.go -pkg mock . HTTPServer
@@ -33,26 +33,26 @@ type HealthChecker interface {
 	AddCheck(name string, checker healthcheck.Checker) (err error)
 }
 
-type CantabularClient interface{
+type CantabularClient interface {
 	GetCodebook(context.Context, cantabular.GetCodebookRequest) (*cantabular.GetCodebookResponse, error)
 	Checker(context.Context, *healthcheck.CheckState) error
 }
 
-type DatasetAPIClient interface{
+type DatasetAPIClient interface {
 	PutInstance(context.Context, string, string, string, string, dataset.UpdateInstance) error
 	PutInstanceState(context.Context, string, string, dataset.State) error
 	Checker(context.Context, *healthcheck.CheckState) error
 }
 
-type RecipeAPIClient interface{
+type RecipeAPIClient interface {
 	GetRecipe(context.Context, string, string, string) (*recipe.Recipe, error)
 	Checker(context.Context, *healthcheck.CheckState) error
 }
 
-type ImportAPIClient interface{
+type ImportAPIClient interface {
 	UpdateImportJobState(context.Context, string, string, string) error
 }
 
-type Processor interface{
-	Consume (context.Context, kafka.IConsumerGroup, event.Handler)
+type Processor interface {
+	Consume(context.Context, kafka.IConsumerGroup, event.Handler)
 }

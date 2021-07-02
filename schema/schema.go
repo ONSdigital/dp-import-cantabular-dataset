@@ -1,8 +1,8 @@
 package schema
 
 import (
-  "github.com/ONSdigital/dp-import/events"
-  "github.com/ONSdigital/dp-kafka/v2/avro"
+	"github.com/ONSdigital/dp-import/events"
+	"github.com/ONSdigital/dp-kafka/v2/avro"
 )
 
 var InstanceStarted = events.CantabularDatasetInstanceStartedSchema
@@ -19,5 +19,5 @@ var categoryDimensionImport = `{
 }`
 
 var CategoryDimensionImport = &avro.Schema{
-  Definition: categoryDimensionImport,
+	Definition: categoryDimensionImport,
 }

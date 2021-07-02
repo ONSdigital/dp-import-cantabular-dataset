@@ -2,8 +2,8 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"errors"
+	"fmt"
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
@@ -19,11 +19,11 @@ import (
 
 // InstanceStarted is the handler for the InstanceStarted event
 type InstanceStarted struct {
-	cfg        config.Config
-	ctblr      CantabularClient
-	datasets   DatasetAPIClient
-	recipes    RecipeAPIClient
-	producer   kafka.IProducer
+	cfg      config.Config
+	ctblr    CantabularClient
+	datasets DatasetAPIClient
+	recipes  RecipeAPIClient
+	producer kafka.IProducer
 }
 
 func NewInstanceStarted(cfg config.Config, c CantabularClient, r RecipeAPIClient, d DatasetAPIClient, p kafka.IProducer) *InstanceStarted {
@@ -45,7 +45,7 @@ func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) 
 	}
 
 	r, err := h.recipes.GetRecipe(ctx, "", h.cfg.ServiceAuthToken, e.RecipeID)
-	if err != nil{
+	if err != nil {
 		return &Error{
 			err:     fmt.Errorf("failed to get recipe: %w", err),
 			logData: ld,
@@ -55,7 +55,7 @@ func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) 
 	log.Info(ctx, "Successfully got Recipe", log.Data{"recipe_alias": r.Alias})
 
 	i, err := h.getInstanceFromRecipe(ctx, r)
-	if err != nil{
+	if err != nil {
 		return &Error{
 			err:     fmt.Errorf("failed to get instance from recipe: %s", err),
 			logData: ld,
@@ -65,7 +65,7 @@ func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) 
 	log.Info(ctx, "Successfully got instance", log.Data{"instance_title": i.Title})
 
 	codelists, err := h.getCodeListsFromInstance(i)
-	if err != nil{
+	if err != nil {
 		return &Error{
 			err:     fmt.Errorf("failed to get code-lists (dimensions) from recipe instance: %s", err),
 			logData: ld,
@@ -82,7 +82,7 @@ func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) 
 
 	// Validation happens here, if any variables are incorrect, will throw an error
 	resp, err := h.ctblr.GetCodebook(ctx, req)
-	if err != nil{
+	if err != nil {
 		return &Error{
 			err:     fmt.Errorf("failed to get codebook from Cantabular: %w", err),
 			logData: ld,
@@ -104,14 +104,14 @@ func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) 
 		"num_dimensions": len(ireq.Dimensions),
 	})
 
-	if err := h.datasets.PutInstance(ctx, "", h.cfg.ServiceAuthToken, "", e.InstanceID, ireq); err != nil{
+	if err := h.datasets.PutInstance(ctx, "", h.cfg.ServiceAuthToken, "", e.InstanceID, ireq); err != nil {
 		return &Error{
 			err:     fmt.Errorf("failed to update instance: %w", err),
 			logData: ld,
 		}
 	}
 
-	if err := h.datasets.PutInstanceState(ctx, h.cfg.ServiceAuthToken, e.InstanceID, dataset.StateCompleted); err != nil{
+	if err := h.datasets.PutInstanceState(ctx, h.cfg.ServiceAuthToken, e.InstanceID, dataset.StateCompleted); err != nil {
 		return &Error{
 			err:     fmt.Errorf("failed to update instance state: %w", err),
 			logData: ld,
@@ -133,8 +133,8 @@ func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) 
 		ld["errors"] = errdata
 
 		return &Error{
-			err: errors.New("failed to successfully trigger options import for all dimensions"),
-			logData: ld,
+			err:               errors.New("failed to successfully trigger options import for all dimensions"),
+			logData:           ld,
 			instanceCompleted: true,
 		}
 	}
@@ -144,12 +144,12 @@ func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) 
 	return nil
 }
 
-func (h *InstanceStarted) getInstanceFromRecipe(ctx context.Context, r *recipe.Recipe) (*recipe.Instance, error){
-	if len(r.OutputInstances) < 1{
+func (h *InstanceStarted) getInstanceFromRecipe(ctx context.Context, r *recipe.Recipe) (*recipe.Instance, error) {
+	if len(r.OutputInstances) < 1 {
 		return nil, errors.New("no instances found in recipe")
 	}
 
-	if len(r.OutputInstances) > 1{
+	if len(r.OutputInstances) > 1 {
 		log.Warn(ctx, "more than one instance found in recipe. Defaulting to instances[0]", log.Data{
 			"num_instances": len(r.OutputInstances),
 		})
@@ -158,31 +158,31 @@ func (h *InstanceStarted) getInstanceFromRecipe(ctx context.Context, r *recipe.R
 	return &r.OutputInstances[0], nil
 }
 
-func (h *InstanceStarted) getCodeListsFromInstance(i *recipe.Instance) ([]string, error){
-	if len(i.CodeLists) < 1{
+func (h *InstanceStarted) getCodeListsFromInstance(i *recipe.Instance) ([]string, error) {
+	if len(i.CodeLists) < 1 {
 		return nil, fmt.Errorf("no code-lists (dimensions) found in instance")
 	}
 
 	var codelists []string
-	for _, cl := range i.CodeLists{
+	for _, cl := range i.CodeLists {
 		codelists = append(codelists, cl.ID)
 	}
 
 	return codelists, nil
 }
 
-func (h *InstanceStarted) createUpdateInstanceRequest(cb cantabular.Codebook, e *event.InstanceStarted) dataset.UpdateInstance{
+func (h *InstanceStarted) createUpdateInstanceRequest(cb cantabular.Codebook, e *event.InstanceStarted) dataset.UpdateInstance {
 	req := dataset.UpdateInstance{
 		Edition:    "2021",
 		CSVHeader:  []string{"ftb_table"},
 		InstanceID: e.InstanceID,
 	}
 
-	for _, v := range cb{
+	for _, v := range cb {
 		sourceName := v.Name
 
-		if len(v.MapFrom) > 0{
-			if len(v.MapFrom[0].SourceNames) > 0{
+		if len(v.MapFrom) > 0 {
+			if len(v.MapFrom[0].SourceNames) > 0 {
 				sourceName = v.MapFrom[0].SourceNames[0]
 			}
 		}
@@ -194,7 +194,7 @@ func (h *InstanceStarted) createUpdateInstanceRequest(cb cantabular.Codebook, e 
 			Name:  v.Label,
 		}
 		req.Dimensions = append(req.Dimensions, d)
-		req.CSVHeader  = append(req.CSVHeader, v.Name)
+		req.CSVHeader = append(req.CSVHeader, v.Name)
 	}
 
 	return req
@@ -205,7 +205,7 @@ func (h *InstanceStarted) triggerImportDimensionOptions(ctx context.Context, dim
 
 	log.Info(ctx, "Triggering dimension-option import process")
 
-	for _, d := range dimensions{
+	for _, d := range dimensions {
 		ie := event.CategoryDimensionImport{
 			DimensionID: d,
 			JobID:       e.JobID,
@@ -215,9 +215,9 @@ func (h *InstanceStarted) triggerImportDimensionOptions(ctx context.Context, dim
 		s := schema.CategoryDimensionImport
 
 		b, err := s.Marshal(ie)
-		if err != nil{
+		if err != nil {
 			errs = append(errs, &Error{
-				err:     fmt.Errorf("avro: failed to marshal dimension: %w", err),
+				err: fmt.Errorf("avro: failed to marshal dimension: %w", err),
 				logData: log.Data{
 					"dimension_id": d,
 				},

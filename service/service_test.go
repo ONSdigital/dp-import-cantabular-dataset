@@ -86,9 +86,9 @@ func TestInit(t *testing.T) {
 			}
 		}
 
-		GetProcessor = func(cfg *config.Config, i ImportAPIClient, d DatasetAPIClient) Processor{
+		GetProcessor = func(cfg *config.Config, i ImportAPIClient, d DatasetAPIClient) Processor {
 			return &serviceMock.ProcessorMock{
-				ConsumeFunc: func(context.Context, kafka.IConsumerGroup, event.Handler){},
+				ConsumeFunc: func(context.Context, kafka.IConsumerGroup, event.Handler) {},
 			}
 		}
 
@@ -199,7 +199,7 @@ func TestStart(t *testing.T) {
 		}
 
 		processorMock := &serviceMock.ProcessorMock{
-			ConsumeFunc: func(context.Context, kafka.IConsumerGroup, event.Handler){},
+			ConsumeFunc: func(context.Context, kafka.IConsumerGroup, event.Handler) {},
 		}
 
 		serverWg := &sync.WaitGroup{}

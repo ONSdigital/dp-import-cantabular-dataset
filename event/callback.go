@@ -2,15 +2,15 @@ package event
 
 import (
 	"errors"
-	"net/http"
 	"github.com/ONSdigital/log.go/v2/log"
+	"net/http"
 )
 
 // statusCode is a callback function that allows you to extract
 // a status code from an error, or returns 500 as a default
-func statusCode(err error) int{
+func statusCode(err error) int {
 	var cerr coder
-	if errors.As(err, &cerr){
+	if errors.As(err, &cerr) {
 		return cerr.Code()
 	}
 
@@ -20,9 +20,9 @@ func statusCode(err error) int{
 // logData returns logData for an error if there is any. This is used
 // to extract log.Data embedded in an error if it implements the dataLogger
 // interface
-func logData(err error) log.Data{
+func logData(err error) log.Data {
 	var lderr dataLogger
-	if errors.As(err, &lderr){
+	if errors.As(err, &lderr) {
 		return lderr.LogData()
 	}
 
@@ -34,12 +34,12 @@ func logData(err error) log.Data{
 // then extracted and combined here as a single log.Data entry. This allows
 // us to log errors only once but maintain the context provided by log.Data
 // at each level.
-func unwrapLogData(err error) log.Data{
+func unwrapLogData(err error) log.Data {
 	var data []log.Data
 
-	for err != nil && errors.Unwrap(err) != nil{
-		if lderr, ok := err.(dataLogger); ok{
-			if d := lderr.LogData(); d != nil{
+	for err != nil && errors.Unwrap(err) != nil {
+		if lderr, ok := err.(dataLogger); ok {
+			if d := lderr.LogData(); d != nil {
 				data = append(data, d)
 			}
 		}
@@ -51,10 +51,10 @@ func unwrapLogData(err error) log.Data{
 	// entries for duplicate keyed entries, but not for duplicate
 	// key-value pairs
 	logData := log.Data{}
-	for _, d := range data{
-		for k, v := range d{
-			if val, ok := logData[k]; ok{
-				if val != v{
+	for _, d := range data {
+		for k, v := range d {
+			if val, ok := logData[k]; ok {
+				if val != v {
 					if s, ok := val.([]interface{}); ok {
 						s = append(s, v)
 						logData[k] = s
@@ -62,7 +62,7 @@ func unwrapLogData(err error) log.Data{
 						logData[k] = []interface{}{val, v}
 					}
 				}
-			} else{
+			} else {
 				logData[k] = v
 			}
 		}
@@ -73,9 +73,9 @@ func unwrapLogData(err error) log.Data{
 
 // instanceCompleted returns whether or not the instance was successfully completed
 // before the error was thrown
-func instanceCompleted(err error) bool{
+func instanceCompleted(err error) bool {
 	var icerr instanceCompleteder
-	if errors.As(err, &icerr){
+	if errors.As(err, &icerr) {
 		return icerr.InstanceCompleted()
 	}
 

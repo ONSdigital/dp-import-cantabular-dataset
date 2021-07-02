@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
-	importapi "github.com/ONSdigital/dp-import-api/models"
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	importapi "github.com/ONSdigital/dp-import-api/models"
+	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
 
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/log.go/v2/log"
@@ -26,13 +26,13 @@ func (p *Processor) Consume(ctx context.Context, cg kafka.IConsumerGroup, h Hand
 
 				msgCtx, _ := context.WithCancel(ctx)
 
-				if errs := p.processMessage(msgCtx, msg, h); len(errs) != 0{
+				if errs := p.processMessage(msgCtx, msg, h); len(errs) != 0 {
 					var errdata []map[string]interface{}
 
 					for _, err := range errs {
 						errdata = append(errdata, map[string]interface{}{
-							"error":    err.Error(),
-							"log_data": unwrapLogData(err),
+							"error":       err.Error(),
+							"log_data":    unwrapLogData(err),
 							"status_code": statusCode(err),
 						})
 					}
@@ -86,19 +86,19 @@ func (p *Processor) processMessage(ctx context.Context, msg kafka.Message, h Han
 	if err := h.Handle(ctx, &event); err != nil {
 		errs = append(errs, fmt.Errorf("failed to handle event: %w", err))
 
-		if err := p.importAPI.UpdateImportJobState(ctx, event.JobID, p.cfg.ServiceAuthToken, importapi.FailedState); err != nil{
+		if err := p.importAPI.UpdateImportJobState(ctx, event.JobID, p.cfg.ServiceAuthToken, importapi.FailedState); err != nil {
 			errs = append(errs, &Error{
-				err:     fmt.Errorf("failed to update job state: %w", err),
+				err: fmt.Errorf("failed to update job state: %w", err),
 				logData: log.Data{
 					"job_id": event.JobID,
 				},
 			})
 		}
 
-		if !instanceCompleted(err){
-			if err := p.datasetAPI.PutInstanceState(ctx, p.cfg.ServiceAuthToken, event.InstanceID, dataset.StateFailed); err != nil{
+		if !instanceCompleted(err) {
+			if err := p.datasetAPI.PutInstanceState(ctx, p.cfg.ServiceAuthToken, event.InstanceID, dataset.StateFailed); err != nil {
 				errs = append(errs, &Error{
-					err:     fmt.Errorf("failed to update instance state: %w", err),
+					err: fmt.Errorf("failed to update instance state: %w", err),
 					logData: log.Data{
 						"instance_id": event.InstanceID,
 						"job_id":      event.JobID,

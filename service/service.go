@@ -2,14 +2,14 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/ONSdigital/dp-api-clients-go/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
-	"github.com/ONSdigital/dp-api-clients-go/recipe"
 	"github.com/ONSdigital/dp-api-clients-go/importapi"
+	"github.com/ONSdigital/dp-api-clients-go/recipe"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
@@ -107,7 +107,7 @@ var GetImportAPIClient = func(cfg *config.Config) ImportAPIClient {
 	return importapi.New(cfg.ImportAPIURL)
 }
 
-var GetProcessor = func(cfg *config.Config, i ImportAPIClient, d DatasetAPIClient) Processor{
+var GetProcessor = func(cfg *config.Config, i ImportAPIClient, d DatasetAPIClient) Processor {
 	return event.NewProcessor(*cfg, i, d)
 }
 
@@ -120,7 +120,7 @@ func New() *Service {
 func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, gitCommit, version string) error {
 	var err error
 
-	if cfg == nil{
+	if cfg == nil {
 		return errors.New("nil config passed to service init")
 	}
 

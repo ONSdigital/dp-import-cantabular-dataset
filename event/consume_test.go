@@ -19,7 +19,7 @@ import (
 )
 
 var (
-	testCtx = context.Background()
+	testCtx    = context.Background()
 	errHandler = errors.New("Handler Error")
 )
 
@@ -40,7 +40,7 @@ var kafkaStubConsumer = &kafkatest.IConsumerGroupMock{
 
 func TestConsume(t *testing.T) {
 	cfg, err := config.Get()
-	if err != nil{
+	if err != nil {
 		t.Fatalf("failed to get config: %s", err)
 	}
 
@@ -170,7 +170,7 @@ func marshal(event event.InstanceStarted) []byte {
 	return bytes
 }
 
-func datasetAPIClientHappy() *mock.DatasetAPIClientMock{
+func datasetAPIClientHappy() *mock.DatasetAPIClientMock {
 	return &mock.DatasetAPIClientMock{
 		PutInstanceStateFunc: func(ctx context.Context, uaToken, instanceID string, s dataset.State) error {
 			return nil
@@ -178,7 +178,7 @@ func datasetAPIClientHappy() *mock.DatasetAPIClientMock{
 	}
 }
 
-func importAPIClientHappy() *mock.ImportAPIClientMock{
+func importAPIClientHappy() *mock.ImportAPIClientMock {
 	return &mock.ImportAPIClientMock{
 		UpdateImportJobStateFunc: func(ctx context.Context, uaToken, jobID, state string) error {
 			return nil
@@ -186,7 +186,7 @@ func importAPIClientHappy() *mock.ImportAPIClientMock{
 	}
 }
 
-func datasetAPIClientUnhappy() *mock.DatasetAPIClientMock{
+func datasetAPIClientUnhappy() *mock.DatasetAPIClientMock {
 	return &mock.DatasetAPIClientMock{
 		PutInstanceStateFunc: func(ctx context.Context, uaToken, instanceID string, s dataset.State) error {
 			return errors.New("invalid instance id")
@@ -194,7 +194,7 @@ func datasetAPIClientUnhappy() *mock.DatasetAPIClientMock{
 	}
 }
 
-func importAPIClientUnhappy() *mock.ImportAPIClientMock{
+func importAPIClientUnhappy() *mock.ImportAPIClientMock {
 	return &mock.ImportAPIClientMock{
 		UpdateImportJobStateFunc: func(ctx context.Context, uaToken, jobID, state string) error {
 			return errors.New("invalid state")
