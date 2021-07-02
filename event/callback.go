@@ -17,7 +17,9 @@ func statusCode(err error) int{
 	return http.StatusInternalServerError
 }
 
-// logData returns logData for an error if there is any
+// logData returns logData for an error if there is any. This is used
+// to extract log.Data embedded in an error if it implements the dataLogger
+// interface
 func logData(err error) log.Data{
 	var lderr dataLogger
 	if errors.As(err, &lderr){
@@ -27,7 +29,11 @@ func logData(err error) log.Data{
 	return nil
 }
 
-// unwrapLogData recursively unwraps logData from an error
+// unwrapLogData recursively unwraps logData from an error. This allows an
+// error to be wrapped with log.Data at each level of the call stack, and
+// then extracted and combined here as a single log.Data entry. This allows
+// us to log errors only once but maintain the context provided by log.Data
+// at each level.
 func unwrapLogData(err error) log.Data{
 	var data []log.Data
 
