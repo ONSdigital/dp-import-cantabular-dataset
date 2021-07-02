@@ -7,8 +7,8 @@ import (
 )
 
 //go:generate moq -out mock/handler.go -pkg mock . Handler
-//go:generate moq -out mock/import-api-client.go -pkg mock . ImportAPIClient
-//go:generate moq -out mock/dataset-api-client.go -pkg mock . DatasetAPIClient
+//go:generate moq -out mock/import_api_client.go -pkg mock . ImportAPIClient
+//go:generate moq -out mock/dataset_api_client.go -pkg mock . DatasetAPIClient
 
 // Handler represents a handler for processing a single event.
 type Handler interface {

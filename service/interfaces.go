@@ -13,10 +13,10 @@ import (
 )
 
 //go:generate moq -out mock/server.go -pkg mock . HTTPServer
-//go:generate moq -out mock/health-check.go -pkg mock . HealthChecker
-//go:generate moq -out mock/canabular-client.go -pkg mock . CantabularClient
-//go:generate moq -out mock/dataset-api-client.go -pkg mock . DatasetAPIClient
-//go:generate moq -out mock/recipe-api-client.go -pkg mock . RecipeAPIClient
+//go:generate moq -out mock/health_check.go -pkg mock . HealthChecker
+//go:generate moq -out mock/canabular_client.go -pkg mock . CantabularClient
+//go:generate moq -out mock/dataset_api_client.go -pkg mock . DatasetAPIClient
+//go:generate moq -out mock/recipe_api_client.go -pkg mock . RecipeAPIClient
 //go:generate moq -out mock/processor.go -pkg mock . Processor
 
 // HTTPServer defines the required methods from the HTTP server
