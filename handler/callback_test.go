@@ -22,5 +22,4 @@ func TestCallbackHappy(t *testing.T) {
 			So(ld, ShouldResemble, log.Data{"log":"data"})
 		})
 	})
-
 }
