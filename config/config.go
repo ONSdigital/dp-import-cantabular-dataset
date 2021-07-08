@@ -23,8 +23,8 @@ type Config struct {
 	OutputFilePath               string        `envconfig:"OUTPUT_FILE_PATH"`
 	DatasetAPIURL                string        `envconfig:"DATASET_API_URL"`
 	CodelistAPIURL               string        `envconfig:"CODELIST_API_URL"`
-	RecipeAPIURL                 string        ` envconfig:"RECIPE_API_URL"`
-	ImportAPIURL                 string        ` envconfig:"IMPORT_API_URL"`
+	RecipeAPIURL                 string        `envconfig:"RECIPE_API_URL"`
+	ImportAPIURL                 string        `envconfig:"IMPORT_API_URL"`
 	CantabularURL                string        `envconfig:"CANTABULAR_URL"`
 	ServiceAuthToken             string        `envconfig:"SERVICE_AUTH_TOKEN"         json:"-"`
 }
@@ -39,7 +39,7 @@ func Get() (*Config, error) {
 	}
 
 	cfg = &Config{
-		BindAddr:                     "localhost:26100",
+		BindAddr:                     ":26100",
 		GracefulShutdownTimeout:      5 * time.Second,
 		HealthCheckInterval:          30 * time.Second,
 		HealthCheckCriticalTimeout:   90 * time.Second,

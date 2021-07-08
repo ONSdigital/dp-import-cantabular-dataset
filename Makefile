@@ -40,7 +40,7 @@ convey:
 
 .PHONY: test-component
 test-component:
-	go test -v -cover -coverpkg=github.com/ONSdigital/dp-import-cantabular-dataset/... -component
+	docker-compose -f features/steps/deps.yml -f features/steps/component-test.yml up --build --abort-on-container-exit
 
 .PHONY: fmt
 fmt:

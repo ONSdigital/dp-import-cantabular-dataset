@@ -1,0 +1,20 @@
+version: '3.3'
+services:
+    dp-import-cantabular-dataset:
+        build:
+            context: ../..
+            dockerfile: Dockerfile.local
+        command:
+        - go 
+        - test 
+        - -cover 
+        - -coverpkg=github.com/ONSdigital/dp-import-cantabular-dataset/... 
+        - -component
+        volumes:
+            - ../..:/dp-import-cantabular-dataset
+        depends_on:
+            - kafka
+        ports:
+            - 26100:26100
+        environment:
+            KAFKA_ADDR: "kafka:9092"

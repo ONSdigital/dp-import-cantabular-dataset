@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"os"
+	"log"
 	"testing"
 
 	componenttest "github.com/ONSdigital/dp-component-test"
@@ -18,7 +19,10 @@ type ComponentTest struct {
 }
 
 func (f *ComponentTest) InitializeScenario(ctx *godog.ScenarioContext) {
-	component := steps.NewComponent()
+	component, err := steps.NewComponent()
+	if err != nil{
+		log.Panicf("unable to initialise component: %s", err)
+	}
 
 	ctx.BeforeScenario(func(*godog.Scenario) {
 		component.Reset()

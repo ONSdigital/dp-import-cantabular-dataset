@@ -14,6 +14,7 @@ require (
 	github.com/ONSdigital/dp-net v1.0.12
 	github.com/ONSdigital/log.go v1.0.1
 	github.com/ONSdigital/log.go/v2 v2.0.0
+	github.com/maxcnunes/httpfake v1.2.1
 	github.com/cucumber/godog v0.11.0
 	github.com/gofrs/uuid v4.0.0+incompatible // indirect
 	github.com/gorilla/mux v1.8.0

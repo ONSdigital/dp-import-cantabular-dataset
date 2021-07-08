@@ -118,7 +118,9 @@ func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) 
 		}
 	}
 
-	log.Info(ctx, "Triggering dimension options import")
+	log.Info(ctx, "Triggering dimension options import", log.Data{
+		"num_dimensions": len(codelists),
+	})
 
 	if errs := h.triggerImportDimensionOptions(ctx, codelists, e); len(errs) != 0 {
 		var errdata []map[string]interface{}
@@ -202,8 +204,6 @@ func (h *InstanceStarted) createUpdateInstanceRequest(cb cantabular.Codebook, e 
 
 func (h *InstanceStarted) triggerImportDimensionOptions(ctx context.Context, dimensions []string, e *event.InstanceStarted) []error {
 	var errs []error
-
-	log.Info(ctx, "Triggering dimension-option import process")
 
 	for _, d := range dimensions {
 		ie := event.CategoryDimensionImport{
