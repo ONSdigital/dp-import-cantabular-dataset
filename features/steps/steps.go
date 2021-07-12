@@ -22,8 +22,12 @@ import (
 func (c *Component) RegisterSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^the following recipe with id "([^"]*)" is available from dp-recipe-api:$`, c.theFollowingRecipeIsAvailable)
 	ctx.Step(`^the following response is available from Cantabular from the codebook "([^"]*)" and query "([^"]*)":$`, c.theFollowingCodebookIsAvailable)
+
 	ctx.Step(`^the call to update job "([^"]*)" is succesful`, c.theCallToUpdateJobIsSuccessful)
 	ctx.Step(`^the call to update instance "([^"]*)" is succesful`, c.theCallToUpdateInstanceIsSuccessful)
+	ctx.Step(`^the call to update job "([^"]*)" is unsuccesful`, c.theCallToUpdateJobIsUnsuccessful)
+	ctx.Step(`^the call to update instance "([^"]*)" is unsuccesful`, c.theCallToUpdateInstanceIsUnsuccessful)
+
 
 	ctx.Step(`^this instance-started event is consumed:$`, c.thisInstanceStartedEventIsConsumed)
 	ctx.Step(`^these category dimension import events should be produced:$`, c.theseCategoryDimensionImportEventsShouldBeProduced)
@@ -56,6 +60,14 @@ func (c *Component) theCallToUpdateInstanceIsSuccessful(instance string) error {
 	return nil
 }
 
+func (c *Component) theCallToUpdateInstanceIsUnsuccessful(instance string) error {
+	c.DatasetAPI.NewHandler().
+	Put("/instances/" + instance).
+	Reply(http.StatusInternalServerError)
+
+	return nil
+}
+
 func (c *Component) theCallToUpdateJobIsSuccessful(job string) error {
 	c.ImportAPI.NewHandler().
 	Put("/jobs/" + job).
@@ -63,6 +75,15 @@ func (c *Component) theCallToUpdateJobIsSuccessful(job string) error {
 
 	return nil
 }
+
+func (c *Component) theCallToUpdateJobIsUnsuccessful(job string) error {
+	c.ImportAPI.NewHandler().
+	Put("/jobs/" + job).
+	Reply(http.StatusInternalServerError)
+
+	return nil
+}
+
 
 func (c *Component) theseCategoryDimensionImportEventsShouldBeProduced(events *godog.Table) error {
 	expected, err := assistdog.NewDefault().CreateSlice(new(event.CategoryDimensionImport), events)
