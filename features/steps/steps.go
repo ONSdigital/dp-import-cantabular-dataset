@@ -27,6 +27,7 @@ func (c *Component) RegisterSteps(ctx *godog.ScenarioContext) {
 
 	ctx.Step(`^this instance-started event is consumed:$`, c.thisInstanceStartedEventIsConsumed)
 	ctx.Step(`^these category dimension import events should be produced:$`, c.theseCategoryDimensionImportEventsShouldBeProduced)
+	ctx.Step(`^no category dimension import events should be produced`, c.noCategoryDimensionImportEventsShouldBeProduced)
 }
 
 func (c *Component) theFollowingRecipeIsAvailable(id string, recipe *godog.DocString) error {
@@ -106,6 +107,32 @@ func (c *Component) theseCategoryDimensionImportEventsShouldBeProduced(events *g
 	return nil
 }
 
+func (c *Component) noCategoryDimensionImportEventsShouldBeProduced() error {
+	listen := true
+
+	for listen {
+		select{
+		case <- time.After(time.Second * 1):
+			listen = false
+		case <-c.consumer.Channels().Closer:
+			return errors.New("closer channel closed")
+		case msg, ok := <-c.consumer.Channels().Upstream:
+			if !ok {
+				return errors.New("upstream channel closed")
+			}
+
+			err := fmt.Errorf("unexpected message receieved: %s", msg.GetData())
+
+			msg.Commit()
+			msg.Release()
+
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (c *Component) thisInstanceStartedEventIsConsumed(input *godog.DocString) error {
 	ctx := context.Background()
 
@@ -134,23 +161,4 @@ func (c *Component) thisInstanceStartedEventIsConsumed(input *godog.DocString) e
 
 	log.Info(ctx, "thisInstanceStartedEventIsConsumed done")
 	return nil
-}
-
-func (c *Component) startService(){
-	ctx := context.Background()
-	defer c.wg.Done()
-	c.svc.Start(context.Background(), c.errorChan)
-
-	// blocks until an os interrupt or a fatal error occurs
-	select {
-	case err := <-c.errorChan:
-		err = fmt.Errorf("service error received: %w", err)
-		c.svc.Close(ctx)
-		panic(fmt.Errorf("unexpected error received from errorChan: %w", err))
-	case sig := <-c.signals:
-		log.Info(ctx, "os signal received", log.Data{"signal": sig})
-	}
-	if err := c.svc.Close(ctx); err != nil {
-		panic(fmt.Errorf("unexpected error during service graceful shutdown: %w", err))
-	}
 }

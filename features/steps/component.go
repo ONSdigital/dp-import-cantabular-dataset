@@ -3,6 +3,8 @@ package steps
 import (
 	"context"
 	"fmt"
+	"time"
+	"errors"
 	"os"
 	"os/signal"
 	"syscall"
@@ -49,18 +51,21 @@ func NewComponent() (*Component, error) {
 		wg:            &sync.WaitGroup{},
 	}
 
+	
+	return c, nil
+}
+
+func (c *Component) initService(ctx context.Context) error {
 	// Read config
 	cfg, err := config.Get()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get config: %w", err)
+		return fmt.Errorf("failed to get config: %w", err)
 	}
 
 	cfg.DatasetAPIURL = c.DatasetAPI.ResolveURL("") 
 	cfg.RecipeAPIURL  = c.RecipeAPI.ResolveURL("")
 	cfg.CantabularURL = c.CantabularSrv.ResolveURL("")
 	cfg.ImportAPIURL  = c.ImportAPI.ResolveURL("")
-
-	ctx := context.Background()
 
 	// producer for triggering test events
 	if c.producer, err = kafka.NewProducer(
@@ -73,7 +78,7 @@ func NewComponent() (*Component, error) {
 			MaxMessageBytes: &cfg.KafkaMaxBytes,
 		},
 	); err != nil {
-		return nil, fmt.Errorf("error creating kafka producer: %w", err)
+		return fmt.Errorf("error creating kafka producer: %w", err)
 	}
 	c.producer.Channels().LogErrors(ctx, "producer")
 
@@ -99,13 +104,13 @@ func NewComponent() (*Component, error) {
 			Offset:       &kafkaOffset,
 		},
 	); err != nil {
-		return nil, fmt.Errorf("error creating kafka consumer: %w", err)
+		return fmt.Errorf("error creating kafka consumer: %w", err)
 	}
 
 	// Create service and initialise it
 	c.svc = service.New()
 	if err = c.svc.Init(ctx, cfg, BuildTime, GitCommit, Version); err != nil {
-		return nil, fmt.Errorf("unexpected service Init error in NewComponent: %w", err)
+		return fmt.Errorf("unexpected service Init error in NewComponent: %w", err)
 	}
 
 	c.cfg = cfg
@@ -114,11 +119,64 @@ func NewComponent() (*Component, error) {
 	c.signals = make(chan os.Signal, 1)
 	signal.Notify(c.signals, os.Interrupt, syscall.SIGTERM)
 
-	return c, nil
+	return nil
 }
 
+func (c *Component) startService(ctx context.Context){
+	defer c.wg.Done()
+	c.svc.Start(context.Background(), c.errorChan)
+
+	// blocks until an os interrupt or a fatal error occurs
+	select {
+	case err := <-c.errorChan:
+		err = fmt.Errorf("service error received: %w", err)
+		c.svc.Close(ctx)
+		panic(fmt.Errorf("unexpected error received from errorChan: %w", err))
+	case sig := <-c.signals:
+		log.Info(ctx, "os signal received", log.Data{"signal": sig})
+	}
+	if err := c.svc.Close(ctx); err != nil {
+		panic(fmt.Errorf("unexpected error during service graceful shutdown: %w", err))
+	}
+}
+
+// drainTopic drains the topic of any residual messages between scenarios.
+// Prevents future tests failing if previous tests fail unexpectedly and
+// leave messages in the queue.
+func (c *Component) drainTopic(ctx context.Context) error {
+	var msgs []interface{}
+
+	defer func(){
+		log.Info(ctx, "drained topic", log.Data{
+			"len": len(msgs),
+			"messages": msgs,
+		})
+	}()
+
+	for {
+		select{
+		case <- time.After(time.Second * 1):
+			return nil
+		case msg, ok := <-c.consumer.Channels().Upstream:
+			if !ok {
+				return errors.New("upstream channel closed")
+			}
+
+			msgs = append(msgs, msg)
+			msg.Commit()
+			msg.Release()
+		}
+	}
+}
+
+// Close runs after each scenario
 func (c *Component) Close() {
-	ctx := context.TODO()
+	ctx := context.Background()
+
+	if err := c.drainTopic(ctx); err != nil{
+		log.Error(ctx, "error draining topic", err)
+	}
+
 	// close producer
 	if err := c.producer.Close(ctx); err != nil {
 		log.Error(ctx, "error closing a kafka producer", err)
@@ -131,7 +189,14 @@ func (c *Component) Close() {
 	c.wg.Wait()
 }
 
-func (c *Component) Reset() {
+// Reset runs before each scenario
+func (c *Component) Reset() error {
+	ctx := context.Background()
+
+	if err := c.initService(ctx); err != nil{
+		return fmt.Errorf("failed to initialise service: %w", err)
+	}
+
 	c.DatasetAPI.Reset()
 	c.RecipeAPI.Reset()
 	c.ImportAPI.Reset()
@@ -139,5 +204,7 @@ func (c *Component) Reset() {
 
 	// run application in separate goroutine
 	c.wg.Add(1)
-	go c.startService()
+	go c.startService(ctx)
+
+	return nil
 }

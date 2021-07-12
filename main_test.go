@@ -6,7 +6,6 @@ import (
 	"log"
 	"testing"
 
-	componenttest "github.com/ONSdigital/dp-component-test"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/features/steps"
 	"github.com/cucumber/godog"
 	"github.com/cucumber/godog/colors"
@@ -14,9 +13,7 @@ import (
 
 var componentFlag = flag.Bool("component", false, "perform component tests")
 
-type ComponentTest struct {
-	MongoFeature *componenttest.MongoFeature
-}
+type ComponentTest struct {}
 
 func (f *ComponentTest) InitializeScenario(ctx *godog.ScenarioContext) {
 	component, err := steps.NewComponent()
@@ -25,7 +22,9 @@ func (f *ComponentTest) InitializeScenario(ctx *godog.ScenarioContext) {
 	}
 
 	ctx.BeforeScenario(func(*godog.Scenario) {
-		component.Reset()
+		if err := component.Reset(); err != nil{
+			log.Panicf("unable to initialise scenario: %s", err)
+		}
 	})
 
 	ctx.AfterScenario(func(*godog.Scenario, error) {
