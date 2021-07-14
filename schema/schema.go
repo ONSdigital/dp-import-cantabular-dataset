@@ -12,9 +12,10 @@ var categoryDimensionImport = `{
   "type": "record",
   "name": "cantabular-dataset-instance-started",
   "fields": [
-    {"name": "dimension_id",   "type": "string"},
-    {"name": "job_id", "type": "string"},
-    {"name": "instance_id", "type": "string"}
+    {"name": "dimension_id",    "type": "string"},
+    {"name": "job_id",          "type": "string"},
+    {"name": "instance_id",     "type": "string"},
+    {"name": "cantabular_blob", "type": "string"}
   ]
 }`
 
