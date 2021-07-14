@@ -120,7 +120,7 @@ func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) 
 
 	log.Info(ctx, "Triggering dimension options import")
 
-	if errs := h.triggerImportDimensionOptions(ctx, codelists, e); len(errs) != 0 {
+	if errs := h.triggerImportDimensionOptions(ctx, r.CantabularBlob, codelists, e); len(errs) != 0 {
 		var errdata []map[string]interface{}
 
 		for _, err := range errs {
@@ -200,7 +200,7 @@ func (h *InstanceStarted) createUpdateInstanceRequest(cb cantabular.Codebook, e 
 	return req
 }
 
-func (h *InstanceStarted) triggerImportDimensionOptions(ctx context.Context, dimensions []string, e *event.InstanceStarted) []error {
+func (h *InstanceStarted) triggerImportDimensionOptions(ctx context.Context, blob string, dimensions []string, e *event.InstanceStarted) []error {
 	var errs []error
 
 	log.Info(ctx, "Triggering dimension-option import process")
@@ -210,6 +210,7 @@ func (h *InstanceStarted) triggerImportDimensionOptions(ctx context.Context, dim
 			DimensionID: d,
 			JobID:       e.JobID,
 			InstanceID:  e.InstanceID,
+			CantabularBlob: blob,
 		}
 
 		s := schema.CategoryDimensionImport
