@@ -51,7 +51,6 @@ func NewComponent() (*Component, error) {
 		wg:            &sync.WaitGroup{},
 	}
 
-	
 	return c, nil
 }
 
@@ -106,6 +105,10 @@ func (c *Component) initService(ctx context.Context) error {
 	); err != nil {
 		return fmt.Errorf("error creating kafka consumer: %w", err)
 	}
+
+	// wait for consumer to be ready
+	<-c.consumer.Channels().Ready
+	log.Info(ctx, "producer ready")
 
 	// Create service and initialise it
 	c.svc = service.New()
@@ -179,7 +182,12 @@ func (c *Component) Close() {
 
 	// close producer
 	if err := c.producer.Close(ctx); err != nil {
-		log.Error(ctx, "error closing a kafka producer", err)
+		log.Error(ctx, "error closing kafka producer", err)
+	}
+
+	// close consumer
+	if err := c.consumer.Close(ctx); err != nil {
+		log.Error(ctx, "error closing kafka consumer", err)
 	}
 
 	// kill application

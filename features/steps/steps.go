@@ -84,7 +84,6 @@ func (c *Component) theCallToUpdateJobIsUnsuccessful(job string) error {
 	return nil
 }
 
-
 func (c *Component) theseCategoryDimensionImportEventsShouldBeProduced(events *godog.Table) error {
 	expected, err := assistdog.NewDefault().CreateSlice(new(event.CategoryDimensionImport), events)
 	if err != nil{
