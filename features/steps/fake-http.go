@@ -1,4 +1,5 @@
 package steps
+
 /*
 func (c *Component) fakeRecipeAPIResponseHappy() string {
 	return `{

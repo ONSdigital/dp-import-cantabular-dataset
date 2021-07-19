@@ -2,8 +2,8 @@ package main
 
 import (
 	"flag"
-	"os"
 	"log"
+	"os"
 	"testing"
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/features/steps"
@@ -13,16 +13,16 @@ import (
 
 var componentFlag = flag.Bool("component", false, "perform component tests")
 
-type ComponentTest struct {}
+type ComponentTest struct{}
 
 func (f *ComponentTest) InitializeScenario(ctx *godog.ScenarioContext) {
 	component, err := steps.NewComponent()
-	if err != nil{
+	if err != nil {
 		log.Panicf("unable to initialise component: %s", err)
 	}
 
 	ctx.BeforeScenario(func(*godog.Scenario) {
-		if err := component.Reset(); err != nil{
+		if err := component.Reset(); err != nil {
 			log.Panicf("unable to initialise scenario: %s", err)
 		}
 	})

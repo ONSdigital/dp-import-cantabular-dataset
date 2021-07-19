@@ -2,11 +2,11 @@ package steps
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"reflect"
-	"errors"
-	"encoding/json"
-	"fmt"
 
 	"time"
 
@@ -28,7 +28,6 @@ func (c *Component) RegisterSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^the call to update job "([^"]*)" is unsuccesful`, c.theCallToUpdateJobIsUnsuccessful)
 	ctx.Step(`^the call to update instance "([^"]*)" is unsuccesful`, c.theCallToUpdateInstanceIsUnsuccessful)
 
-
 	ctx.Step(`^this instance-started event is consumed:$`, c.thisInstanceStartedEventIsConsumed)
 	ctx.Step(`^these category dimension import events should be produced:$`, c.theseCategoryDimensionImportEventsShouldBeProduced)
 	ctx.Step(`^no category dimension import events should be produced`, c.noCategoryDimensionImportEventsShouldBeProduced)
@@ -36,57 +35,57 @@ func (c *Component) RegisterSteps(ctx *godog.ScenarioContext) {
 
 func (c *Component) theFollowingRecipeIsAvailable(id string, recipe *godog.DocString) error {
 	c.RecipeAPI.NewHandler().
-	Get("/recipes/" + id).
-	Reply(http.StatusOK).
-	BodyString(recipe.Content)
+		Get("/recipes/" + id).
+		Reply(http.StatusOK).
+		BodyString(recipe.Content)
 
 	return nil
 }
 
 func (c *Component) theFollowingCodebookIsAvailable(name, q string, cb *godog.DocString) error {
 	c.CantabularSrv.NewHandler().
-	Get("/v9/codebook/" + name + q).
-	Reply(http.StatusOK).
-	BodyString(cb.Content)
+		Get("/v9/codebook/" + name + q).
+		Reply(http.StatusOK).
+		BodyString(cb.Content)
 
 	return nil
 }
 
 func (c *Component) theCallToUpdateInstanceIsSuccessful(instance string) error {
 	c.DatasetAPI.NewHandler().
-	Put("/instances/" + instance).
-	Reply(http.StatusOK)
+		Put("/instances/" + instance).
+		Reply(http.StatusOK)
 
 	return nil
 }
 
 func (c *Component) theCallToUpdateInstanceIsUnsuccessful(instance string) error {
 	c.DatasetAPI.NewHandler().
-	Put("/instances/" + instance).
-	Reply(http.StatusInternalServerError)
+		Put("/instances/" + instance).
+		Reply(http.StatusInternalServerError)
 
 	return nil
 }
 
 func (c *Component) theCallToUpdateJobIsSuccessful(job string) error {
 	c.ImportAPI.NewHandler().
-	Put("/jobs/" + job).
-	Reply(http.StatusOK)
+		Put("/jobs/" + job).
+		Reply(http.StatusOK)
 
 	return nil
 }
 
 func (c *Component) theCallToUpdateJobIsUnsuccessful(job string) error {
 	c.ImportAPI.NewHandler().
-	Put("/jobs/" + job).
-	Reply(http.StatusInternalServerError)
+		Put("/jobs/" + job).
+		Reply(http.StatusInternalServerError)
 
 	return nil
 }
 
 func (c *Component) theseCategoryDimensionImportEventsShouldBeProduced(events *godog.Table) error {
 	expected, err := assistdog.NewDefault().CreateSlice(new(event.CategoryDimensionImport), events)
-	if err != nil{
+	if err != nil {
 		return fmt.Errorf("failed to create slice from godog table: %w", err)
 	}
 
@@ -94,8 +93,8 @@ func (c *Component) theseCategoryDimensionImportEventsShouldBeProduced(events *g
 	listen := true
 
 	for listen {
-		select{
-		case <- time.After(time.Second * 1):
+		select {
+		case <-time.After(time.Second * 1):
 			listen = false
 		case <-c.consumer.Channels().Closer:
 			return errors.New("closer channel closed")
@@ -120,7 +119,7 @@ func (c *Component) theseCategoryDimensionImportEventsShouldBeProduced(events *g
 		}
 	}
 
-	if !reflect.DeepEqual(got, expected){
+	if !reflect.DeepEqual(got, expected) {
 		return fmt.Errorf("\ngot:\n%+v\n expected:\n%+v\n", got, expected)
 	}
 
@@ -131,8 +130,8 @@ func (c *Component) noCategoryDimensionImportEventsShouldBeProduced() error {
 	listen := true
 
 	for listen {
-		select{
-		case <- time.After(time.Second * 1):
+		select {
+		case <-time.After(time.Second * 1):
 			listen = false
 		case <-c.consumer.Channels().Closer:
 			return errors.New("closer channel closed")
@@ -158,7 +157,7 @@ func (c *Component) thisInstanceStartedEventIsConsumed(input *godog.DocString) e
 
 	// testing kafka message that will be produced
 	var testEvent event.InstanceStarted
-	if err := json.Unmarshal([]byte(input.Content), &testEvent); err != nil{
+	if err := json.Unmarshal([]byte(input.Content), &testEvent); err != nil {
 		return fmt.Errorf("error unmarshaling input to event: %w body: %s", err, input.Content)
 	}
 

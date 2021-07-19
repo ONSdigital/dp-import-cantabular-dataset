@@ -2,20 +2,20 @@ package steps
 
 import (
 	"context"
-	"fmt"
-	"time"
 	"errors"
+	"fmt"
 	"os"
 	"os/signal"
-	"syscall"
 	"sync"
+	"syscall"
+	"time"
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/service"
 	"github.com/ONSdigital/log.go/v2/log"
 
-	kafka "github.com/ONSdigital/dp-kafka/v2"
 	cmpntest "github.com/ONSdigital/dp-component-test"
+	kafka "github.com/ONSdigital/dp-kafka/v2"
 
 	"github.com/maxcnunes/httpfake"
 )
@@ -28,8 +28,8 @@ var (
 
 type Component struct {
 	cmpntest.ErrorFeature
-	producer kafka.IProducer
-	consumer kafka.IConsumerGroup
+	producer      kafka.IProducer
+	consumer      kafka.IConsumerGroup
 	errorChan     chan error
 	svc           *service.Service
 	cfg           *config.Config
@@ -61,10 +61,10 @@ func (c *Component) initService(ctx context.Context) error {
 		return fmt.Errorf("failed to get config: %w", err)
 	}
 
-	cfg.DatasetAPIURL = c.DatasetAPI.ResolveURL("") 
-	cfg.RecipeAPIURL  = c.RecipeAPI.ResolveURL("")
+	cfg.DatasetAPIURL = c.DatasetAPI.ResolveURL("")
+	cfg.RecipeAPIURL = c.RecipeAPI.ResolveURL("")
 	cfg.CantabularURL = c.CantabularSrv.ResolveURL("")
-	cfg.ImportAPIURL  = c.ImportAPI.ResolveURL("")
+	cfg.ImportAPIURL = c.ImportAPI.ResolveURL("")
 
 	// producer for triggering test events
 	if c.producer, err = kafka.NewProducer(
@@ -125,7 +125,7 @@ func (c *Component) initService(ctx context.Context) error {
 	return nil
 }
 
-func (c *Component) startService(ctx context.Context){
+func (c *Component) startService(ctx context.Context) {
 	defer c.wg.Done()
 	c.svc.Start(context.Background(), c.errorChan)
 
@@ -149,16 +149,16 @@ func (c *Component) startService(ctx context.Context){
 func (c *Component) drainTopic(ctx context.Context) error {
 	var msgs []interface{}
 
-	defer func(){
+	defer func() {
 		log.Info(ctx, "drained topic", log.Data{
-			"len": len(msgs),
+			"len":      len(msgs),
 			"messages": msgs,
 		})
 	}()
 
 	for {
-		select{
-		case <- time.After(time.Second * 1):
+		select {
+		case <-time.After(time.Second * 1):
 			return nil
 		case msg, ok := <-c.consumer.Channels().Upstream:
 			if !ok {
@@ -176,7 +176,7 @@ func (c *Component) drainTopic(ctx context.Context) error {
 func (c *Component) Close() {
 	ctx := context.Background()
 
-	if err := c.drainTopic(ctx); err != nil{
+	if err := c.drainTopic(ctx); err != nil {
 		log.Error(ctx, "error draining topic", err)
 	}
 
@@ -201,7 +201,7 @@ func (c *Component) Close() {
 func (c *Component) Reset() error {
 	ctx := context.Background()
 
-	if err := c.initService(ctx); err != nil{
+	if err := c.initService(ctx); err != nil {
 		return fmt.Errorf("failed to initialise service: %w", err)
 	}
 
