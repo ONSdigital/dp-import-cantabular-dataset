@@ -15,6 +15,6 @@ services:
         depends_on:
             - kafka
         ports:
-            - 26100:26100
+            - "26100:26100"
         environment:
             KAFKA_ADDR: "kafka:9092"
