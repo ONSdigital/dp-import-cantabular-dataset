@@ -98,9 +98,9 @@ Feature: Import-Cantabular-Dataset
 
     Then these category dimension import events should be produced:
 
-            | DimensionID     | InstanceID        | JobID        |
-            | dimension-01    | instance-happy-01 | job-happy-01 |
-            | dimension-02    | instance-happy-01 | job-happy-01 |
+            | DimensionID     | InstanceID        | JobID        | CantabularBlob |
+            | dimension-01    | instance-happy-01 | job-happy-01 | Example        |
+            | dimension-02    | instance-happy-01 | job-happy-01 | Example        |
 
   Scenario: Consuming an instance-started event with correct RecipeID and InstanceID
     When this instance-started event is consumed:
@@ -118,9 +118,9 @@ Feature: Import-Cantabular-Dataset
 
     Then these category dimension import events should be produced:
 
-            | DimensionID     | InstanceID        | JobID        |
-            | dimension-01    | instance-happy-01 | job-happy-02 |
-            | dimension-02    | instance-happy-01 | job-happy-02 |
+            | DimensionID     | InstanceID        | JobID        | CantabularBlob |
+            | dimension-01    | instance-happy-01 | job-happy-02 | Example        |
+            | dimension-02    | instance-happy-01 | job-happy-02 | Example        |
 
   Scenario: Consuming an instance-started event with correct RecipeID and InstanceID
     When this instance-started event is consumed:
