@@ -42,8 +42,15 @@ func TestComponent(t *testing.T) {
 	if *componentFlag {
 		status := 0
 
+		logfile, err := os.Create("/tmp/comp-logs")
+		if err != nil{
+			t.Fatalf("could not create logs file: %s", err)
+		}
+
+		defer logfile.Close()
+
 		var opts = godog.Options{
-			Output: colors.Colored(os.Stdout),
+			Output: colors.Colored(logfile),
 			Format: "pretty",
 			Paths:  flag.Args(),
 		}

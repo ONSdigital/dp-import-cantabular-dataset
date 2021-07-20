@@ -17,6 +17,7 @@ require (
 	github.com/Shopify/sarama v1.29.1 // indirect
 	github.com/cucumber/godog v0.11.0
 	github.com/gofrs/uuid v4.0.0+incompatible // indirect
+	github.com/google/go-cmp v0.5.6
 	github.com/gorilla/mux v1.8.0
 	github.com/hashicorp/go-memdb v1.3.1 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0

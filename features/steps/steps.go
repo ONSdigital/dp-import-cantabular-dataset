@@ -6,8 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"reflect"
-
 	"time"
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
@@ -17,6 +15,7 @@ import (
 
 	"github.com/cucumber/godog"
 	"github.com/rdumont/assistdog"
+	"github.com/google/go-cmp/cmp"
 )
 
 func (c *Component) RegisterSteps(ctx *godog.ScenarioContext) {
@@ -119,8 +118,8 @@ func (c *Component) theseCategoryDimensionImportEventsShouldBeProduced(events *g
 		}
 	}
 
-	if !reflect.DeepEqual(got, expected) {
-		return fmt.Errorf("\ngot:\n%+v\n expected:\n%+v\n", got, expected)
+	if diff := cmp.Diff(got, expected); diff != "" {
+		return fmt.Errorf("-got +expected)\n%s\n", diff)
 	}
 
 	return nil
