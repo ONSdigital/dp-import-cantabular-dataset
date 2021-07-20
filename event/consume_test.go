@@ -27,7 +27,7 @@ var testEvent = event.InstanceStarted{
 	RecipeID:       "test-recipe-id",
 	InstanceID:     "test-instance-id",
 	JobID:          "test-job-id",
-	CantabularType: "cantabular-table",
+	CantabularType: "cantabular_table",
 }
 
 // kafkaStubConsumer mock which exposes Channels function returning empty channels

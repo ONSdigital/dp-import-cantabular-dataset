@@ -207,9 +207,9 @@ func (h *InstanceStarted) triggerImportDimensionOptions(ctx context.Context, blo
 
 	for _, d := range dimensions {
 		ie := event.CategoryDimensionImport{
-			DimensionID: d,
-			JobID:       e.JobID,
-			InstanceID:  e.InstanceID,
+			DimensionID:    d,
+			JobID:          e.JobID,
+			InstanceID:     e.InstanceID,
 			CantabularBlob: blob,
 		}
 

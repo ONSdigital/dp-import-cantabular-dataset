@@ -86,7 +86,7 @@ func TestInstanceStartedHandler_HandleHappy(t *testing.T) {
 			RecipeID:       "test-recipe-id",
 			InstanceID:     "test-instance-id",
 			JobID:          "test-job-id",
-			CantabularType: "cantabular-table",
+			CantabularType: "cantabular_table",
 		})
 		So(err, ShouldBeNil)
 
@@ -137,7 +137,7 @@ func TestInstanceStartedHandler_HandleUnhappy(t *testing.T) {
 			RecipeID:       "test-recipe-id",
 			InstanceID:     "test-instance-id",
 			JobID:          "test-job-id",
-			CantabularType: "cantabular-table",
+			CantabularType: "cantabular_table",
 		})
 		So(err, ShouldNotBeNil)
 		var cerr statusCoder
@@ -163,7 +163,7 @@ func TestInstanceStartedHandler_HandleUnhappy(t *testing.T) {
 			RecipeID:       "test-recipe-id",
 			InstanceID:     "test-instance-id",
 			JobID:          "test-job-id",
-			CantabularType: "cantabular-table",
+			CantabularType: "cantabular_table",
 		})
 		So(err, ShouldNotBeNil)
 		var cerr statusCoder
