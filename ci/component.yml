@@ -22,4 +22,3 @@ run:
 
 caches:
   - path: /var/run/docker.sock
-  - path: /var/logs

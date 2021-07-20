@@ -42,7 +42,7 @@ func TestComponent(t *testing.T) {
 	if *componentFlag {
 		status := 0
 
-		logfile, err := os.Create("/tmp/comp-logs")
+		logfile, err := os.Create("log-output.txt")
 		if err != nil{
 			t.Fatalf("could not create logs file: %s", err)
 		}

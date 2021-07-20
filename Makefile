@@ -43,7 +43,7 @@ test-component:
 	cd features/steps; docker-compose up --build --abort-on-container-exit; \
 	CODE=$$; \
 	docker-compose down --volume
-	cat logs && rm logs
+	cat log-output.txt && rm log-output.txt
 	exit $$CODE
 
 .PHONY: fmt
