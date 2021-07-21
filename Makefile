@@ -40,11 +40,9 @@ convey:
 
 .PHONY: test-component
 test-component:
-	cd features/steps; docker-compose up --build --abort-on-container-exit; \
-	CODE=$$; \
+	cd features/steps;                                   \
+	docker-compose up --build --abort-on-container-exit; \
 	docker-compose down --volume
-	cat log-output.txt && rm log-output.txt
-	exit $$CODE
 
 .PHONY: fmt
 fmt:
