@@ -33,10 +33,12 @@ func TestConfig(t *testing.T) {
 				So(cfg.InstanceStartedGroup, ShouldEqual, "dp-import-cantabular-dataset")
 				So(cfg.InstanceStartedTopic, ShouldEqual, "cantabular-dataset-instance-started")
 				So(cfg.CategoryDimensionImportTopic, ShouldEqual, "cantabular-dataset-category-dimension-import")
-				So(cfg.OutputFilePath, ShouldEqual, "/tmp/helloworld.txt")
 				So(cfg.DatasetAPIURL, ShouldEqual, "http://localhost:22000")
 				So(cfg.RecipeAPIURL, ShouldEqual, "http://localhost:22300")
 				So(cfg.CantabularURL, ShouldEqual, "http://localhost:8491")
+				So(cfg.ImportAPIURL, ShouldEqual, "http://localhost:21800")
+				So(cfg.ComponentTestUseLogFile, ShouldEqual, false)
+
 			})
 
 			Convey("Then a second call to config should return the same config", func() {

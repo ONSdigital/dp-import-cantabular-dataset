@@ -2,16 +2,22 @@ package main
 
 import (
 	"flag"
+	"io"
 	"log"
 	"os"
 	"testing"
 
+	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/features/steps"
 	"github.com/cucumber/godog"
 	"github.com/cucumber/godog/colors"
 )
 
-var componentFlag = flag.Bool("component", false, "perform component tests")
+var (
+	componentFlag = flag.Bool("component", false, "perform component tests")
+
+	logFileName = "log-output.txt"
+)
 
 type ComponentTest struct{}
 
@@ -42,15 +48,25 @@ func TestComponent(t *testing.T) {
 	if *componentFlag {
 		status := 0
 
-		logfile, err := os.Create("log-output.txt")
-		if err != nil{
-			t.Fatalf("could not create logs file: %s", err)
+		cfg, err := config.Get()
+		if err != nil {
+			t.Fatalf("failed to get service config: %s", err)
 		}
 
-		defer logfile.Close()
+		var output io.Writer = os.Stdout
+
+		if cfg.ComponentTestUseLogFile {
+			logfile, err := os.Create(logFileName)
+			if err != nil {
+				t.Fatalf("could not create logs file: %s", err)
+			}
+
+			defer logfile.Close()
+			output = logfile
+		}
 
 		var opts = godog.Options{
-			Output: colors.Colored(logfile),
+			Output: colors.Colored(output),
 			Format: "pretty",
 			Paths:  flag.Args(),
 		}

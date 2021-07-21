@@ -28,10 +28,9 @@ func main() {
 		os.Exit(1)
 	}
 
-
 	// Create Kafka Producer
 	pChannels := kafka.CreateProducerChannels()
-	kafkaProducer, err := kafka.NewProducer(ctx, []string{"localhost:9092"}, config.InstanceStartedTopic, pChannels, &kafka.ProducerConfig{
+	kafkaProducer, err := kafka.NewProducer(ctx, config.KafkaAddr, config.InstanceStartedTopic, pChannels, &kafka.ProducerConfig{
 		KafkaVersion: &config.KafkaVersion,
 	})
 	if err != nil {

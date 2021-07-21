@@ -20,13 +20,12 @@ type Config struct {
 	InstanceStartedGroup         string        `envconfig:"KAFKA_DATASET_INSTANCE_STARTED_GROUP"`
 	InstanceStartedTopic         string        `envconfig:"KAFKA_DATASET_INSTANCE_STARTED_TOPIC"`
 	CategoryDimensionImportTopic string        `envconfig:"CANTABULAR_DATASET_CATEGORY_DIMENSION_IMPORT"`
-	OutputFilePath               string        `envconfig:"OUTPUT_FILE_PATH"`
 	DatasetAPIURL                string        `envconfig:"DATASET_API_URL"`
-	CodelistAPIURL               string        `envconfig:"CODELIST_API_URL"`
 	RecipeAPIURL                 string        `envconfig:"RECIPE_API_URL"`
 	ImportAPIURL                 string        `envconfig:"IMPORT_API_URL"`
 	CantabularURL                string        `envconfig:"CANTABULAR_URL"`
 	ServiceAuthToken             string        `envconfig:"SERVICE_AUTH_TOKEN"         json:"-"`
+	ComponentTestUseLogFile      bool          `envconfig:"COMPONENT_TEST_USE_LOG_FILE"`
 }
 
 var cfg *Config
@@ -50,14 +49,13 @@ func Get() (*Config, error) {
 		KafkaMaxBytes:                2000000,
 		InstanceStartedGroup:         "dp-import-cantabular-dataset",
 		InstanceStartedTopic:         "cantabular-dataset-instance-started",
-		OutputFilePath:               "/tmp/helloworld.txt",
 		DatasetAPIURL:                "http://localhost:22000",
-		CodelistAPIURL:               "http://localhost:22400",
 		RecipeAPIURL:                 "http://localhost:22300",
 		ImportAPIURL:                 "http://localhost:21800",
 		CantabularURL:                "http://localhost:8491",
 		ServiceAuthToken:             "",
 		CategoryDimensionImportTopic: "cantabular-dataset-category-dimension-import",
+		ComponentTestUseLogFile:      false,
 	}
 
 	return cfg, envconfig.Process("", cfg)

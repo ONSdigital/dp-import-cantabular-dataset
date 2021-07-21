@@ -1,8 +1,9 @@
 #!/bin/bash -eux
 
 pushd dp-import-cantabular-dataset
-  make test-component
+  COMPONENT_TEST_USE_LOG_FILE=true make test-component
   e=$?
-  cat log-output.txt && rm log-output.txt
+  f="log-output.txt"
+  cat $f && rm $f
 popd
 exit $e

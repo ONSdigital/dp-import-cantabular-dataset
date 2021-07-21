@@ -19,3 +19,4 @@ services:
             - "26100:26100"
         environment:
             KAFKA_ADDR: "kafka:9092"
+            COMPONENT_TEST_USE_LOG_FILE: "${COMPONENT_TEST_USE_LOG_FILE-false}"

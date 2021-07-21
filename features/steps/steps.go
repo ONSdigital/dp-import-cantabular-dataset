@@ -14,8 +14,8 @@ import (
 	"github.com/ONSdigital/log.go/v2/log"
 
 	"github.com/cucumber/godog"
-	"github.com/rdumont/assistdog"
 	"github.com/google/go-cmp/cmp"
+	"github.com/rdumont/assistdog"
 )
 
 func (c *Component) RegisterSteps(ctx *godog.ScenarioContext) {
