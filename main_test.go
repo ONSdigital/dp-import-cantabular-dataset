@@ -3,12 +3,13 @@ package main
 import (
 	"flag"
 	"io"
-	"log"
 	"os"
 	"testing"
+	"context"
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/features/steps"
+	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/cucumber/godog"
 	"github.com/cucumber/godog/colors"
 )
@@ -24,12 +25,14 @@ type ComponentTest struct{}
 func (f *ComponentTest) InitializeScenario(ctx *godog.ScenarioContext) {
 	component, err := steps.NewComponent()
 	if err != nil {
-		log.Panicf("unable to initialise component: %s", err)
+		log.Error(context.TODO(), "unable to initialise component", err)
+		os.Exit(1)
 	}
 
 	ctx.BeforeScenario(func(*godog.Scenario) {
 		if err := component.Reset(); err != nil {
-			log.Panicf("unable to initialise scenario: %s", err)
+			log.Error(context.TODO(), "unable to initialise scenario", err)
+			os.Exit(1)
 		}
 	})
 
