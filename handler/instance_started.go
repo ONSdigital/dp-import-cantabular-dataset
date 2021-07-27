@@ -9,12 +9,16 @@ import (
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
 
-	"github.com/ONSdigital/dp-api-clients-go/cantabular"
-	"github.com/ONSdigital/dp-api-clients-go/dataset"
-	"github.com/ONSdigital/dp-api-clients-go/recipe"
+	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
+	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/recipe"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 
 	"github.com/ONSdigital/log.go/v2/log"
+)
+
+const (
+	cantabularTable = "cantabular_table"
 )
 
 // InstanceStarted is the handler for the InstanceStarted event
@@ -104,14 +108,14 @@ func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) 
 		"num_dimensions": len(ireq.Dimensions),
 	})
 
-	if err := h.datasets.PutInstance(ctx, "", h.cfg.ServiceAuthToken, "", e.InstanceID, ireq); err != nil {
+	if _, err := h.datasets.PutInstance(ctx, "", h.cfg.ServiceAuthToken, "", e.InstanceID, ireq, "*"); err != nil {
 		return &Error{
 			err:     fmt.Errorf("failed to update instance: %w", err),
 			logData: ld,
 		}
 	}
 
-	if err := h.datasets.PutInstanceState(ctx, h.cfg.ServiceAuthToken, e.InstanceID, dataset.StateCompleted); err != nil {
+	if _, err := h.datasets.PutInstanceState(ctx, h.cfg.ServiceAuthToken, e.InstanceID, dataset.StateCompleted, "*"); err != nil {
 		return &Error{
 			err:     fmt.Errorf("failed to update instance state: %w", err),
 			logData: ld,
@@ -178,6 +182,8 @@ func (h *InstanceStarted) createUpdateInstanceRequest(cb cantabular.Codebook, e 
 		Edition:    "2021",
 		CSVHeader:  []string{"ftb_table"},
 		InstanceID: e.InstanceID,
+		Type:       cantabularTable,
+		IsBasedOn:  &dataset.IsBasedOn{}, // Not in use yet
 	}
 
 	for _, v := range cb {
@@ -190,10 +196,12 @@ func (h *InstanceStarted) createUpdateInstanceRequest(cb cantabular.Codebook, e 
 		}
 
 		d := dataset.VersionDimension{
-			ID:    sourceName,
-			URL:   fmt.Sprintf("%s/code-lists/%s", h.cfg.RecipeAPIURL, sourceName),
-			Label: v.Label,
-			Name:  v.Label,
+			ID:              sourceName,
+			URL:             fmt.Sprintf("%s/code-lists/%s", h.cfg.RecipeAPIURL, sourceName),
+			Label:           v.Label,
+			Name:            v.Label,
+			Variable:        sourceName,
+			NumberOfOptions: v.Len,
 		}
 		req.Dimensions = append(req.Dimensions, d)
 		req.CSVHeader = append(req.CSVHeader, v.Name)

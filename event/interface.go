@@ -3,7 +3,7 @@ package event
 import (
 	"context"
 
-	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 )
 
 //go:generate moq -out mock/handler.go -pkg mock . Handler
@@ -32,5 +32,5 @@ type ImportAPIClient interface {
 }
 
 type DatasetAPIClient interface {
-	PutInstanceState(context.Context, string, string, dataset.State) error
+	PutInstanceState(context.Context, string, string, dataset.State, string) (string, error)
 }

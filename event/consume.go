@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	importapi "github.com/ONSdigital/dp-import-api/models"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
 
@@ -96,7 +96,7 @@ func (p *Processor) processMessage(ctx context.Context, msg kafka.Message, h Han
 		}
 
 		if !instanceCompleted(err) {
-			if err := p.datasetAPI.PutInstanceState(ctx, p.cfg.ServiceAuthToken, event.InstanceID, dataset.StateFailed); err != nil {
+			if _, err := p.datasetAPI.PutInstanceState(ctx, p.cfg.ServiceAuthToken, event.InstanceID, dataset.StateFailed, "*"); err != nil {
 				errs = append(errs, &Error{
 					err: fmt.Errorf("failed to update instance state: %w", err),
 					logData: log.Data{

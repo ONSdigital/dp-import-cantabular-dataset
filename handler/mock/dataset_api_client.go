@@ -5,7 +5,7 @@ package mock
 
 import (
 	"context"
-	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/handler"
 	"sync"
 )
@@ -20,10 +20,10 @@ var _ handler.DatasetAPIClient = &DatasetAPIClientMock{}
 //
 // 		// make and configure a mocked handler.DatasetAPIClient
 // 		mockedDatasetAPIClient := &DatasetAPIClientMock{
-// 			PutInstanceFunc: func(contextMoqParam context.Context, s1 string, s2 string, s3 string, s4 string, updateInstance dataset.UpdateInstance) error {
+// 			PutInstanceFunc: func(contextMoqParam context.Context, s1 string, s2 string, s3 string, s4 string, updateInstance dataset.UpdateInstance, s5 string) (string, error) {
 // 				panic("mock out the PutInstance method")
 // 			},
-// 			PutInstanceStateFunc: func(contextMoqParam context.Context, s1 string, s2 string, state dataset.State) error {
+// 			PutInstanceStateFunc: func(contextMoqParam context.Context, s1 string, s2 string, state dataset.State, s3 string) (string, error) {
 // 				panic("mock out the PutInstanceState method")
 // 			},
 // 		}
@@ -34,10 +34,10 @@ var _ handler.DatasetAPIClient = &DatasetAPIClientMock{}
 // 	}
 type DatasetAPIClientMock struct {
 	// PutInstanceFunc mocks the PutInstance method.
-	PutInstanceFunc func(contextMoqParam context.Context, s1 string, s2 string, s3 string, s4 string, updateInstance dataset.UpdateInstance) error
+	PutInstanceFunc func(contextMoqParam context.Context, s1 string, s2 string, s3 string, s4 string, updateInstance dataset.UpdateInstance, s5 string) (string, error)
 
 	// PutInstanceStateFunc mocks the PutInstanceState method.
-	PutInstanceStateFunc func(contextMoqParam context.Context, s1 string, s2 string, state dataset.State) error
+	PutInstanceStateFunc func(contextMoqParam context.Context, s1 string, s2 string, state dataset.State, s3 string) (string, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -55,6 +55,8 @@ type DatasetAPIClientMock struct {
 			S4 string
 			// UpdateInstance is the updateInstance argument value.
 			UpdateInstance dataset.UpdateInstance
+			// S5 is the s5 argument value.
+			S5 string
 		}
 		// PutInstanceState holds details about calls to the PutInstanceState method.
 		PutInstanceState []struct {
@@ -66,6 +68,8 @@ type DatasetAPIClientMock struct {
 			S2 string
 			// State is the state argument value.
 			State dataset.State
+			// S3 is the s3 argument value.
+			S3 string
 		}
 	}
 	lockPutInstance      sync.RWMutex
@@ -73,7 +77,7 @@ type DatasetAPIClientMock struct {
 }
 
 // PutInstance calls PutInstanceFunc.
-func (mock *DatasetAPIClientMock) PutInstance(contextMoqParam context.Context, s1 string, s2 string, s3 string, s4 string, updateInstance dataset.UpdateInstance) error {
+func (mock *DatasetAPIClientMock) PutInstance(contextMoqParam context.Context, s1 string, s2 string, s3 string, s4 string, updateInstance dataset.UpdateInstance, s5 string) (string, error) {
 	if mock.PutInstanceFunc == nil {
 		panic("DatasetAPIClientMock.PutInstanceFunc: method is nil but DatasetAPIClient.PutInstance was just called")
 	}
@@ -84,6 +88,7 @@ func (mock *DatasetAPIClientMock) PutInstance(contextMoqParam context.Context, s
 		S3              string
 		S4              string
 		UpdateInstance  dataset.UpdateInstance
+		S5              string
 	}{
 		ContextMoqParam: contextMoqParam,
 		S1:              s1,
@@ -91,11 +96,12 @@ func (mock *DatasetAPIClientMock) PutInstance(contextMoqParam context.Context, s
 		S3:              s3,
 		S4:              s4,
 		UpdateInstance:  updateInstance,
+		S5:              s5,
 	}
 	mock.lockPutInstance.Lock()
 	mock.calls.PutInstance = append(mock.calls.PutInstance, callInfo)
 	mock.lockPutInstance.Unlock()
-	return mock.PutInstanceFunc(contextMoqParam, s1, s2, s3, s4, updateInstance)
+	return mock.PutInstanceFunc(contextMoqParam, s1, s2, s3, s4, updateInstance, s5)
 }
 
 // PutInstanceCalls gets all the calls that were made to PutInstance.
@@ -108,6 +114,7 @@ func (mock *DatasetAPIClientMock) PutInstanceCalls() []struct {
 	S3              string
 	S4              string
 	UpdateInstance  dataset.UpdateInstance
+	S5              string
 } {
 	var calls []struct {
 		ContextMoqParam context.Context
@@ -116,6 +123,7 @@ func (mock *DatasetAPIClientMock) PutInstanceCalls() []struct {
 		S3              string
 		S4              string
 		UpdateInstance  dataset.UpdateInstance
+		S5              string
 	}
 	mock.lockPutInstance.RLock()
 	calls = mock.calls.PutInstance
@@ -124,7 +132,7 @@ func (mock *DatasetAPIClientMock) PutInstanceCalls() []struct {
 }
 
 // PutInstanceState calls PutInstanceStateFunc.
-func (mock *DatasetAPIClientMock) PutInstanceState(contextMoqParam context.Context, s1 string, s2 string, state dataset.State) error {
+func (mock *DatasetAPIClientMock) PutInstanceState(contextMoqParam context.Context, s1 string, s2 string, state dataset.State, s3 string) (string, error) {
 	if mock.PutInstanceStateFunc == nil {
 		panic("DatasetAPIClientMock.PutInstanceStateFunc: method is nil but DatasetAPIClient.PutInstanceState was just called")
 	}
@@ -133,16 +141,18 @@ func (mock *DatasetAPIClientMock) PutInstanceState(contextMoqParam context.Conte
 		S1              string
 		S2              string
 		State           dataset.State
+		S3              string
 	}{
 		ContextMoqParam: contextMoqParam,
 		S1:              s1,
 		S2:              s2,
 		State:           state,
+		S3:              s3,
 	}
 	mock.lockPutInstanceState.Lock()
 	mock.calls.PutInstanceState = append(mock.calls.PutInstanceState, callInfo)
 	mock.lockPutInstanceState.Unlock()
-	return mock.PutInstanceStateFunc(contextMoqParam, s1, s2, state)
+	return mock.PutInstanceStateFunc(contextMoqParam, s1, s2, state, s3)
 }
 
 // PutInstanceStateCalls gets all the calls that were made to PutInstanceState.
@@ -153,12 +163,14 @@ func (mock *DatasetAPIClientMock) PutInstanceStateCalls() []struct {
 	S1              string
 	S2              string
 	State           dataset.State
+	S3              string
 } {
 	var calls []struct {
 		ContextMoqParam context.Context
 		S1              string
 		S2              string
 		State           dataset.State
+		S3              string
 	}
 	mock.lockPutInstanceState.RLock()
 	calls = mock.calls.PutInstanceState

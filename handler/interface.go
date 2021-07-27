@@ -3,9 +3,9 @@ package handler
 import (
 	"context"
 
-	"github.com/ONSdigital/dp-api-clients-go/cantabular"
-	"github.com/ONSdigital/dp-api-clients-go/dataset"
-	"github.com/ONSdigital/dp-api-clients-go/recipe"
+	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
+	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/recipe"
 )
 
 //go:generate moq -out mock/cantabular_client.go -pkg mock . CantabularClient
@@ -17,8 +17,8 @@ type CantabularClient interface {
 }
 
 type DatasetAPIClient interface {
-	PutInstance(context.Context, string, string, string, string, dataset.UpdateInstance) error
-	PutInstanceState(context.Context, string, string, dataset.State) error
+	PutInstance(context.Context, string, string, string, string, dataset.UpdateInstance, string) (string, error)
+	PutInstanceState(context.Context, string, string, dataset.State, string) (string, error)
 }
 
 type RecipeAPIClient interface {
