@@ -21,6 +21,16 @@ Alternatively this service can be brought up with all it's dependencies as part 
 Cantabular dataset import journey with the docker-compose environment found at:
 https://github.com/ONSdigital/dp-compose/cantabular-import
 
+### Running Tests ###
+
+## Unit Tests ##
+
+* `make test`
+
+## Component Tests ##
+
+* `sudo make test-component`
+
 ### Configuration
 
 | Environment variable                         | Default                                      | Description
@@ -40,6 +50,7 @@ https://github.com/ONSdigital/dp-compose/cantabular-import
 | IMPORT_API_URL                               | http://localhost:21800                       | HOST URL for dp-import-api
 | CANTABULAR_URL                               | http://localhost:8491                        | HOST URL for dp-cantabular-server
 | SERVICE_AUTH_TOKEN                           | ""                                           | Service auth token for authorizing requests
+| COMPONENT_TEST_USE_LOG_FILE                  | false                                        | Output component test logs to temporary file instead of stdout. Used for displaying output for component tests in Concourse.
 
 ### Healthcheck
 
