@@ -10,6 +10,7 @@ import (
 	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
+	"github.com/ONSdigital/dp-api-clients-go/v2/headers"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/v2/recipe"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
@@ -108,14 +109,14 @@ func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) 
 		"num_dimensions": len(ireq.Dimensions),
 	})
 
-	if _, err := h.datasets.PutInstance(ctx, "", h.cfg.ServiceAuthToken, "", e.InstanceID, ireq, "*"); err != nil {
+	if _, err := h.datasets.PutInstance(ctx, "", h.cfg.ServiceAuthToken, "", e.InstanceID, ireq, headers.IfMatchAnyETag); err != nil {
 		return &Error{
 			err:     fmt.Errorf("failed to update instance: %w", err),
 			logData: ld,
 		}
 	}
 
-	if _, err := h.datasets.PutInstanceState(ctx, h.cfg.ServiceAuthToken, e.InstanceID, dataset.StateCompleted, "*"); err != nil {
+	if _, err := h.datasets.PutInstanceState(ctx, h.cfg.ServiceAuthToken, e.InstanceID, dataset.StateCompleted, headers.IfMatchAnyETag); err != nil {
 		return &Error{
 			err:     fmt.Errorf("failed to update instance state: %w", err),
 			logData: ld,
