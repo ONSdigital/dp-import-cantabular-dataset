@@ -260,19 +260,19 @@ func recipeAPIClientHappy() mock.RecipeAPIClientMock {
 
 func datasetAPIClientHappy() mock.DatasetAPIClientMock {
 	return mock.DatasetAPIClientMock{
-		PutInstanceFunc: func(ctx context.Context, uaToken, saToken, collectionID, instanceID string, i dataset.UpdateInstance) error {
-			return nil
+		PutInstanceFunc: func(ctx context.Context, uaToken, saToken, collectionID, instanceID string, i dataset.UpdateInstance, mi string) (string, error) {
+			return "", nil
 		},
-		PutInstanceStateFunc: func(ctx context.Context, uaToken, instanceID string, s dataset.State) error {
-			return nil
+		PutInstanceStateFunc: func(ctx context.Context, uaToken, instanceID string, s dataset.State, mi string) (string, error) {
+			return "", nil
 		},
 	}
 }
 
 func datasetAPIClientUnhappy() mock.DatasetAPIClientMock {
 	return mock.DatasetAPIClientMock{
-		PutInstanceFunc: func(ctx context.Context, uaToken, saToken, collectionID, instanceID string, i dataset.UpdateInstance) error {
-			return &testError{http.StatusInternalServerError}
+		PutInstanceFunc: func(ctx context.Context, uaToken, saToken, collectionID, instanceID string, i dataset.UpdateInstance, mi string) (string, error) {
+			return "", &testError{http.StatusInternalServerError}
 		},
 	}
 }

@@ -172,8 +172,8 @@ func marshal(event event.InstanceStarted) []byte {
 
 func datasetAPIClientHappy() *mock.DatasetAPIClientMock {
 	return &mock.DatasetAPIClientMock{
-		PutInstanceStateFunc: func(ctx context.Context, uaToken, instanceID string, s dataset.State) error {
-			return nil
+		PutInstanceStateFunc: func(ctx context.Context, uaToken, instanceID string, s dataset.State, mi string) (string, error) {
+			return "", nil
 		},
 	}
 }
@@ -188,8 +188,8 @@ func importAPIClientHappy() *mock.ImportAPIClientMock {
 
 func datasetAPIClientUnhappy() *mock.DatasetAPIClientMock {
 	return &mock.DatasetAPIClientMock{
-		PutInstanceStateFunc: func(ctx context.Context, uaToken, instanceID string, s dataset.State) error {
-			return errors.New("invalid instance id")
+		PutInstanceStateFunc: func(ctx context.Context, uaToken, instanceID string, s dataset.State, mi string) (string, error) {
+			return "", errors.New("invalid instance id")
 		},
 	}
 }
