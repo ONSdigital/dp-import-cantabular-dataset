@@ -286,7 +286,13 @@ func (svc *Service) registerCheckers() error {
 		return fmt.Errorf("error adding check for Recipe API Client: %w", err)
 	}
 
-	if err := hc.AddCheck("Cantabular client", svc.cantabularClient.Checker); err != nil {
+	// TODO - when Cantabular server is deployed to Production, remove this placeholder
+	// and use the real Checker instead: svc.cantabularClient.Checker
+	placeholderChecker := func(ctx context.Context, state *healthcheck.CheckState) error {
+		state.Update(healthcheck.StatusOK, "Cantabular healthcheck placeholder", http.StatusOK)
+		return nil
+	}
+	if err := hc.AddCheck("Cantabular client", placeholderChecker); err != nil {
 		return fmt.Errorf("error adding check for Cantabular Client: %w", err)
 	}
 
