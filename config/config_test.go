@@ -37,6 +37,7 @@ func TestConfig(t *testing.T) {
 				So(cfg.RecipeAPIURL, ShouldEqual, "http://localhost:22300")
 				So(cfg.CantabularURL, ShouldEqual, "http://localhost:8491")
 				So(cfg.ImportAPIURL, ShouldEqual, "http://localhost:21800")
+				So(cfg.CantabularHealthcheckEnabled, ShouldBeFalse)
 				So(cfg.ComponentTestUseLogFile, ShouldEqual, false)
 
 			})

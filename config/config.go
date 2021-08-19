@@ -24,6 +24,7 @@ type Config struct {
 	RecipeAPIURL                 string        `envconfig:"RECIPE_API_URL"`
 	ImportAPIURL                 string        `envconfig:"IMPORT_API_URL"`
 	CantabularURL                string        `envconfig:"CANTABULAR_URL"`
+	CantabularHealthcheckEnabled bool          `envconfig:"CANTABULAR_HEALTHCHECK_ENABLED"`
 	ServiceAuthToken             string        `envconfig:"SERVICE_AUTH_TOKEN"         json:"-"`
 	ComponentTestUseLogFile      bool          `envconfig:"COMPONENT_TEST_USE_LOG_FILE"`
 }
@@ -53,6 +54,7 @@ func Get() (*Config, error) {
 		RecipeAPIURL:                 "http://localhost:22300",
 		ImportAPIURL:                 "http://localhost:21800",
 		CantabularURL:                "http://localhost:8491",
+		CantabularHealthcheckEnabled: false,
 		ServiceAuthToken:             "",
 		CategoryDimensionImportTopic: "cantabular-dataset-category-dimension-import",
 		ComponentTestUseLogFile:      false,
