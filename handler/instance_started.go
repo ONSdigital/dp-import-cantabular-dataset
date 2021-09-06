@@ -100,7 +100,7 @@ func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) 
 		"codebook":      resp.Codebook,
 	})
 
-	ireq := h.createUpdateInstanceRequest(resp.Codebook, e)
+	ireq := h.createUpdateInstanceRequest(resp.Codebook, e, r.CantabularBlob)
 
 	log.Info(ctx, "Updating instance", log.Data{
 		"instance_id":    ireq.InstanceID,
@@ -178,13 +178,16 @@ func (h *InstanceStarted) getCodeListsFromInstance(i *recipe.Instance) ([]string
 	return codelists, nil
 }
 
-func (h *InstanceStarted) createUpdateInstanceRequest(cb cantabular.Codebook, e *event.InstanceStarted) dataset.UpdateInstance {
+func (h *InstanceStarted) createUpdateInstanceRequest(cb cantabular.Codebook, e *event.InstanceStarted, ctblrBlob string) dataset.UpdateInstance {
 	req := dataset.UpdateInstance{
 		Edition:    "2021",
-		CSVHeader:  []string{"ftb_table"},
+		CSVHeader:  []string{cantabularTable},
 		InstanceID: e.InstanceID,
 		Type:       cantabularTable,
-		IsBasedOn:  &dataset.IsBasedOn{}, // Not in use yet
+		IsBasedOn:  &dataset.IsBasedOn{
+			ID:   ctblrBlob,
+			Type: cantabularTable,
+		},
 	}
 
 	for _, v := range cb {
