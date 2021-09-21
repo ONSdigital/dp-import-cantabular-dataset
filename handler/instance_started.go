@@ -10,8 +10,8 @@ import (
 	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
-	"github.com/ONSdigital/dp-api-clients-go/v2/headers"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/headers"
 	"github.com/ONSdigital/dp-api-clients-go/v2/recipe"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 
@@ -41,7 +41,6 @@ func NewInstanceStarted(cfg config.Config, c CantabularClient, r RecipeAPIClient
 	}
 }
 
-// Note to self: why pass cfg rathe than have as part of struct?
 // Handle takes a single event.
 func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) error {
 	ld := log.Data{
@@ -97,7 +96,6 @@ func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) 
 	log.Info(ctx, "Successfully got Codebook", log.Data{
 		"datablob":      resp.Dataset,
 		"num_variables": len(resp.Codebook),
-		"codebook":      resp.Codebook,
 	})
 
 	ireq := h.createUpdateInstanceRequest(resp.Codebook, e, r.CantabularBlob)
@@ -127,7 +125,7 @@ func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) 
 		"num_dimensions": len(codelists),
 	})
 
-	if errs := h.triggerImportDimensionOptions(ctx, r.CantabularBlob, codelists, e); len(errs) != 0 {
+	if errs := h.triggerImportDimensionOptions(r.CantabularBlob, codelists, e); len(errs) != 0 {
 		var errdata []map[string]interface{}
 
 		for _, err := range errs {
@@ -184,7 +182,7 @@ func (h *InstanceStarted) createUpdateInstanceRequest(cb cantabular.Codebook, e 
 		CSVHeader:  []string{cantabularTable},
 		InstanceID: e.InstanceID,
 		Type:       cantabularTable,
-		IsBasedOn:  &dataset.IsBasedOn{
+		IsBasedOn: &dataset.IsBasedOn{
 			ID:   ctblrBlob,
 			Type: cantabularTable,
 		},
@@ -214,7 +212,7 @@ func (h *InstanceStarted) createUpdateInstanceRequest(cb cantabular.Codebook, e 
 	return req
 }
 
-func (h *InstanceStarted) triggerImportDimensionOptions(ctx context.Context, blob string, dimensions []string, e *event.InstanceStarted) []error {
+func (h *InstanceStarted) triggerImportDimensionOptions(blob string, dimensions []string, e *event.InstanceStarted) []error {
 	var errs []error
 
 	for _, d := range dimensions {

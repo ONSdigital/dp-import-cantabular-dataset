@@ -1,11 +1,11 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"io"
 	"os"
 	"testing"
-	"context"
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/features/steps"

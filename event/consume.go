@@ -25,7 +25,7 @@ func (p *Processor) Consume(ctx context.Context, cg kafka.IConsumerGroup, h Hand
 					return
 				}
 
-				msgCtx, _ := context.WithCancel(ctx)
+				msgCtx, cancel := context.WithCancel(ctx)
 
 				if errs := p.processMessage(msgCtx, msg, h); len(errs) != 0 {
 					var errdata []map[string]interface{}
@@ -44,6 +44,7 @@ func (p *Processor) Consume(ctx context.Context, cg kafka.IConsumerGroup, h Hand
 				}
 
 				msg.Release()
+				cancel()
 			case <-cg.Channels().Closer:
 				log.Info(ctx, "closer channel closed - closing event consumer loop ", log.Data{"worker_id": workerID})
 				return
