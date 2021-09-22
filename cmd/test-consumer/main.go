@@ -18,19 +18,6 @@ import (
 
 const serviceName = "kafka-example-consumer"
 
-// Config is the kafka configuration for this example
-type Config struct {
-	Brokers                 []string      `envconfig:"KAFKA_ADDR"`
-	KafkaMaxBytes           int           `envconfig:"KAFKA_MAX_BYTES"`
-	KafkaVersion            string        `envconfig:"KAFKA_VERSION"`
-	ConsumedTopic           string        `envconfig:"KAFKA_CONSUMED_TOPIC"`
-	ConsumedGroup           string        `envconfig:"KAFKA_CONSUMED_GROUP"`
-	WaitForConsumerReady    bool          `envconfig:"KAFKA_WAIT_CONSUMER_READY"`
-	GracefulShutdownTimeout time.Duration `envconfig:"GRACEFUL_SHUTDOWN_TIMEOUT"`
-	Snooze                  bool          `envconfig:"SNOOZE"`
-	OverSleep               bool          `envconfig:"OVERSLEEP"`
-}
-
 func main() {
 	log.Namespace = serviceName
 	ctx := context.Background()

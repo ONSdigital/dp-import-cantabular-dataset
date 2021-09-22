@@ -1,6 +1,6 @@
 package event
 
-// Error is the handler package's error type. Is not meant to be compared as a
+// Error is the handler package's error type. Is not meant to be compared as
 // a type, but information should be extracted via the interfaces
 // it implements with callback functions. Is not guaranteed to remain exported
 // so shouldn't be treated as such.

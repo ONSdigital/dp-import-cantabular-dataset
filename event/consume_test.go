@@ -20,7 +20,7 @@ import (
 
 var (
 	testCtx    = context.Background()
-	errHandler = errors.New("Handler Error")
+	errHandler = errors.New("handler Error")
 )
 
 var testEvent = event.InstanceStarted{

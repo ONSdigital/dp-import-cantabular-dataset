@@ -65,12 +65,12 @@ func TestInstanceStartedHandler_HandleHappy(t *testing.T) {
 			defer wg.Done()
 
 			expected := []event.CategoryDimensionImport{
-				event.CategoryDimensionImport{
+				{
 					JobID:       "test-job-id",
 					InstanceID:  "test-instance-id",
 					DimensionID: "test-variable",
 				},
-				event.CategoryDimensionImport{
+				{
 					JobID:       "test-job-id",
 					InstanceID:  "test-instance-id",
 					DimensionID: "test-mapped-variable",
@@ -203,7 +203,7 @@ func testCodebook() cantabular.Codebook {
 				"Code 3",
 			},
 			MapFrom: []cantabular.MapFrom{
-				cantabular.MapFrom{
+				{
 					SourceNames: []string{
 						"test-variable",
 					},
@@ -222,15 +222,15 @@ func testRecipe() *recipe.Recipe {
 	return &recipe.Recipe{
 		ID: "test-recipe-id",
 		OutputInstances: []recipe.Instance{
-			recipe.Instance{
+			{
 				DatasetID: "test-dataset-id",
 				Title:     "Test Instance",
 				CodeLists: []recipe.CodeList{
-					recipe.CodeList{
+					{
 						ID:   "test-variable",
 						Name: "Test Variable",
 					},
-					recipe.CodeList{
+					{
 						ID:   "test-mapped-variable",
 						Name: "Test Mapped Variable",
 					},
