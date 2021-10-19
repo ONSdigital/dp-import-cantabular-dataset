@@ -55,8 +55,19 @@ func runConsumerGroup(ctx context.Context, cfg *config.Config) (*kafka.ConsumerG
 
 	// Create ConsumerGroup with channels and config
 	cgChannels := kafka.CreateConsumerGroupChannels(1)
-	cgConfig := &kafka.ConsumerGroupConfig{KafkaVersion: &cfg.KafkaConfig.Version}
-
+	kafkaOffset := kafka.OffsetOldest
+	cgConfig := &kafka.ConsumerGroupConfig{
+		KafkaVersion: &cfg.KafkaConfig.Version,
+		Offset:       &kafkaOffset,
+	}
+	if cfg.KafkaConfig.SecProtocol == config.KafkaTLSProtocolFlag {
+		cgConfig.SecurityConfig = kafka.GetSecurityConfig(
+			cfg.KafkaConfig.SecCACerts,
+			cfg.KafkaConfig.SecClientCert,
+			cfg.KafkaConfig.SecClientKey,
+			cfg.KafkaConfig.SecSkipVerify,
+		)
+	}
 	cg, err := kafka.NewConsumerGroup(ctx, cfg.KafkaConfig.Addr, cfg.KafkaConfig.CategoryDimensionImportTopic, cfg.KafkaConfig.InstanceStartedGroup, cgChannels, cgConfig)
 	if err != nil {
 		return nil, err
