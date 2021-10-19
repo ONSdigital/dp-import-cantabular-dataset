@@ -51,13 +51,13 @@ func run(ctx context.Context) error {
 
 func runConsumerGroup(ctx context.Context, cfg *config.Config) (*kafka.ConsumerGroup, error) {
 	log.Event(ctx, "[KAFKA-TEST] Starting ConsumerGroup (messages sent to stdout)", log.INFO, log.Data{"config": cfg})
-	kafka.SetMaxMessageSize(int32(cfg.KafkaMaxBytes))
+	kafka.SetMaxMessageSize(int32(cfg.KafkaConfig.MaxBytes))
 
 	// Create ConsumerGroup with channels and config
 	cgChannels := kafka.CreateConsumerGroupChannels(1)
-	cgConfig := &kafka.ConsumerGroupConfig{KafkaVersion: &cfg.KafkaVersion}
+	cgConfig := &kafka.ConsumerGroupConfig{KafkaVersion: &cfg.KafkaConfig.Version}
 
-	cg, err := kafka.NewConsumerGroup(ctx, cfg.KafkaAddr, cfg.CategoryDimensionImportTopic, cfg.InstanceStartedGroup, cgChannels, cgConfig)
+	cg, err := kafka.NewConsumerGroup(ctx, cfg.KafkaConfig.Addr, cfg.KafkaConfig.CategoryDimensionImportTopic, cfg.KafkaConfig.InstanceStartedGroup, cgChannels, cgConfig)
 	if err != nil {
 		return nil, err
 	}

@@ -30,11 +30,11 @@ func main() {
 
 	// Create Kafka Producer
 	pChannels := kafka.CreateProducerChannels()
-	kafkaProducer, err := kafka.NewProducer(ctx, cfg.KafkaAddr, cfg.InstanceStartedTopic, pChannels, &kafka.ProducerConfig{
-		KafkaVersion: &cfg.KafkaVersion,
+	kafkaProducer, err := kafka.NewProducer(ctx, cfg.KafkaConfig.Addr, cfg.KafkaConfig.InstanceStartedTopic, pChannels, &kafka.ProducerConfig{
+		KafkaVersion: &cfg.KafkaConfig.Version,
 	})
 	if err != nil {
-		log.Event(ctx, "fatal error trying to create kafka producer", log.FATAL, log.Error(err), log.Data{"topic": cfg.InstanceStartedTopic})
+		log.Event(ctx, "fatal error trying to create kafka producer", log.FATAL, log.Error(err), log.Data{"topic": cfg.KafkaConfig.InstanceStartedTopic})
 		os.Exit(1)
 	}
 

@@ -39,17 +39,17 @@ type Service struct {
 var GetKafkaConsumer = func(ctx context.Context, cfg *config.Config) (kafka.IConsumerGroup, error) {
 	cgChannels := kafka.CreateConsumerGroupChannels(1)
 	kafkaOffset := kafka.OffsetNewest
-	if cfg.KafkaOffsetOldest {
+	if cfg.KafkaConfig.OffsetOldest {
 		kafkaOffset = kafka.OffsetOldest
 	}
 	return kafka.NewConsumerGroup(
 		ctx,
-		cfg.KafkaAddr,
-		cfg.InstanceStartedTopic,
-		cfg.InstanceStartedGroup,
+		cfg.KafkaConfig.Addr,
+		cfg.KafkaConfig.InstanceStartedTopic,
+		cfg.KafkaConfig.InstanceStartedGroup,
 		cgChannels,
 		&kafka.ConsumerGroupConfig{
-			KafkaVersion: &cfg.KafkaVersion,
+			KafkaVersion: &cfg.KafkaConfig.Version,
 			Offset:       &kafkaOffset,
 		},
 	)
@@ -59,12 +59,12 @@ var GetKafkaConsumer = func(ctx context.Context, cfg *config.Config) (kafka.ICon
 var GetKafkaProducer = func(ctx context.Context, cfg *config.Config) (kafka.IProducer, error) {
 	return kafka.NewProducer(
 		ctx,
-		cfg.KafkaAddr,
-		cfg.CategoryDimensionImportTopic,
+		cfg.KafkaConfig.Addr,
+		cfg.KafkaConfig.CategoryDimensionImportTopic,
 		kafka.CreateProducerChannels(),
 		&kafka.ProducerConfig{
-			KafkaVersion:    &cfg.KafkaVersion,
-			MaxMessageBytes: &cfg.KafkaMaxBytes,
+			KafkaVersion:    &cfg.KafkaConfig.Version,
+			MaxMessageBytes: &cfg.KafkaConfig.MaxBytes,
 		},
 	)
 }
@@ -168,8 +168,8 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 	log.Event(ctx, "starting service...", log.INFO)
 
 	// Start kafka error logging
-	svc.consumer.Channels().LogErrors(ctx, "error received from kafka consumer, topic: "+svc.cfg.InstanceStartedTopic)
-	svc.producer.Channels().LogErrors(ctx, "error received from kafka producer, topic: "+svc.cfg.CategoryDimensionImportTopic)
+	svc.consumer.Channels().LogErrors(ctx, "error received from kafka consumer, topic: "+svc.cfg.KafkaConfig.InstanceStartedTopic)
+	svc.producer.Channels().LogErrors(ctx, "error received from kafka producer, topic: "+svc.cfg.KafkaConfig.CategoryDimensionImportTopic)
 
 	// Start consuming Kafka messages with the Event Handler
 	svc.processor.Consume(

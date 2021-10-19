@@ -39,7 +39,8 @@ https://github.com/ONSdigital/dp-compose/cantabular-import
 | GRACEFUL_SHUTDOWN_TIMEOUT                    | 5s                                           | The graceful shutdown timeout in seconds (`time.Duration` format)
 | HEALTHCHECK_INTERVAL                         | 30s                                          | Time between self-healthchecks (`time.Duration` format)
 | HEALTHCHECK_CRITICAL_TIMEOUT                 | 90s                                          | Time to wait until an unhealthy dependent propagates its state to make this app unhealthy (`time.Duration` format)
-| KAFKA_ADDR                                   | "localhost:9092"                             | The address of Kafka (accepts list)
+| KAFKA_ADDR                                   | localhost:9092                               | The kafka broker addresses (can be comma separated)
+| KAFKA_VERSION                                | "1.0.2"                                      | The kafka version that this service expects to connect to
 | KAFKA_OFFSET_OLDEST                          | true                                         | Start processing Kafka messages in order from the oldest in the queue
 | KAFKA_NUM_WORKERS                            | 1                                            | The maximum number of parallel kafka consumers
 | KAFKA_DATASET_INSTANCE_STARTED_GROUP         | dp-import-cantabular-dataset                 | The consumer group this application to consume ImageUploaded messages
@@ -51,6 +52,15 @@ https://github.com/ONSdigital/dp-compose/cantabular-import
 | CANTABULAR_URL                               | http://localhost:8491                        | HOST URL for dp-cantabular-server
 | SERVICE_AUTH_TOKEN                           | ""                                           | Service auth token for authorizing requests
 | COMPONENT_TEST_USE_LOG_FILE                  | false                                        | Output component test logs to temporary file instead of stdout. Used for displaying output for component tests in Concourse.
+| KAFKA_SEC_PROTO                              | _unset_                                      | if set to `TLS`, kafka connections will use TLS [[1]](#notes_1)
+| KAFKA_SEC_CA_CERTS                           | _unset_                                      | CA cert chain for the server cert [[1]](#notes_1)
+| KAFKA_SEC_CLIENT_KEY                         | _unset_                                      | PEM for the client key [[1]](#notes_1)
+| KAFKA_SEC_CLIENT_CERT                        | _unset_                                      | PEM for the client certificate [[1]](#notes_1)
+| KAFKA_SEC_SKIP_VERIFY                        | false                                        | ignores server certificate issues if `true` [[1]](#notes_1)
+
+**Notes:**
+
+    1. <a name="notes_1">For more info, see the [kafka TLS examples documentation](https://github.com/ONSdigital/dp-kafka/tree/main/examples#tls)</a>
 
 ### Healthcheck
 
