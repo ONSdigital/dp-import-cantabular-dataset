@@ -9,85 +9,88 @@ import (
 	"sync"
 )
 
+var (
+	lockImportAPIClientMockUpdateImportJobState sync.RWMutex
+)
+
 // Ensure, that ImportAPIClientMock does implement event.ImportAPIClient.
 // If this is not the case, regenerate this file with moq.
 var _ event.ImportAPIClient = &ImportAPIClientMock{}
 
 // ImportAPIClientMock is a mock implementation of event.ImportAPIClient.
 //
-// 	func TestSomethingThatUsesImportAPIClient(t *testing.T) {
+//     func TestSomethingThatUsesImportAPIClient(t *testing.T) {
 //
-// 		// make and configure a mocked event.ImportAPIClient
-// 		mockedImportAPIClient := &ImportAPIClientMock{
-// 			UpdateImportJobStateFunc: func(contextMoqParam context.Context, s1 string, s2 string, s3 string) error {
-// 				panic("mock out the UpdateImportJobState method")
-// 			},
-// 		}
+//         // make and configure a mocked event.ImportAPIClient
+//         mockedImportAPIClient := &ImportAPIClientMock{
+//             UpdateImportJobStateFunc: func(in1 context.Context, in2 string, in3 string, in4 string) error {
+// 	               panic("mock out the UpdateImportJobState method")
+//             },
+//         }
 //
-// 		// use mockedImportAPIClient in code that requires event.ImportAPIClient
-// 		// and then make assertions.
+//         // use mockedImportAPIClient in code that requires event.ImportAPIClient
+//         // and then make assertions.
 //
-// 	}
+//     }
 type ImportAPIClientMock struct {
 	// UpdateImportJobStateFunc mocks the UpdateImportJobState method.
-	UpdateImportJobStateFunc func(contextMoqParam context.Context, s1 string, s2 string, s3 string) error
+	UpdateImportJobStateFunc func(in1 context.Context, in2 string, in3 string, in4 string) error
 
 	// calls tracks calls to the methods.
 	calls struct {
 		// UpdateImportJobState holds details about calls to the UpdateImportJobState method.
 		UpdateImportJobState []struct {
-			// ContextMoqParam is the contextMoqParam argument value.
-			ContextMoqParam context.Context
-			// S1 is the s1 argument value.
-			S1 string
-			// S2 is the s2 argument value.
-			S2 string
-			// S3 is the s3 argument value.
-			S3 string
+			// In1 is the in1 argument value.
+			In1 context.Context
+			// In2 is the in2 argument value.
+			In2 string
+			// In3 is the in3 argument value.
+			In3 string
+			// In4 is the in4 argument value.
+			In4 string
 		}
 	}
-	lockUpdateImportJobState sync.RWMutex
 }
 
 // UpdateImportJobState calls UpdateImportJobStateFunc.
-func (mock *ImportAPIClientMock) UpdateImportJobState(contextMoqParam context.Context, s1 string, s2 string, s3 string) error {
+func (mock *ImportAPIClientMock) UpdateImportJobState(in1 context.Context, in2 string, in3 string, in4 string) error {
 	if mock.UpdateImportJobStateFunc == nil {
 		panic("ImportAPIClientMock.UpdateImportJobStateFunc: method is nil but ImportAPIClient.UpdateImportJobState was just called")
 	}
 	callInfo := struct {
-		ContextMoqParam context.Context
-		S1              string
-		S2              string
-		S3              string
+		In1 context.Context
+		In2 string
+		In3 string
+		In4 string
 	}{
-		ContextMoqParam: contextMoqParam,
-		S1:              s1,
-		S2:              s2,
-		S3:              s3,
+		In1: in1,
+		In2: in2,
+		In3: in3,
+		In4: in4,
 	}
-	mock.lockUpdateImportJobState.Lock()
+	lockImportAPIClientMockUpdateImportJobState.Lock()
 	mock.calls.UpdateImportJobState = append(mock.calls.UpdateImportJobState, callInfo)
-	mock.lockUpdateImportJobState.Unlock()
-	return mock.UpdateImportJobStateFunc(contextMoqParam, s1, s2, s3)
+	lockImportAPIClientMockUpdateImportJobState.Unlock()
+	return mock.UpdateImportJobStateFunc(in1, in2, in3, in4)
 }
 
 // UpdateImportJobStateCalls gets all the calls that were made to UpdateImportJobState.
 // Check the length with:
 //     len(mockedImportAPIClient.UpdateImportJobStateCalls())
 func (mock *ImportAPIClientMock) UpdateImportJobStateCalls() []struct {
-	ContextMoqParam context.Context
-	S1              string
-	S2              string
-	S3              string
+	In1 context.Context
+	In2 string
+	In3 string
+	In4 string
 } {
 	var calls []struct {
-		ContextMoqParam context.Context
-		S1              string
-		S2              string
-		S3              string
+		In1 context.Context
+		In2 string
+		In3 string
+		In4 string
 	}
-	mock.lockUpdateImportJobState.RLock()
+	lockImportAPIClientMockUpdateImportJobState.RLock()
 	calls = mock.calls.UpdateImportJobState
-	mock.lockUpdateImportJobState.RUnlock()
+	lockImportAPIClientMockUpdateImportJobState.RUnlock()
 	return calls
 }

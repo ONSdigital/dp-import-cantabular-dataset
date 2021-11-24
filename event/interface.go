@@ -12,7 +12,7 @@ import (
 
 // Handler represents a handler for processing a single event.
 type Handler interface {
-	Handle(context.Context, *InstanceStarted) error
+	Handle(ctx context.Context, instanceStarted *InstanceStarted) error
 }
 
 type coder interface {
