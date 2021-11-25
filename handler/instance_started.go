@@ -209,10 +209,10 @@ func (h *InstanceStarted) createUpdateInstanceRequest(cb cantabular.Codebook, e 
 
 		// id and url values overwritten by codelist values.
 		// Note that cantabular codebook is sorted with exactly the same order as codelists array.
-		if len(codelists[i].ID) > 0 {
+		if codelists[i].ID != "" {
 			id = codelists[i].ID
 		}
-		if len(codelists[i].HRef) > 0 {
+		if codelists[i].ID != "" {
 			url = codelists[i].HRef
 		}
 
