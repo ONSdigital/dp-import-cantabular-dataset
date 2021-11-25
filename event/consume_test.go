@@ -7,13 +7,14 @@ import (
 	"testing"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/importapi"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event/mock"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
 
-	kafka "github.com/ONSdigital/dp-kafka/v2"
-	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
+	kafka "github.com/ONSdigital/dp-kafka/v3"
+	"github.com/ONSdigital/dp-kafka/v3/kafkatest"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -180,7 +181,7 @@ func datasetAPIClientHappy() *mock.DatasetAPIClientMock {
 
 func importAPIClientHappy() *mock.ImportAPIClientMock {
 	return &mock.ImportAPIClientMock{
-		UpdateImportJobStateFunc: func(ctx context.Context, uaToken, jobID, state string) error {
+		UpdateImportJobStateFunc: func(ctx context.Context, uaToken string, jobID string, state importapi.State) error {
 			return nil
 		},
 	}
@@ -196,7 +197,7 @@ func datasetAPIClientUnhappy() *mock.DatasetAPIClientMock {
 
 func importAPIClientUnhappy() *mock.ImportAPIClientMock {
 	return &mock.ImportAPIClientMock{
-		UpdateImportJobStateFunc: func(ctx context.Context, uaToken, jobID, state string) error {
+		UpdateImportJobStateFunc: func(ctx context.Context, uaToken string, jobID string, state importapi.State) error {
 			return errors.New("invalid state")
 		},
 	}

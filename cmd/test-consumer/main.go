@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
 
-	kafka "github.com/ONSdigital/dp-kafka/v2"
+	kafka "github.com/ONSdigital/dp-kafka/v3"
 	"github.com/ONSdigital/log.go/log"
 )
 
@@ -30,7 +31,7 @@ func main() {
 
 func run(ctx context.Context) error {
 	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, os.Interrupt, os.Kill)
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 
 	cfg, err := config.Get()
 	if err != nil {
@@ -54,9 +55,11 @@ func runConsumerGroup(ctx context.Context, cfg *config.Config) (*kafka.ConsumerG
 	kafka.SetMaxMessageSize(int32(cfg.KafkaConfig.MaxBytes))
 
 	// Create ConsumerGroup with channels and config
-	cgChannels := kafka.CreateConsumerGroupChannels(1)
 	kafkaOffset := kafka.OffsetOldest
 	cgConfig := &kafka.ConsumerGroupConfig{
+		BrokerAddrs:  cfg.KafkaConfig.Addr,
+		Topic:        cfg.KafkaConfig.CategoryDimensionImportTopic,
+		GroupName:    cfg.KafkaConfig.InstanceStartedGroup,
 		KafkaVersion: &cfg.KafkaConfig.Version,
 		Offset:       &kafkaOffset,
 	}
@@ -68,13 +71,16 @@ func runConsumerGroup(ctx context.Context, cfg *config.Config) (*kafka.ConsumerG
 			cfg.KafkaConfig.SecSkipVerify,
 		)
 	}
-	cg, err := kafka.NewConsumerGroup(ctx, cfg.KafkaConfig.Addr, cfg.KafkaConfig.CategoryDimensionImportTopic, cfg.KafkaConfig.InstanceStartedGroup, cgChannels, cgConfig)
+	cg, err := kafka.NewConsumerGroup(ctx, cgConfig)
 	if err != nil {
 		return nil, err
 	}
 
+	// start consuming as soon as possible
+	cg.Start()
+
 	// go-routine to log errors from error channel
-	cgChannels.LogErrors(ctx, "[KAFKA-TEST] ConsumerGroup error")
+	cg.LogErrors(ctx)
 
 	// Consumer not initialised at creation time. We need to retry to initialise it.
 	if !cg.IsInitialised() {
@@ -88,7 +94,7 @@ func runConsumerGroup(ctx context.Context, cfg *config.Config) (*kafka.ConsumerG
 		for {
 			select {
 
-			case consumedMessage, ok := <-cgChannels.Upstream:
+			case consumedMessage, ok := <-cg.Channels().Upstream:
 				if !ok {
 					break
 				}
@@ -157,7 +163,7 @@ func closeConsumerGroup(ctx context.Context, cg *kafka.ConsumerGroup, gracefulSh
 // waitForInitialised blocks until the consumer is initialised or closed
 func waitForInitialised(ctx context.Context, cgChannels *kafka.ConsumerGroupChannels) {
 	select {
-	case <-cgChannels.Ready:
+	case <-cgChannels.Initialised:
 		log.Event(ctx, "[KAFKA-TEST] Consumer is now initialised.", log.WARN)
 	case <-cgChannels.Closer:
 		log.Event(ctx, "[KAFKA-TEST] Consumer is being closed.", log.WARN)

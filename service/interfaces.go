@@ -6,10 +6,11 @@ import (
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/importapi"
 	"github.com/ONSdigital/dp-api-clients-go/v2/recipe"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
-	kafka "github.com/ONSdigital/dp-kafka/v2"
+	kafka "github.com/ONSdigital/dp-kafka/v3"
 )
 
 //go:generate moq -out mock/server.go -pkg mock . HTTPServer
@@ -50,7 +51,7 @@ type RecipeAPIClient interface {
 }
 
 type ImportAPIClient interface {
-	UpdateImportJobState(context.Context, string, string, string) error
+	UpdateImportJobState(context.Context, string, string, importapi.State) error
 }
 
 type Processor interface {

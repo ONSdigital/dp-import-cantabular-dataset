@@ -6,10 +6,10 @@ import (
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/v2/headers"
-	importapi "github.com/ONSdigital/dp-import-api/models"
+	"github.com/ONSdigital/dp-api-clients-go/v2/importapi"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
 
-	kafka "github.com/ONSdigital/dp-kafka/v2"
+	kafka "github.com/ONSdigital/dp-kafka/v3"
 	"github.com/ONSdigital/log.go/v2/log"
 )
 
@@ -88,7 +88,7 @@ func (p *Processor) processMessage(ctx context.Context, msg kafka.Message, h Han
 	if err := h.Handle(ctx, &event); err != nil {
 		errs = append(errs, fmt.Errorf("failed to handle event: %w", err))
 
-		if err := p.importAPI.UpdateImportJobState(ctx, event.JobID, p.cfg.ServiceAuthToken, importapi.FailedState); err != nil {
+		if err := p.importAPI.UpdateImportJobState(ctx, event.JobID, p.cfg.ServiceAuthToken, importapi.StateFailed); err != nil {
 			errs = append(errs, &Error{
 				err: fmt.Errorf("failed to update job state: %w", err),
 				logData: log.Data{

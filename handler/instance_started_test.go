@@ -18,8 +18,8 @@ import (
 	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/handler/mock"
-	kafka "github.com/ONSdigital/dp-kafka/v2"
-	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
+	kafka "github.com/ONSdigital/dp-kafka/v3"
+	"github.com/ONSdigital/dp-kafka/v3/kafkatest"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -215,9 +215,11 @@ func TestInstanceStartedHandler_HandleUnhappy(t *testing.T) {
 func testCodebook() cantabular.Codebook {
 	return cantabular.Codebook{
 		cantabular.Variable{
-			Name:  "test-variable",
-			Label: "Test Variable",
-			Len:   3,
+			VariableBase: cantabular.VariableBase{
+				Name:  "test-variable",
+				Label: "Test Variable",
+			},
+			Len: 3,
 			Codes: []string{
 				"code1",
 				"code2",
@@ -230,9 +232,11 @@ func testCodebook() cantabular.Codebook {
 			},
 		},
 		cantabular.Variable{
-			Name:  "test-mapped-variable",
-			Label: "Test Mapped Variable",
-			Len:   2,
+			VariableBase: cantabular.VariableBase{
+				Name:  "test-mapped-variable",
+				Label: "Test Mapped Variable",
+			},
+			Len: 2,
 			Codes: []string{
 				"code-values-1-2",
 				"code-value-3",

@@ -5,6 +5,7 @@ package mock
 
 import (
 	"context"
+	"github.com/ONSdigital/dp-api-clients-go/v2/importapi"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
 	"sync"
 )
@@ -23,7 +24,7 @@ var _ event.ImportAPIClient = &ImportAPIClientMock{}
 //
 //         // make and configure a mocked event.ImportAPIClient
 //         mockedImportAPIClient := &ImportAPIClientMock{
-//             UpdateImportJobStateFunc: func(in1 context.Context, in2 string, in3 string, in4 string) error {
+//             UpdateImportJobStateFunc: func(in1 context.Context, in2 string, in3 string, in4 importapi.State) error {
 // 	               panic("mock out the UpdateImportJobState method")
 //             },
 //         }
@@ -34,7 +35,7 @@ var _ event.ImportAPIClient = &ImportAPIClientMock{}
 //     }
 type ImportAPIClientMock struct {
 	// UpdateImportJobStateFunc mocks the UpdateImportJobState method.
-	UpdateImportJobStateFunc func(in1 context.Context, in2 string, in3 string, in4 string) error
+	UpdateImportJobStateFunc func(in1 context.Context, in2 string, in3 string, in4 importapi.State) error
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -47,13 +48,13 @@ type ImportAPIClientMock struct {
 			// In3 is the in3 argument value.
 			In3 string
 			// In4 is the in4 argument value.
-			In4 string
+			In4 importapi.State
 		}
 	}
 }
 
 // UpdateImportJobState calls UpdateImportJobStateFunc.
-func (mock *ImportAPIClientMock) UpdateImportJobState(in1 context.Context, in2 string, in3 string, in4 string) error {
+func (mock *ImportAPIClientMock) UpdateImportJobState(in1 context.Context, in2 string, in3 string, in4 importapi.State) error {
 	if mock.UpdateImportJobStateFunc == nil {
 		panic("ImportAPIClientMock.UpdateImportJobStateFunc: method is nil but ImportAPIClient.UpdateImportJobState was just called")
 	}
@@ -61,7 +62,7 @@ func (mock *ImportAPIClientMock) UpdateImportJobState(in1 context.Context, in2 s
 		In1 context.Context
 		In2 string
 		In3 string
-		In4 string
+		In4 importapi.State
 	}{
 		In1: in1,
 		In2: in2,
@@ -81,13 +82,13 @@ func (mock *ImportAPIClientMock) UpdateImportJobStateCalls() []struct {
 	In1 context.Context
 	In2 string
 	In3 string
-	In4 string
+	In4 importapi.State
 } {
 	var calls []struct {
 		In1 context.Context
 		In2 string
 		In3 string
-		In4 string
+		In4 importapi.State
 	}
 	lockImportAPIClientMockUpdateImportJobState.RLock()
 	calls = mock.calls.UpdateImportJobState

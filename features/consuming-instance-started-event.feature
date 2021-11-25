@@ -83,7 +83,8 @@ Feature: Import-Cantabular-Dataset
       """
 
   Scenario: Consuming an instance-started event with correct RecipeID and InstanceID
-    When this instance-started event is consumed:
+    When the service starts
+    And this instance-started event is consumed:
       """
       {
         "RecipeId":       "recipe-happy-01",
@@ -103,7 +104,8 @@ Feature: Import-Cantabular-Dataset
             | dimension-02    | instance-happy-01 | job-happy-01 | Example        |
 
   Scenario: Consuming an instance-started event with correct RecipeID and InstanceID
-    When this instance-started event is consumed:
+    When the service starts
+    And this instance-started event is consumed:
       """
       {
         "RecipeId":       "recipe-happy-01",
@@ -123,7 +125,8 @@ Feature: Import-Cantabular-Dataset
             | dimension-02    | instance-happy-01 | job-happy-02 | Example        |
 
   Scenario: Consuming an instance-started event with correct RecipeID and InstanceID
-    When this instance-started event is consumed:
+    When the service starts
+    And this instance-started event is consumed:
       """
       {
         "RecipeId":       "recipe-happy-01",
@@ -139,7 +142,8 @@ Feature: Import-Cantabular-Dataset
     Then no category dimension import events should be produced
 
   Scenario: Consuming an instance-started event with incorrect RecipeID
-    When this instance-started event is consumed:
+    When the service starts
+    And this instance-started event is consumed:
       """
       {
         "RecipeId":       "2peofjdkm",
@@ -155,7 +159,8 @@ Feature: Import-Cantabular-Dataset
     Then no category dimension import events should be produced
 
   Scenario: Consuming an instance-started event with incorrect InstanceID
-    When this instance-started event is consumed:
+    When the service starts
+    And this instance-started event is consumed:
       """
       {
         "RecipeId":       "recipe-happy-01",

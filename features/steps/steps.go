@@ -10,7 +10,7 @@ import (
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
-	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
+	"github.com/ONSdigital/dp-kafka/v3/kafkatest"
 	"github.com/ONSdigital/log.go/v2/log"
 
 	"github.com/cucumber/godog"
@@ -21,6 +21,7 @@ import (
 func (c *Component) RegisterSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^the following recipe with id "([^"]*)" is available from dp-recipe-api:$`, c.theFollowingRecipeIsAvailable)
 	ctx.Step(`^the following response is available from Cantabular from the codebook "([^"]*)" and query "([^"]*)":$`, c.theFollowingCodebookIsAvailable)
+	ctx.Step(`^the service starts`, c.theServiceStarts)
 
 	ctx.Step(`^the call to update job "([^"]*)" is succesful`, c.theCallToUpdateJobIsSuccessful)
 	ctx.Step(`^the call to update instance "([^"]*)" is succesful`, c.theCallToUpdateInstanceIsSuccessful)
@@ -30,6 +31,15 @@ func (c *Component) RegisterSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^this instance-started event is consumed:$`, c.thisInstanceStartedEventIsConsumed)
 	ctx.Step(`^these category dimension import events should be produced:$`, c.theseCategoryDimensionImportEventsShouldBeProduced)
 	ctx.Step(`^no category dimension import events should be produced`, c.noCategoryDimensionImportEventsShouldBeProduced)
+}
+
+// theServiceStarts starts the service under test in a new go-routine
+// note that this step should be called only after all dependencies have been setup,
+// to prevent any race condition, specially during the first healthcheck iteration.
+func (c *Component) theServiceStarts() error {
+	c.wg.Add(1)
+	go c.startService(c.ctx)
+	return nil
 }
 
 func (c *Component) theFollowingRecipeIsAvailable(id string, recipe *godog.DocString) error {
@@ -93,7 +103,7 @@ func (c *Component) theseCategoryDimensionImportEventsShouldBeProduced(events *g
 
 	for listen {
 		select {
-		case <-time.After(time.Second * 1):
+		case <-time.After(WaitEventTimeout):
 			listen = false
 		case <-c.consumer.Channels().Closer:
 			return errors.New("closer channel closed")
@@ -130,7 +140,7 @@ func (c *Component) noCategoryDimensionImportEventsShouldBeProduced() error {
 
 	for listen {
 		select {
-		case <-time.After(time.Second * 1):
+		case <-time.After(WaitEventTimeout):
 			listen = false
 		case <-c.consumer.Channels().Closer:
 			return errors.New("closer channel closed")

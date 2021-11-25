@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/importapi"
 )
 
 //go:generate moq -out mock/handler.go -pkg mock . Handler
@@ -28,7 +29,7 @@ type instanceCompleteder interface {
 }
 
 type ImportAPIClient interface {
-	UpdateImportJobState(context.Context, string, string, string) error
+	UpdateImportJobState(context.Context, string, string, importapi.State) error
 }
 
 type DatasetAPIClient interface {

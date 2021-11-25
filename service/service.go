@@ -14,7 +14,7 @@ import (
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/handler"
-	kafka "github.com/ONSdigital/dp-kafka/v2"
+	kafka "github.com/ONSdigital/dp-kafka/v3"
 	dphttp "github.com/ONSdigital/dp-net/http"
 	"github.com/ONSdigital/log.go/log"
 
@@ -23,12 +23,12 @@ import (
 
 // Service contains all the configs, server and clients to run the event handler service
 type Service struct {
-	cfg              *config.Config
-	server           HTTPServer
-	healthCheck      HealthChecker
-	consumer         kafka.IConsumerGroup
-	producer         kafka.IProducer
-	processor        Processor
+	Cfg              *config.Config
+	Server           HTTPServer
+	HealthCheck      HealthChecker
+	Consumer         kafka.IConsumerGroup
+	Producer         kafka.IProducer
+	Processor        Processor
 	cantabularClient CantabularClient
 	datasetAPIClient DatasetAPIClient
 	recipeAPIClient  RecipeAPIClient
@@ -37,12 +37,14 @@ type Service struct {
 
 // GetKafkaConsumer returns a Kafka consumer with the provided config
 var GetKafkaConsumer = func(ctx context.Context, cfg *config.Config) (kafka.IConsumerGroup, error) {
-	cgChannels := kafka.CreateConsumerGroupChannels(cfg.KafkaConfig.NumWorkers)
 	kafkaOffset := kafka.OffsetNewest
 	if cfg.KafkaConfig.OffsetOldest {
 		kafkaOffset = kafka.OffsetOldest
 	}
 	cgConfig := &kafka.ConsumerGroupConfig{
+		BrokerAddrs:  cfg.KafkaConfig.Addr,
+		Topic:        cfg.KafkaConfig.InstanceStartedTopic,
+		GroupName:    cfg.KafkaConfig.InstanceStartedGroup,
 		KafkaVersion: &cfg.KafkaConfig.Version,
 		Offset:       &kafkaOffset,
 	}
@@ -54,19 +56,14 @@ var GetKafkaConsumer = func(ctx context.Context, cfg *config.Config) (kafka.ICon
 			cfg.KafkaConfig.SecSkipVerify,
 		)
 	}
-	return kafka.NewConsumerGroup(
-		ctx,
-		cfg.KafkaConfig.Addr,
-		cfg.KafkaConfig.InstanceStartedTopic,
-		cfg.KafkaConfig.InstanceStartedGroup,
-		cgChannels,
-		cgConfig,
-	)
+	return kafka.NewConsumerGroup(ctx, cgConfig)
 }
 
 // GetKafkaProducer returns a kafka producer with the provided config
 var GetKafkaProducer = func(ctx context.Context, cfg *config.Config) (kafka.IProducer, error) {
 	pConfig := &kafka.ProducerConfig{
+		BrokerAddrs:     cfg.KafkaConfig.Addr,
+		Topic:           cfg.KafkaConfig.CategoryDimensionImportTopic,
 		KafkaVersion:    &cfg.KafkaConfig.Version,
 		MaxMessageBytes: &cfg.KafkaConfig.MaxBytes,
 	}
@@ -78,13 +75,7 @@ var GetKafkaProducer = func(ctx context.Context, cfg *config.Config) (kafka.IPro
 			cfg.KafkaConfig.SecSkipVerify,
 		)
 	}
-	return kafka.NewProducer(
-		ctx,
-		cfg.KafkaConfig.Addr,
-		cfg.KafkaConfig.CategoryDimensionImportTopic,
-		kafka.CreateProducerChannels(),
-		pConfig,
-	)
+	return kafka.NewProducer(ctx, pConfig)
 }
 
 // GetHTTPServer returns an http server
@@ -106,10 +97,11 @@ var GetHealthCheck = func(cfg *config.Config, buildTime, gitCommit, version stri
 
 var GetCantabularClient = func(cfg *config.Config) CantabularClient {
 	return cantabular.NewClient(
-		dphttp.NewClient(),
 		cantabular.Config{
 			Host: cfg.CantabularURL,
 		},
+		dphttp.NewClient(),
+		nil,
 	)
 }
 
@@ -142,15 +134,15 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 		return errors.New("nil config passed to service init")
 	}
 
-	svc.cfg = cfg
+	svc.Cfg = cfg
 
 	// Get Kafka consumer
-	if svc.consumer, err = GetKafkaConsumer(ctx, cfg); err != nil {
+	if svc.Consumer, err = GetKafkaConsumer(ctx, cfg); err != nil {
 		return fmt.Errorf("failed to initialise kafka consumer: %w", err)
 	}
 
 	// Get Kafka producer
-	svc.producer, err = GetKafkaProducer(ctx, cfg)
+	svc.Producer, err = GetKafkaProducer(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to initialise kafka producer: %w", err)
 	}
@@ -162,10 +154,10 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	svc.importAPIClient = GetImportAPIClient(cfg)
 
 	// Get processor
-	svc.processor = GetProcessor(cfg, svc.importAPIClient, svc.datasetAPIClient)
+	svc.Processor = GetProcessor(cfg, svc.importAPIClient, svc.datasetAPIClient)
 
 	// Get HealthCheck
-	if svc.healthCheck, err = GetHealthCheck(cfg, buildTime, gitCommit, version); err != nil {
+	if svc.HealthCheck, err = GetHealthCheck(cfg, buildTime, gitCommit, version); err != nil {
 		return fmt.Errorf("could not instantiate healthcheck: %w", err)
 	}
 
@@ -175,8 +167,8 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 
 	// Get HTTP Server with collectionID checkHeader
 	r := mux.NewRouter()
-	r.StrictSlash(true).Path("/health").HandlerFunc(svc.healthCheck.Handler)
-	svc.server = GetHTTPServer(cfg.BindAddr, r)
+	r.StrictSlash(true).Path("/health").HandlerFunc(svc.HealthCheck.Handler)
+	svc.Server = GetHTTPServer(cfg.BindAddr, r)
 
 	return nil
 }
@@ -186,28 +178,31 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 	log.Event(ctx, "starting service...", log.INFO)
 
 	// Start kafka error logging
-	svc.consumer.Channels().LogErrors(ctx, "error received from kafka consumer, topic: "+svc.cfg.KafkaConfig.InstanceStartedTopic)
-	svc.producer.Channels().LogErrors(ctx, "error received from kafka producer, topic: "+svc.cfg.KafkaConfig.CategoryDimensionImportTopic)
+	svc.Consumer.LogErrors(ctx)
+	svc.Producer.LogErrors(ctx)
 
 	// Start consuming Kafka messages with the Event Handler
-	svc.processor.Consume(
+	svc.Processor.Consume(
 		ctx,
-		svc.consumer,
+		svc.Consumer,
 		handler.NewInstanceStarted(
-			*svc.cfg,
+			*svc.Cfg,
 			svc.cantabularClient,
 			svc.recipeAPIClient,
 			svc.datasetAPIClient,
-			svc.producer,
+			svc.Producer,
 		),
 	)
 
+	// Start the kafka consumer (TODO this will need to be subscribed the the healthcheck)
+	svc.Consumer.Start()
+
 	// Start health checker
-	svc.healthCheck.Start(ctx)
+	svc.HealthCheck.Start(ctx)
 
 	// Run the http server in a new go-routine
 	go func() {
-		if err := svc.server.ListenAndServe(); err != nil {
+		if err := svc.Server.ListenAndServe(); err != nil {
 			svcErrors <- fmt.Errorf("failure in http listen and serve: %w", err)
 		}
 	}()
@@ -215,7 +210,7 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 
 // Close gracefully shuts the service down in the required order, with timeout
 func (svc *Service) Close(ctx context.Context) error {
-	timeout := svc.cfg.GracefulShutdownTimeout
+	timeout := svc.Cfg.GracefulShutdownTimeout
 	log.Event(ctx, "commencing graceful shutdown", log.Data{"graceful_shutdown_timeout": timeout}, log.INFO)
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	hasShutdownError := false
@@ -224,25 +219,22 @@ func (svc *Service) Close(ctx context.Context) error {
 		defer cancel()
 
 		// stop healthcheck, as it depends on everything else
-		if svc.healthCheck != nil {
-			svc.healthCheck.Stop()
+		if svc.HealthCheck != nil {
+			svc.HealthCheck.Stop()
 			log.Event(ctx, "stopped health checker", log.INFO)
 		}
 
 		// If kafka consumer exists, stop listening to it.
 		// This will automatically stop the event consumer loops and no more messages will be processed.
 		// The kafka consumer will be closed after the service shuts down.
-		if svc.consumer != nil {
-			if err := svc.consumer.StopListeningToConsumer(ctx); err != nil {
-				log.Event(ctx, "error stopping kafka consumer listener", log.ERROR, log.Error(err))
-				hasShutdownError = true
-			}
+		if svc.Consumer != nil {
+			svc.Consumer.StopAndWait()
 			log.Event(ctx, "stopped kafka consumer listener", log.INFO)
 		}
 
 		// stop any incoming requests before closing any outbound connections
-		if svc.server != nil {
-			if err := svc.server.Shutdown(ctx); err != nil {
+		if svc.Server != nil {
+			if err := svc.Server.Shutdown(ctx); err != nil {
 				log.Event(ctx, "failed to shutdown http server", log.Error(err), log.ERROR)
 				hasShutdownError = true
 			}
@@ -250,8 +242,8 @@ func (svc *Service) Close(ctx context.Context) error {
 		}
 
 		// If kafka producer exists, close it.
-		if svc.producer != nil {
-			if err := svc.producer.Close(ctx); err != nil {
+		if svc.Producer != nil {
+			if err := svc.Producer.Close(ctx); err != nil {
 				log.Event(ctx, "error closing kafka producer", log.ERROR, log.Error(err))
 				hasShutdownError = true
 			}
@@ -259,8 +251,8 @@ func (svc *Service) Close(ctx context.Context) error {
 		}
 
 		// If kafka consumer exists, close it.
-		if svc.consumer != nil {
-			if err := svc.consumer.Close(ctx); err != nil {
+		if svc.Consumer != nil {
+			if err := svc.Consumer.Close(ctx); err != nil {
 				log.Event(ctx, "error closing kafka consumer", log.ERROR, log.Error(err))
 				hasShutdownError = true
 			}
@@ -290,13 +282,13 @@ func (svc *Service) Close(ctx context.Context) error {
 
 // registerCheckers adds the checkers for the service clients to the health check object.
 func (svc *Service) registerCheckers() error {
-	hc := svc.healthCheck
+	hc := svc.HealthCheck
 
-	if err := hc.AddCheck("Kafka consumer", svc.consumer.Checker); err != nil {
+	if err := hc.AddCheck("Kafka consumer", svc.Consumer.Checker); err != nil {
 		return fmt.Errorf("error adding check for Kafka consumer: %w", err)
 	}
 
-	if err := hc.AddCheck("Kafka producer", svc.producer.Checker); err != nil {
+	if err := hc.AddCheck("Kafka producer", svc.Producer.Checker); err != nil {
 		return fmt.Errorf("error adding check for Kafka producer: %w", err)
 	}
 
@@ -307,13 +299,13 @@ func (svc *Service) registerCheckers() error {
 	// TODO - when Cantabular server is deployed to Production, remove this placeholder and the flag,
 	// and always use the real Checker instead: svc.cantabularClient.Checker
 	cantabularChecker := svc.cantabularClient.Checker
-	if !svc.cfg.CantabularHealthcheckEnabled {
+	if !svc.Cfg.CantabularHealthcheckEnabled {
 		cantabularChecker = func(ctx context.Context, state *healthcheck.CheckState) error {
 			state.Update(healthcheck.StatusOK, "Cantabular healthcheck placeholder", http.StatusOK)
 			return nil
 		}
 	}
-	if err := svc.healthCheck.AddCheck("Cantabular client", cantabularChecker); err != nil {
+	if err := svc.HealthCheck.AddCheck("Cantabular client", cantabularChecker); err != nil {
 		return fmt.Errorf("error adding check for Cantabular client: %w", err)
 	}
 

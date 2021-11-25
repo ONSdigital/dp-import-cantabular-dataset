@@ -11,7 +11,7 @@ import (
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
 
-	kafka "github.com/ONSdigital/dp-kafka/v2"
+	kafka "github.com/ONSdigital/dp-kafka/v3"
 	"github.com/ONSdigital/log.go/log"
 )
 
@@ -29,8 +29,9 @@ func main() {
 	}
 
 	// Create Kafka Producer
-	pChannels := kafka.CreateProducerChannels()
 	pConfig := &kafka.ProducerConfig{
+		BrokerAddrs:     cfg.KafkaConfig.Addr,
+		Topic:           cfg.KafkaConfig.InstanceStartedTopic,
 		KafkaVersion:    &cfg.KafkaConfig.Version,
 		MaxMessageBytes: &cfg.KafkaConfig.MaxBytes,
 	}
@@ -42,14 +43,14 @@ func main() {
 			cfg.KafkaConfig.SecSkipVerify,
 		)
 	}
-	kafkaProducer, err := kafka.NewProducer(ctx, cfg.KafkaConfig.Addr, cfg.KafkaConfig.InstanceStartedTopic, pChannels, pConfig)
+	kafkaProducer, err := kafka.NewProducer(ctx, pConfig)
 	if err != nil {
 		log.Event(ctx, "fatal error trying to create kafka producer", log.FATAL, log.Error(err), log.Data{"topic": cfg.KafkaConfig.InstanceStartedTopic})
 		os.Exit(1)
 	}
 
 	// kafka error logging go-routines
-	kafkaProducer.Channels().LogErrors(ctx, "kafka producer")
+	kafkaProducer.LogErrors(ctx)
 
 	time.Sleep(500 * time.Millisecond)
 	scanner := bufio.NewScanner(os.Stdin)
@@ -90,7 +91,7 @@ func scanEvent(scanner *bufio.Scanner) *event.InstanceStarted {
 	scanner.Scan()
 	jID := scanner.Text()
 
-	fmt.Println("Please type the Cntabular Type id")
+	fmt.Println("Please type the Cantabular Type id")
 	fmt.Printf("$ ")
 	scanner.Scan()
 	cType := scanner.Text()
