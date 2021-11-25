@@ -43,55 +43,94 @@ type statusCoder interface {
 func TestInstanceStartedHandler_HandleHappy(t *testing.T) {
 	cfg := config.Config{}
 
-	ctblrClient := cantabularClientHappy()
-	recipeAPIClient := recipeAPIClientHappy()
-	datasetAPIClient := datasetAPIClientHappy()
-	producer := kafkatest.NewMessageProducer(true)
+	Convey("Given a successful event handler", t, func() {
+		ctblrClient := cantabularClientHappy()
+		recipeAPIClient := recipeAPIClientHappy()
+		datasetAPIClient := datasetAPIClientHappy()
+		producer := kafkatest.NewMessageProducer(true)
 
-	h := handler.NewInstanceStarted(
-		cfg,
-		&ctblrClient,
-		&recipeAPIClient,
-		&datasetAPIClient,
-		producer,
-	)
-	ctx := context.Background()
+		h := handler.NewInstanceStarted(
+			cfg,
+			&ctblrClient,
+			&recipeAPIClient,
+			&datasetAPIClient,
+			producer,
+		)
 
-	Convey("Given a successful event handler, when Handle is triggered", t, func(c C) {
+		ctx := context.Background()
 		wg := &sync.WaitGroup{}
-		wg.Add(1)
 
-		go func() {
-			defer wg.Done()
+		Convey("When Handle is triggered", func(c C) {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				err := h.Handle(ctx, &event.InstanceStarted{
+					RecipeID:       "test-recipe-id",
+					InstanceID:     "test-instance-id",
+					JobID:          "test-job-id",
+					CantabularType: "cantabular_table",
+				})
+				c.So(err, ShouldBeNil)
+			}()
 
-			expected := []event.CategoryDimensionImport{
-				{
-					JobID:       "test-job-id",
-					InstanceID:  "test-instance-id",
-					DimensionID: "test-variable",
-				},
-				{
-					JobID:       "test-job-id",
-					InstanceID:  "test-instance-id",
-					DimensionID: "test-mapped-variable",
-				},
-			}
+			Convey("Then the expected category dimension import events are produced", func() {
+				expected := []event.CategoryDimensionImport{
+					{
+						JobID:          "test-job-id",
+						InstanceID:     "test-instance-id",
+						DimensionID:    "test-variable",
+						CantabularBlob: "test-cantabular-blob",
+					},
+					{
+						JobID:          "test-job-id",
+						InstanceID:     "test-instance-id",
+						DimensionID:    "test-mapped-variable",
+						CantabularBlob: "test-cantabular-blob",
+					},
+				}
 
-			for _, e := range expected {
-				validateMessage(t, producer, c, e)
-			}
-		}()
+				for _, e := range expected {
+					validateMessage(t, producer, c, e)
+				}
 
-		err := h.Handle(ctx, &event.InstanceStarted{
-			RecipeID:       "test-recipe-id",
-			InstanceID:     "test-instance-id",
-			JobID:          "test-job-id",
-			CantabularType: "cantabular_table",
+				Convey("And the expected dimensions are updated in dataset api instance, with ID and Href values comming from the corresponding codelist", func() {
+					So(datasetAPIClient.PutInstanceCalls(), ShouldHaveLength, 1)
+					So(datasetAPIClient.PutInstanceCalls()[0].InstanceID, ShouldEqual, "test-instance-id")
+					So(datasetAPIClient.PutInstanceCalls()[0].I, ShouldResemble, dataset.UpdateInstance{
+						Edition:    "2021",
+						CSVHeader:  []string{"cantabular_table", "test-variable", "test-mapped-variable"},
+						InstanceID: "test-instance-id",
+						Type:       "cantabular_table",
+						IsBasedOn: &dataset.IsBasedOn{
+							ID:   "test-cantabular-blob",
+							Type: "cantabular_table",
+						},
+						Dimensions: []dataset.VersionDimension{
+							{
+								ID:              "test-variable",
+								URL:             "http://recipe-defined-host/code-lists/test-variable",
+								Label:           "Test Variable",
+								Name:            "Test Variable",
+								Variable:        "test-variable",
+								NumberOfOptions: 3,
+							},
+							{
+								ID:              "test-mapped-variable",
+								URL:             "http://recipe-defined-host/code-lists/test-mapped-variable",
+								Label:           "Test Mapped Variable",
+								Name:            "Test Mapped Variable",
+								Variable:        "test-variable",
+								NumberOfOptions: 2,
+							},
+						},
+					})
+				})
+
+				wg.Wait()
+				err := producer.Close(ctx)
+				So(err, ShouldBeNil)
+			})
 		})
-		So(err, ShouldBeNil)
-
-		err = producer.Close(ctx)
-		So(err, ShouldBeNil)
 	})
 }
 
@@ -220,7 +259,8 @@ func testCodebook() cantabular.Codebook {
 
 func testRecipe() *recipe.Recipe {
 	return &recipe.Recipe{
-		ID: "test-recipe-id",
+		ID:             "test-recipe-id",
+		CantabularBlob: "test-cantabular-blob",
 		OutputInstances: []recipe.Instance{
 			{
 				DatasetID: "test-dataset-id",
@@ -228,10 +268,12 @@ func testRecipe() *recipe.Recipe {
 				CodeLists: []recipe.CodeList{
 					{
 						ID:   "test-variable",
+						HRef: "http://recipe-defined-host/code-lists/test-variable",
 						Name: "Test Variable",
 					},
 					{
 						ID:   "test-mapped-variable",
+						HRef: "http://recipe-defined-host/code-lists/test-mapped-variable",
 						Name: "Test Mapped Variable",
 					},
 				},

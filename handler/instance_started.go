@@ -93,12 +93,19 @@ func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) 
 		}
 	}
 
+	if len(resp.Codebook) != len(codelists) {
+		return &Error{
+			err:     fmt.Errorf("failed to get codebook from Cantabular: %w", err),
+			logData: ld,
+		}
+	}
+
 	log.Info(ctx, "Successfully got Codebook", log.Data{
 		"datablob":      resp.Dataset,
 		"num_variables": len(resp.Codebook),
 	})
 
-	ireq := h.createUpdateInstanceRequest(resp.Codebook, e, r.CantabularBlob)
+	ireq := h.createUpdateInstanceRequest(resp.Codebook, e, r.CantabularBlob, i.CodeLists)
 
 	log.Info(ctx, "Updating instance", log.Data{
 		"instance_id":    ireq.InstanceID,
@@ -176,7 +183,7 @@ func (h *InstanceStarted) getCodeListsFromInstance(i *recipe.Instance) ([]string
 	return codelists, nil
 }
 
-func (h *InstanceStarted) createUpdateInstanceRequest(cb cantabular.Codebook, e *event.InstanceStarted, ctblrBlob string) dataset.UpdateInstance {
+func (h *InstanceStarted) createUpdateInstanceRequest(cb cantabular.Codebook, e *event.InstanceStarted, ctblrBlob string, codelists []recipe.CodeList) dataset.UpdateInstance {
 	req := dataset.UpdateInstance{
 		Edition:    "2021",
 		CSVHeader:  []string{cantabularTable},
@@ -188,7 +195,7 @@ func (h *InstanceStarted) createUpdateInstanceRequest(cb cantabular.Codebook, e 
 		},
 	}
 
-	for _, v := range cb {
+	for i, v := range cb {
 		sourceName := v.Name
 
 		if len(v.MapFrom) > 0 {
@@ -197,9 +204,21 @@ func (h *InstanceStarted) createUpdateInstanceRequest(cb cantabular.Codebook, e 
 			}
 		}
 
+		id := sourceName
+		url := fmt.Sprintf("%s/code-lists/%s", h.cfg.RecipeAPIURL, sourceName)
+
+		// id and url values overwritten by codelist values.
+		// Note that cantabular codebook is sorted with exactly the same order as codelists array.
+		if len(codelists[i].ID) > 0 {
+			id = codelists[i].ID
+		}
+		if len(codelists[i].HRef) > 0 {
+			url = codelists[i].HRef
+		}
+
 		d := dataset.VersionDimension{
-			ID:              sourceName,
-			URL:             fmt.Sprintf("%s/code-lists/%s", h.cfg.RecipeAPIURL, sourceName),
+			ID:              id,
+			URL:             url,
 			Label:           v.Label,
 			Name:            v.Label,
 			Variable:        sourceName,

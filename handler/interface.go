@@ -17,8 +17,8 @@ type CantabularClient interface {
 }
 
 type DatasetAPIClient interface {
-	PutInstance(context.Context, string, string, string, string, dataset.UpdateInstance, string) (string, error)
-	PutInstanceState(context.Context, string, string, dataset.State, string) (string, error)
+	PutInstance(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, instanceID string, i dataset.UpdateInstance, ifMatch string) (eTag string, err error)
+	PutInstanceState(ctx context.Context, serviceAuthToken, instanceID string, state dataset.State, ifMatch string) (eTag string, err error)
 }
 
 type RecipeAPIClient interface {
