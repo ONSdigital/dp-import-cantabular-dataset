@@ -23,13 +23,17 @@ func (c *Component) RegisterSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^no recipe with id "([^"]*)" is available from dp-recipe-api`, c.theFollowingRecipeIsNotFound)
 	ctx.Step(`^the following response is available from Cantabular from the codebook "([^"]*)" and query "([^"]*)":$`, c.theFollowingCodebookIsAvailable)
 	ctx.Step(`^the service starts`, c.theServiceStarts)
+	ctx.Step(`^dp-dataset-api is healthy`, c.datasetAPIIsHealthy)
+	ctx.Step(`^dp-dataset-api is unhealthy`, c.datasetAPIIsUnhealthy)
+	ctx.Step(`^dp-recipe-api is healthy`, c.recipeAPIIsHealthy)
+	ctx.Step(`^cantabular server is healthy`, c.cantabularServerIsHealthy)
 
 	ctx.Step(`^the call to update job "([^"]*)" is succesful`, c.theCallToUpdateJobIsSuccessful)
 	ctx.Step(`^the call to update instance "([^"]*)" is succesful`, c.theCallToUpdateInstanceIsSuccessful)
 	ctx.Step(`^the call to update job "([^"]*)" is unsuccesful`, c.theCallToUpdateJobIsUnsuccessful)
 	ctx.Step(`^the call to update instance "([^"]*)" is unsuccesful`, c.theCallToUpdateInstanceIsUnsuccessful)
 
-	ctx.Step(`^this instance-started event is consumed:$`, c.thisInstanceStartedEventIsConsumed)
+	ctx.Step(`^this instance-started event is queued, to be consumed:$`, c.thisInstanceStartedEventIsQueued)
 	ctx.Step(`^these category dimension import events should be produced:$`, c.theseCategoryDimensionImportEventsShouldBeProduced)
 	ctx.Step(`^no category dimension import events should be produced`, c.noCategoryDimensionImportEventsShouldBeProduced)
 }
@@ -40,6 +44,46 @@ func (c *Component) RegisterSteps(ctx *godog.ScenarioContext) {
 func (c *Component) theServiceStarts() error {
 	c.wg.Add(1)
 	go c.startService(c.ctx)
+	return nil
+}
+
+// datasetAPIIsHealthy generates a mocked healthy response for dataset API healthecheck
+func (c *Component) datasetAPIIsHealthy() error {
+	const res = `{"status": "OK"}`
+	c.DatasetAPI.NewHandler().
+		Get("/health").
+		Reply(http.StatusOK).
+		BodyString(res)
+	return nil
+}
+
+// datasetAPIIsUnhealthy generates a mocked unhealthy response for dataset API healthecheck
+func (c *Component) datasetAPIIsUnhealthy() error {
+	const res = `{"status": "CRITICAL"}`
+	c.DatasetAPI.NewHandler().
+		Get("/health").
+		Reply(http.StatusInternalServerError).
+		BodyString(res)
+	return nil
+}
+
+// recipeAPIIsHealthy generates a mocked healthy response for recipe API healthecheck
+func (c *Component) recipeAPIIsHealthy() error {
+	const res = `{"status": "OK"}`
+	c.RecipeAPI.NewHandler().
+		Get("/health").
+		Reply(http.StatusOK).
+		BodyString(res)
+	return nil
+}
+
+// cantabularServerIsHealthy generates a mocked healthy response for cantabular server
+func (c *Component) cantabularServerIsHealthy() error {
+	const res = `{"status": "OK"}`
+	c.CantabularSrv.NewHandler().
+		Get("/v9/datasets").
+		Reply(http.StatusOK).
+		BodyString(res)
 	return nil
 }
 
@@ -170,7 +214,7 @@ func (c *Component) noCategoryDimensionImportEventsShouldBeProduced() error {
 	return nil
 }
 
-func (c *Component) thisInstanceStartedEventIsConsumed(input *godog.DocString) error {
+func (c *Component) thisInstanceStartedEventIsQueued(input *godog.DocString) error {
 	ctx := context.Background()
 
 	// testing kafka message that will be produced

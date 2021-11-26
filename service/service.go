@@ -194,8 +194,10 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 		),
 	)
 
-	// Start the kafka consumer (TODO this will need to be subscribed the the healthcheck)
-	svc.Consumer.Start()
+	// If start/stop on health updates is disabled, start consuming as soon as possible
+	if !svc.Cfg.StopConsumingOnUnhealthy {
+		svc.Consumer.Start()
+	}
 
 	// Start health checker
 	svc.HealthCheck.Start(ctx)
@@ -284,15 +286,17 @@ func (svc *Service) Close(ctx context.Context) error {
 func (svc *Service) registerCheckers() error {
 	hc := svc.HealthCheck
 
-	if err := hc.AddCheck("Kafka consumer", svc.Consumer.Checker); err != nil {
+	if _, err := hc.AddAndGetCheck("Kafka consumer", svc.Consumer.Checker); err != nil {
 		return fmt.Errorf("error adding check for Kafka consumer: %w", err)
 	}
 
-	if err := hc.AddCheck("Kafka producer", svc.Producer.Checker); err != nil {
+	checkProducer, err := hc.AddAndGetCheck("Kafka producer", svc.Producer.Checker)
+	if err != nil {
 		return fmt.Errorf("error adding check for Kafka producer: %w", err)
 	}
 
-	if err := hc.AddCheck("Recipe API client", svc.recipeAPIClient.Checker); err != nil {
+	checkRecipeApi, err := hc.AddAndGetCheck("Recipe API client", svc.recipeAPIClient.Checker)
+	if err != nil {
 		return fmt.Errorf("error adding check for Recipe API Client: %w", err)
 	}
 
@@ -305,12 +309,18 @@ func (svc *Service) registerCheckers() error {
 			return nil
 		}
 	}
-	if err := svc.HealthCheck.AddCheck("Cantabular client", cantabularChecker); err != nil {
+	checkCantabular, err := svc.HealthCheck.AddAndGetCheck("Cantabular client", cantabularChecker)
+	if err != nil {
 		return fmt.Errorf("error adding check for Cantabular client: %w", err)
 	}
 
-	if err := hc.AddCheck("Dataset API client", svc.datasetAPIClient.Checker); err != nil {
+	checkDatasetApi, err := hc.AddAndGetCheck("Dataset API client", svc.datasetAPIClient.Checker)
+	if err != nil {
 		return fmt.Errorf("error adding check for Dataset API Client: %w", err)
+	}
+
+	if svc.Cfg.StopConsumingOnUnhealthy {
+		svc.HealthCheck.Subscribe(svc.Consumer, checkProducer, checkRecipeApi, checkCantabular, checkDatasetApi)
 	}
 
 	return nil

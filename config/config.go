@@ -22,6 +22,7 @@ type Config struct {
 	CantabularHealthcheckEnabled bool          `envconfig:"CANTABULAR_HEALTHCHECK_ENABLED"`
 	ServiceAuthToken             string        `envconfig:"SERVICE_AUTH_TOKEN"         json:"-"`
 	ComponentTestUseLogFile      bool          `envconfig:"COMPONENT_TEST_USE_LOG_FILE"`
+	StopConsumingOnUnhealthy     bool          `envconfig:"STOP_CONSUMING_ON_UNHEALTHY"`
 	KafkaConfig                  KafkaConfig
 }
 
@@ -63,6 +64,7 @@ func Get() (*Config, error) {
 		CantabularHealthcheckEnabled: false,
 		ServiceAuthToken:             "",
 		ComponentTestUseLogFile:      false,
+		StopConsumingOnUnhealthy:     true,
 		KafkaConfig: KafkaConfig{
 			Addr:                         []string{"localhost:9092"},
 			Version:                      "1.0.2",

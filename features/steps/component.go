@@ -23,7 +23,6 @@ const (
 	ComponentTestGroup    = "component-test" // kafka group name for the component test consumer
 	DrainTopicTimeout     = 1 * time.Second  // maximum time to wait for a topic to be drained
 	DrainTopicMaxMessages = 1000             // maximum number of messages that will be drained from a topic
-	MinioCheckRetries     = 3                // maximum number of retires to validate that a file is present in minio
 	WaitEventTimeout      = 5 * time.Second  // maximum time that the component test consumer will wait for a kafka event
 )
 
@@ -74,6 +73,8 @@ func (c *Component) initService(ctx context.Context) error {
 		return fmt.Errorf("failed to get config: %w", err)
 	}
 
+	cfg.StopConsumingOnUnhealthy = true
+	cfg.CantabularHealthcheckEnabled = true
 	cfg.DatasetAPIURL = c.DatasetAPI.ResolveURL("")
 	cfg.RecipeAPIURL = c.RecipeAPI.ResolveURL("")
 	cfg.CantabularURL = c.CantabularSrv.ResolveURL("")

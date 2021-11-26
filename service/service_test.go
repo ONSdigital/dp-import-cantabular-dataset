@@ -24,6 +24,12 @@ var (
 	testBuildTime = "BuildTime"
 	testGitCommit = "GitCommit"
 	testVersion   = "Version"
+	testChecks    = map[string]*healthcheck.Check{
+		"Kafka producer":     {},
+		"Recipe API client":  {},
+		"Cantabular client":  {},
+		"Dataset API client": {},
+	}
 )
 
 var (
@@ -51,8 +57,14 @@ func TestInit(t *testing.T) {
 			return producerMock, nil
 		}
 
+		subscribedTo := []*healthcheck.Check{}
 		hcMock := &serviceMock.HealthCheckerMock{
-			AddCheckFunc: func(name string, checker healthcheck.Checker) error { return nil },
+			AddAndGetCheckFunc: func(name string, checker healthcheck.Checker) (*healthcheck.Check, error) {
+				return testChecks[name], nil
+			},
+			SubscribeFunc: func(s healthcheck.Subscriber, checks ...*healthcheck.Check) {
+				subscribedTo = append(subscribedTo, checks...)
+			},
 		}
 		service.GetHealthCheck = func(cfg *config.Config, buildTime, gitCommit, version string) (service.HealthChecker, error) {
 			return hcMock, nil
@@ -106,7 +118,7 @@ func TestInit(t *testing.T) {
 				So(svc.Cfg, ShouldResemble, cfg)
 
 				Convey("And no checkers are registered ", func() {
-					So(hcMock.AddCheckCalls(), ShouldHaveLength, 0)
+					So(hcMock.AddAndGetCheckCalls(), ShouldHaveLength, 0)
 				})
 			})
 		})
@@ -122,7 +134,7 @@ func TestInit(t *testing.T) {
 				So(svc.Cfg, ShouldResemble, cfg)
 
 				Convey("And no checkers are registered ", func() {
-					So(hcMock.AddCheckCalls(), ShouldHaveLength, 0)
+					So(hcMock.AddAndGetCheckCalls(), ShouldHaveLength, 0)
 				})
 			})
 		})
@@ -139,13 +151,13 @@ func TestInit(t *testing.T) {
 				So(svc.Consumer, ShouldResemble, consumerMock)
 
 				Convey("And no checkers are registered ", func() {
-					So(hcMock.AddCheckCalls(), ShouldHaveLength, 0)
+					So(hcMock.AddAndGetCheckCalls(), ShouldHaveLength, 0)
 				})
 			})
 		})
 
 		Convey("Given that Checkers cannot be registered", func() {
-			hcMock.AddCheckFunc = func(name string, checker healthcheck.Checker) error { return errAddCheck }
+			hcMock.AddAndGetCheckFunc = func(name string, checker healthcheck.Checker) (*healthcheck.Check, error) { return nil, errAddCheck }
 
 			Convey("Then service Init fails with the expected error", func() {
 				err := svc.Init(ctx, cfg, testBuildTime, testGitCommit, testVersion)
@@ -155,7 +167,7 @@ func TestInit(t *testing.T) {
 				So(svc.Consumer, ShouldResemble, consumerMock)
 
 				Convey("And other checkers don't try to register", func() {
-					So(hcMock.AddCheckCalls(), ShouldHaveLength, 1)
+					So(hcMock.AddAndGetCheckCalls(), ShouldHaveLength, 1)
 				})
 			})
 		})
@@ -169,12 +181,20 @@ func TestInit(t *testing.T) {
 				So(svc.Server, ShouldResemble, serverMock)
 
 				Convey("And all checks are registered", func() {
-					So(hcMock.AddCheckCalls(), ShouldHaveLength, 5)
-					So(hcMock.AddCheckCalls()[0].Name, ShouldResemble, "Kafka consumer")
-					So(hcMock.AddCheckCalls()[1].Name, ShouldResemble, "Kafka producer")
-					So(hcMock.AddCheckCalls()[2].Name, ShouldResemble, "Recipe API client")
-					So(hcMock.AddCheckCalls()[3].Name, ShouldResemble, "Cantabular client")
-					So(hcMock.AddCheckCalls()[4].Name, ShouldResemble, "Dataset API client")
+					So(hcMock.AddAndGetCheckCalls(), ShouldHaveLength, 5)
+					So(hcMock.AddAndGetCheckCalls()[0].Name, ShouldResemble, "Kafka consumer")
+					So(hcMock.AddAndGetCheckCalls()[1].Name, ShouldResemble, "Kafka producer")
+					So(hcMock.AddAndGetCheckCalls()[2].Name, ShouldResemble, "Recipe API client")
+					So(hcMock.AddAndGetCheckCalls()[3].Name, ShouldResemble, "Cantabular client")
+					So(hcMock.AddAndGetCheckCalls()[4].Name, ShouldResemble, "Dataset API client")
+				})
+
+				Convey("Then kafka consumer subscribes to the expected healthcheck checks", func() {
+					So(subscribedTo, ShouldHaveLength, 4)
+					So(subscribedTo[0], ShouldEqual, testChecks["Kafka producer"])
+					So(subscribedTo[1], ShouldEqual, testChecks["Recipe API client"])
+					So(subscribedTo[2], ShouldEqual, testChecks["Cantabular client"])
+					So(subscribedTo[3], ShouldEqual, testChecks["Dataset API client"])
 				})
 			})
 		})

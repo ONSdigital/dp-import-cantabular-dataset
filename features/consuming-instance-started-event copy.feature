@@ -1,7 +1,10 @@
 Feature: Import-Cantabular-Dataset
 
   Background:
-    Given the following recipe with id "recipe-happy-01" is available from dp-recipe-api:
+    Given dp-dataset-api is healthy
+    And dp-recipe-api is healthy
+    And cantabular server is healthy
+    And the following recipe with id "recipe-happy-01" is available from dp-recipe-api:
       """
       {
         "alias": "Cantabular Example 1",
@@ -84,7 +87,7 @@ Feature: Import-Cantabular-Dataset
 
   Scenario: Consuming an instance-started event with correct RecipeID and InstanceID
     When the service starts
-    And this instance-started event is consumed:
+    And this instance-started event is queued, to be consumed:
       """
       {
         "RecipeId":       "recipe-happy-01",
@@ -93,19 +96,16 @@ Feature: Import-Cantabular-Dataset
         "CantabularType": "table"
       }
       """
-
     And the call to update instance "instance-happy-01" is succesful
     And the call to update job "job-happy-01" is succesful
 
     Then these category dimension import events should be produced:
-
-            | DimensionID     | InstanceID        | JobID        | CantabularBlob |
-            | dimension-01    | instance-happy-01 | job-happy-01 | Example        |
-            | dimension-02    | instance-happy-01 | job-happy-01 | Example        |
+      | DimensionID     | InstanceID        | JobID        | CantabularBlob |
+      | dimension-01    | instance-happy-01 | job-happy-01 | Example        |
+      | dimension-02    | instance-happy-01 | job-happy-01 | Example        |
 
   Scenario: Consuming an instance-started event with correct RecipeID and InstanceID
-    When the service starts
-    And this instance-started event is consumed:
+    When this instance-started event is queued, to be consumed:
       """
       {
         "RecipeId":       "recipe-happy-01",
@@ -114,19 +114,17 @@ Feature: Import-Cantabular-Dataset
         "CantabularType": "table"
       }
       """
-
     And the call to update instance "instance-happy-01" is succesful
     And the call to update job "job-happy-02" is unsuccesful
+    And the service starts
 
     Then these category dimension import events should be produced:
-
-            | DimensionID     | InstanceID        | JobID        | CantabularBlob |
-            | dimension-01    | instance-happy-01 | job-happy-02 | Example        |
-            | dimension-02    | instance-happy-01 | job-happy-02 | Example        |
+      | DimensionID     | InstanceID        | JobID        | CantabularBlob |
+      | dimension-01    | instance-happy-01 | job-happy-02 | Example        |
+      | dimension-02    | instance-happy-01 | job-happy-02 | Example        |
 
   Scenario: Consuming an instance-started event with correct RecipeID and InstanceID
-    When the service starts
-    And this instance-started event is consumed:
+    When this instance-started event is queued, to be consumed:
       """
       {
         "RecipeId":       "recipe-happy-01",
@@ -135,15 +133,14 @@ Feature: Import-Cantabular-Dataset
         "CantabularType": "table"
       }
       """
-
     And the call to update instance "instance-happy-01" is unsuccesful
     And the call to update job "job-happy-02" is unsuccesful
+    And the service starts
 
     Then no category dimension import events should be produced
 
   Scenario: Consuming an instance-started event with incorrect RecipeID
-    When the service starts
-    And this instance-started event is consumed:
+    When this instance-started event is queued, to be consumed:
       """
       {
         "RecipeId":       "2peofjdkm",
@@ -152,16 +149,15 @@ Feature: Import-Cantabular-Dataset
         "CantabularType": "table"
       }
       """
-
     And no recipe with id "2peofjdkm" is available from dp-recipe-api
     And the call to update instance "instance-happy-01" is succesful
     And the call to update job "job-happy-01" is succesful
+    And the service starts
 
     Then no category dimension import events should be produced
 
   Scenario: Consuming an instance-started event with incorrect InstanceID
-    When the service starts
-    And this instance-started event is consumed:
+    When this instance-started event is queued, to be consumed:
       """
       {
         "RecipeId":       "recipe-happy-01",
@@ -170,8 +166,8 @@ Feature: Import-Cantabular-Dataset
         "CantabularType": "table"
       }
       """
-
     And the call to update instance "03wiroefld" is unsuccesful
     And the call to update job "job-happy-01" is succesful
+    And the service starts
 
     Then no category dimension import events should be produced

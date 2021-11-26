@@ -31,7 +31,8 @@ type HealthChecker interface {
 	Handler(w http.ResponseWriter, req *http.Request)
 	Start(ctx context.Context)
 	Stop()
-	AddCheck(name string, checker healthcheck.Checker) (err error)
+	AddAndGetCheck(name string, checker healthcheck.Checker) (check *healthcheck.Check, err error)
+	Subscribe(s healthcheck.Subscriber, checks ...*healthcheck.Check)
 }
 
 type CantabularClient interface {
