@@ -20,6 +20,7 @@ import (
 
 func (c *Component) RegisterSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^the following recipe with id "([^"]*)" is available from dp-recipe-api:$`, c.theFollowingRecipeIsAvailable)
+	ctx.Step(`^no recipe with id "([^"]*)" is available from dp-recipe-api`, c.theFollowingRecipeIsNotFound)
 	ctx.Step(`^the following response is available from Cantabular from the codebook "([^"]*)" and query "([^"]*)":$`, c.theFollowingCodebookIsAvailable)
 	ctx.Step(`^the service starts`, c.theServiceStarts)
 
@@ -47,6 +48,14 @@ func (c *Component) theFollowingRecipeIsAvailable(id string, recipe *godog.DocSt
 		Get("/recipes/" + id).
 		Reply(http.StatusOK).
 		BodyString(recipe.Content)
+
+	return nil
+}
+
+func (c *Component) theFollowingRecipeIsNotFound(id string) error {
+	c.RecipeAPI.NewHandler().
+		Get("/recipes/" + id).
+		Reply(http.StatusNotFound)
 
 	return nil
 }
