@@ -149,6 +149,7 @@ Feature: Import-Cantabular-Dataset
       }
       """
 
+    And no recipe with id "2peofjdkm" is available from dp-recipe-api
     And the call to update instance "instance-happy-01" is succesful
     And the call to update job "job-happy-01" is succesful
 
@@ -165,7 +166,7 @@ Feature: Import-Cantabular-Dataset
       }
       """
 
-    And the call to update instance "instance-happy-01" is succesful
+    And the call to update instance "03wiroefld" is unsuccesful
     And the call to update job "job-happy-01" is succesful
 
     Then no category dimension import events should be produced
