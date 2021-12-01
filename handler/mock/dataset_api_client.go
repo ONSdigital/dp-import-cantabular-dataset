@@ -10,33 +10,28 @@ import (
 	"sync"
 )
 
-var (
-	lockDatasetAPIClientMockPutInstance      sync.RWMutex
-	lockDatasetAPIClientMockPutInstanceState sync.RWMutex
-)
-
 // Ensure, that DatasetAPIClientMock does implement handler.DatasetAPIClient.
 // If this is not the case, regenerate this file with moq.
 var _ handler.DatasetAPIClient = &DatasetAPIClientMock{}
 
 // DatasetAPIClientMock is a mock implementation of handler.DatasetAPIClient.
 //
-//     func TestSomethingThatUsesDatasetAPIClient(t *testing.T) {
+// 	func TestSomethingThatUsesDatasetAPIClient(t *testing.T) {
 //
-//         // make and configure a mocked handler.DatasetAPIClient
-//         mockedDatasetAPIClient := &DatasetAPIClientMock{
-//             PutInstanceFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string, i dataset.UpdateInstance, ifMatch string) (string, error) {
-// 	               panic("mock out the PutInstance method")
-//             },
-//             PutInstanceStateFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, state dataset.State, ifMatch string) (string, error) {
-// 	               panic("mock out the PutInstanceState method")
-//             },
-//         }
+// 		// make and configure a mocked handler.DatasetAPIClient
+// 		mockedDatasetAPIClient := &DatasetAPIClientMock{
+// 			PutInstanceFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string, i dataset.UpdateInstance, ifMatch string) (string, error) {
+// 				panic("mock out the PutInstance method")
+// 			},
+// 			PutInstanceStateFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, state dataset.State, ifMatch string) (string, error) {
+// 				panic("mock out the PutInstanceState method")
+// 			},
+// 		}
 //
-//         // use mockedDatasetAPIClient in code that requires handler.DatasetAPIClient
-//         // and then make assertions.
+// 		// use mockedDatasetAPIClient in code that requires handler.DatasetAPIClient
+// 		// and then make assertions.
 //
-//     }
+// 	}
 type DatasetAPIClientMock struct {
 	// PutInstanceFunc mocks the PutInstance method.
 	PutInstanceFunc func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string, i dataset.UpdateInstance, ifMatch string) (string, error)
@@ -77,6 +72,8 @@ type DatasetAPIClientMock struct {
 			IfMatch string
 		}
 	}
+	lockPutInstance      sync.RWMutex
+	lockPutInstanceState sync.RWMutex
 }
 
 // PutInstance calls PutInstanceFunc.
@@ -101,9 +98,9 @@ func (mock *DatasetAPIClientMock) PutInstance(ctx context.Context, userAuthToken
 		I:                i,
 		IfMatch:          ifMatch,
 	}
-	lockDatasetAPIClientMockPutInstance.Lock()
+	mock.lockPutInstance.Lock()
 	mock.calls.PutInstance = append(mock.calls.PutInstance, callInfo)
-	lockDatasetAPIClientMockPutInstance.Unlock()
+	mock.lockPutInstance.Unlock()
 	return mock.PutInstanceFunc(ctx, userAuthToken, serviceAuthToken, collectionID, instanceID, i, ifMatch)
 }
 
@@ -128,9 +125,9 @@ func (mock *DatasetAPIClientMock) PutInstanceCalls() []struct {
 		I                dataset.UpdateInstance
 		IfMatch          string
 	}
-	lockDatasetAPIClientMockPutInstance.RLock()
+	mock.lockPutInstance.RLock()
 	calls = mock.calls.PutInstance
-	lockDatasetAPIClientMockPutInstance.RUnlock()
+	mock.lockPutInstance.RUnlock()
 	return calls
 }
 
@@ -152,9 +149,9 @@ func (mock *DatasetAPIClientMock) PutInstanceState(ctx context.Context, serviceA
 		State:            state,
 		IfMatch:          ifMatch,
 	}
-	lockDatasetAPIClientMockPutInstanceState.Lock()
+	mock.lockPutInstanceState.Lock()
 	mock.calls.PutInstanceState = append(mock.calls.PutInstanceState, callInfo)
-	lockDatasetAPIClientMockPutInstanceState.Unlock()
+	mock.lockPutInstanceState.Unlock()
 	return mock.PutInstanceStateFunc(ctx, serviceAuthToken, instanceID, state, ifMatch)
 }
 
@@ -175,8 +172,8 @@ func (mock *DatasetAPIClientMock) PutInstanceStateCalls() []struct {
 		State            dataset.State
 		IfMatch          string
 	}
-	lockDatasetAPIClientMockPutInstanceState.RLock()
+	mock.lockPutInstanceState.RLock()
 	calls = mock.calls.PutInstanceState
-	lockDatasetAPIClientMockPutInstanceState.RUnlock()
+	mock.lockPutInstanceState.RUnlock()
 	return calls
 }

@@ -6,26 +6,26 @@ package mock
 import (
 	"context"
 	"github.com/ONSdigital/dp-api-clients-go/v2/importapi"
-	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
+	"github.com/ONSdigital/dp-import-cantabular-dataset/handler"
 	"sync"
 )
 
-// Ensure, that ImportAPIClientMock does implement event.ImportAPIClient.
+// Ensure, that ImportAPIClientMock does implement handler.ImportAPIClient.
 // If this is not the case, regenerate this file with moq.
-var _ event.ImportAPIClient = &ImportAPIClientMock{}
+var _ handler.ImportAPIClient = &ImportAPIClientMock{}
 
-// ImportAPIClientMock is a mock implementation of event.ImportAPIClient.
+// ImportAPIClientMock is a mock implementation of handler.ImportAPIClient.
 //
 // 	func TestSomethingThatUsesImportAPIClient(t *testing.T) {
 //
-// 		// make and configure a mocked event.ImportAPIClient
+// 		// make and configure a mocked handler.ImportAPIClient
 // 		mockedImportAPIClient := &ImportAPIClientMock{
 // 			UpdateImportJobStateFunc: func(ctx context.Context, jobID string, serviceToken string, newState importapi.State) error {
 // 				panic("mock out the UpdateImportJobState method")
 // 			},
 // 		}
 //
-// 		// use mockedImportAPIClient in code that requires event.ImportAPIClient
+// 		// use mockedImportAPIClient in code that requires handler.ImportAPIClient
 // 		// and then make assertions.
 //
 // 	}

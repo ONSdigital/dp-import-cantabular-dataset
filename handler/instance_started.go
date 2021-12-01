@@ -12,6 +12,7 @@ import (
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/v2/headers"
+	"github.com/ONSdigital/dp-api-clients-go/v2/importapi"
 	"github.com/ONSdigital/dp-api-clients-go/v2/recipe"
 	kafka "github.com/ONSdigital/dp-kafka/v3"
 
@@ -24,56 +25,68 @@ const (
 
 // InstanceStarted is the handler for the InstanceStarted event
 type InstanceStarted struct {
-	cfg      config.Config
-	ctblr    CantabularClient
-	datasets DatasetAPIClient
-	recipes  RecipeAPIClient
-	producer kafka.IProducer
+	cfg       config.Config
+	ctblr     CantabularClient
+	recipes   RecipeAPIClient
+	importAPI ImportAPIClient
+	datasets  DatasetAPIClient
+	producer  kafka.IProducer
 }
 
-func NewInstanceStarted(cfg config.Config, c CantabularClient, r RecipeAPIClient, d DatasetAPIClient, p kafka.IProducer) *InstanceStarted {
+func NewInstanceStarted(cfg config.Config, c CantabularClient, r RecipeAPIClient, i ImportAPIClient, d DatasetAPIClient, p kafka.IProducer) *InstanceStarted {
 	return &InstanceStarted{
-		cfg:      cfg,
-		ctblr:    c,
-		recipes:  r,
-		datasets: d,
-		producer: p,
+		cfg:       cfg,
+		ctblr:     c,
+		recipes:   r,
+		importAPI: i,
+		datasets:  d,
+		producer:  p,
 	}
 }
 
 // Handle takes a single event.
-func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) error {
-	ld := log.Data{
-		"job_id":      e.JobID,
-		"instance_id": e.InstanceID,
+func (h *InstanceStarted) Handle(ctx context.Context, workerID int, msg kafka.Message) error {
+	e := &event.InstanceStarted{}
+	s := schema.InstanceStarted
+
+	if err := s.Unmarshal(msg.GetData(), e); err != nil {
+		return h.handleError(ctx, e, &Error{
+			err: fmt.Errorf("failed to unmarshal event: %w", err),
+			logData: map[string]interface{}{
+				"msg_data": msg.GetData(),
+			},
+		})
 	}
+
+	ld := log.Data{"event": e}
+	log.Info(ctx, "event received", ld)
 
 	r, err := h.recipes.GetRecipe(ctx, "", h.cfg.ServiceAuthToken, e.RecipeID)
 	if err != nil {
-		return &Error{
+		return h.handleError(ctx, e, &Error{
 			err:     fmt.Errorf("failed to get recipe: %w", err),
 			logData: ld,
-		}
+		})
 	}
 
 	log.Info(ctx, "Successfully got Recipe", log.Data{"recipe_alias": r.Alias})
 
 	i, err := h.getInstanceFromRecipe(ctx, r)
 	if err != nil {
-		return &Error{
+		return h.handleError(ctx, e, &Error{
 			err:     fmt.Errorf("failed to get instance from recipe: %s", err),
 			logData: ld,
-		}
+		})
 	}
 
 	log.Info(ctx, "Successfully got instance", log.Data{"instance_title": i.Title})
 
 	codelists, err := h.getCodeListsFromInstance(i)
 	if err != nil {
-		return &Error{
+		return h.handleError(ctx, e, &Error{
 			err:     fmt.Errorf("failed to get code-lists (dimensions) from recipe instance: %s", err),
 			logData: ld,
-		}
+		})
 	}
 
 	log.Info(ctx, "Successfully got codelists", log.Data{"num_codelists": len(codelists)})
@@ -87,17 +100,17 @@ func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) 
 	// Validation happens here, if any variables are incorrect, will throw an error
 	resp, err := h.ctblr.GetCodebook(ctx, req)
 	if err != nil {
-		return &Error{
+		return h.handleError(ctx, e, &Error{
 			err:     fmt.Errorf("failed to get codebook from Cantabular: %w", err),
 			logData: ld,
-		}
+		})
 	}
 
 	if len(resp.Codebook) != len(codelists) {
-		return &Error{
+		return h.handleError(ctx, e, &Error{
 			err:     fmt.Errorf("failed to get codebook from Cantabular: %w", err),
 			logData: ld,
-		}
+		})
 	}
 
 	log.Info(ctx, "Successfully got Codebook", log.Data{
@@ -115,17 +128,17 @@ func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) 
 	})
 
 	if _, err := h.datasets.PutInstance(ctx, "", h.cfg.ServiceAuthToken, "", e.InstanceID, ireq, headers.IfMatchAnyETag); err != nil {
-		return &Error{
+		return h.handleError(ctx, e, &Error{
 			err:     fmt.Errorf("failed to update instance: %w", err),
 			logData: ld,
-		}
+		})
 	}
 
 	if _, err := h.datasets.PutInstanceState(ctx, h.cfg.ServiceAuthToken, e.InstanceID, dataset.StateCompleted, headers.IfMatchAnyETag); err != nil {
-		return &Error{
+		return h.handleError(ctx, e, &Error{
 			err:     fmt.Errorf("failed to update instance state: %w", err),
 			logData: ld,
-		}
+		})
 	}
 
 	log.Info(ctx, "Triggering dimension options import", log.Data{
@@ -144,11 +157,11 @@ func (h *InstanceStarted) Handle(ctx context.Context, e *event.InstanceStarted) 
 
 		ld["errors"] = errdata
 
-		return &Error{
+		return h.handleError(ctx, e, &Error{
 			err:               errors.New("failed to successfully trigger options import for all dimensions"),
 			logData:           ld,
 			instanceCompleted: true,
-		}
+		})
 	}
 
 	log.Info(ctx, "Successfully triggered options import for all dimensions")
@@ -259,4 +272,36 @@ func (h *InstanceStarted) triggerImportDimensionOptions(blob string, dimensions 
 	}
 
 	return errs
+}
+
+// handleError updates the import job and instance to failed state, after an error during Handle
+func (h *InstanceStarted) handleError(ctx context.Context, e *event.InstanceStarted, err *Error) error {
+	var errs []error
+
+	if err := h.importAPI.UpdateImportJobState(ctx, e.JobID, h.cfg.ServiceAuthToken, importapi.StateFailed); err != nil {
+		errs = append(errs, &Error{
+			err: fmt.Errorf("failed to update job state: %w", err),
+			logData: log.Data{
+				"job_id": e.JobID,
+			},
+		})
+	}
+
+	if !instanceCompleted(err) {
+		if _, err := h.datasets.PutInstanceState(ctx, h.cfg.ServiceAuthToken, e.InstanceID, dataset.StateFailed, headers.IfMatchAnyETag); err != nil {
+			errs = append(errs, &Error{
+				err: fmt.Errorf("failed to update instance state: %w", err),
+				logData: log.Data{
+					"instance_id": e.InstanceID,
+					"job_id":      e.JobID,
+				},
+			})
+		}
+	}
+
+	if len(errs) > 0 {
+		err.logData["errors"] = errs
+	}
+
+	return err
 }

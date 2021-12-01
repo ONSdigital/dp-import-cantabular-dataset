@@ -11,45 +11,37 @@ import (
 	"sync"
 )
 
-var (
-	lockHealthCheckerMockAddAndGetCheck sync.RWMutex
-	lockHealthCheckerMockHandler        sync.RWMutex
-	lockHealthCheckerMockStart          sync.RWMutex
-	lockHealthCheckerMockStop           sync.RWMutex
-	lockHealthCheckerMockSubscribe      sync.RWMutex
-)
-
 // Ensure, that HealthCheckerMock does implement service.HealthChecker.
 // If this is not the case, regenerate this file with moq.
 var _ service.HealthChecker = &HealthCheckerMock{}
 
 // HealthCheckerMock is a mock implementation of service.HealthChecker.
 //
-//     func TestSomethingThatUsesHealthChecker(t *testing.T) {
+// 	func TestSomethingThatUsesHealthChecker(t *testing.T) {
 //
-//         // make and configure a mocked service.HealthChecker
-//         mockedHealthChecker := &HealthCheckerMock{
-//             AddAndGetCheckFunc: func(name string, checker healthcheck.Checker) (*healthcheck.Check, error) {
-// 	               panic("mock out the AddAndGetCheck method")
-//             },
-//             HandlerFunc: func(w http.ResponseWriter, req *http.Request)  {
-// 	               panic("mock out the Handler method")
-//             },
-//             StartFunc: func(ctx context.Context)  {
-// 	               panic("mock out the Start method")
-//             },
-//             StopFunc: func()  {
-// 	               panic("mock out the Stop method")
-//             },
-//             SubscribeFunc: func(s healthcheck.Subscriber, checks ...*healthcheck.Check)  {
-// 	               panic("mock out the Subscribe method")
-//             },
-//         }
+// 		// make and configure a mocked service.HealthChecker
+// 		mockedHealthChecker := &HealthCheckerMock{
+// 			AddAndGetCheckFunc: func(name string, checker healthcheck.Checker) (*healthcheck.Check, error) {
+// 				panic("mock out the AddAndGetCheck method")
+// 			},
+// 			HandlerFunc: func(w http.ResponseWriter, req *http.Request)  {
+// 				panic("mock out the Handler method")
+// 			},
+// 			StartFunc: func(ctx context.Context)  {
+// 				panic("mock out the Start method")
+// 			},
+// 			StopFunc: func()  {
+// 				panic("mock out the Stop method")
+// 			},
+// 			SubscribeFunc: func(s healthcheck.Subscriber, checks ...*healthcheck.Check)  {
+// 				panic("mock out the Subscribe method")
+// 			},
+// 		}
 //
-//         // use mockedHealthChecker in code that requires service.HealthChecker
-//         // and then make assertions.
+// 		// use mockedHealthChecker in code that requires service.HealthChecker
+// 		// and then make assertions.
 //
-//     }
+// 	}
 type HealthCheckerMock struct {
 	// AddAndGetCheckFunc mocks the AddAndGetCheck method.
 	AddAndGetCheckFunc func(name string, checker healthcheck.Checker) (*healthcheck.Check, error)
@@ -98,6 +90,11 @@ type HealthCheckerMock struct {
 			Checks []*healthcheck.Check
 		}
 	}
+	lockAddAndGetCheck sync.RWMutex
+	lockHandler        sync.RWMutex
+	lockStart          sync.RWMutex
+	lockStop           sync.RWMutex
+	lockSubscribe      sync.RWMutex
 }
 
 // AddAndGetCheck calls AddAndGetCheckFunc.
@@ -112,9 +109,9 @@ func (mock *HealthCheckerMock) AddAndGetCheck(name string, checker healthcheck.C
 		Name:    name,
 		Checker: checker,
 	}
-	lockHealthCheckerMockAddAndGetCheck.Lock()
+	mock.lockAddAndGetCheck.Lock()
 	mock.calls.AddAndGetCheck = append(mock.calls.AddAndGetCheck, callInfo)
-	lockHealthCheckerMockAddAndGetCheck.Unlock()
+	mock.lockAddAndGetCheck.Unlock()
 	return mock.AddAndGetCheckFunc(name, checker)
 }
 
@@ -129,9 +126,9 @@ func (mock *HealthCheckerMock) AddAndGetCheckCalls() []struct {
 		Name    string
 		Checker healthcheck.Checker
 	}
-	lockHealthCheckerMockAddAndGetCheck.RLock()
+	mock.lockAddAndGetCheck.RLock()
 	calls = mock.calls.AddAndGetCheck
-	lockHealthCheckerMockAddAndGetCheck.RUnlock()
+	mock.lockAddAndGetCheck.RUnlock()
 	return calls
 }
 
@@ -147,9 +144,9 @@ func (mock *HealthCheckerMock) Handler(w http.ResponseWriter, req *http.Request)
 		W:   w,
 		Req: req,
 	}
-	lockHealthCheckerMockHandler.Lock()
+	mock.lockHandler.Lock()
 	mock.calls.Handler = append(mock.calls.Handler, callInfo)
-	lockHealthCheckerMockHandler.Unlock()
+	mock.lockHandler.Unlock()
 	mock.HandlerFunc(w, req)
 }
 
@@ -164,9 +161,9 @@ func (mock *HealthCheckerMock) HandlerCalls() []struct {
 		W   http.ResponseWriter
 		Req *http.Request
 	}
-	lockHealthCheckerMockHandler.RLock()
+	mock.lockHandler.RLock()
 	calls = mock.calls.Handler
-	lockHealthCheckerMockHandler.RUnlock()
+	mock.lockHandler.RUnlock()
 	return calls
 }
 
@@ -180,9 +177,9 @@ func (mock *HealthCheckerMock) Start(ctx context.Context) {
 	}{
 		Ctx: ctx,
 	}
-	lockHealthCheckerMockStart.Lock()
+	mock.lockStart.Lock()
 	mock.calls.Start = append(mock.calls.Start, callInfo)
-	lockHealthCheckerMockStart.Unlock()
+	mock.lockStart.Unlock()
 	mock.StartFunc(ctx)
 }
 
@@ -195,9 +192,9 @@ func (mock *HealthCheckerMock) StartCalls() []struct {
 	var calls []struct {
 		Ctx context.Context
 	}
-	lockHealthCheckerMockStart.RLock()
+	mock.lockStart.RLock()
 	calls = mock.calls.Start
-	lockHealthCheckerMockStart.RUnlock()
+	mock.lockStart.RUnlock()
 	return calls
 }
 
@@ -208,9 +205,9 @@ func (mock *HealthCheckerMock) Stop() {
 	}
 	callInfo := struct {
 	}{}
-	lockHealthCheckerMockStop.Lock()
+	mock.lockStop.Lock()
 	mock.calls.Stop = append(mock.calls.Stop, callInfo)
-	lockHealthCheckerMockStop.Unlock()
+	mock.lockStop.Unlock()
 	mock.StopFunc()
 }
 
@@ -221,9 +218,9 @@ func (mock *HealthCheckerMock) StopCalls() []struct {
 } {
 	var calls []struct {
 	}
-	lockHealthCheckerMockStop.RLock()
+	mock.lockStop.RLock()
 	calls = mock.calls.Stop
-	lockHealthCheckerMockStop.RUnlock()
+	mock.lockStop.RUnlock()
 	return calls
 }
 
@@ -239,9 +236,9 @@ func (mock *HealthCheckerMock) Subscribe(s healthcheck.Subscriber, checks ...*he
 		S:      s,
 		Checks: checks,
 	}
-	lockHealthCheckerMockSubscribe.Lock()
+	mock.lockSubscribe.Lock()
 	mock.calls.Subscribe = append(mock.calls.Subscribe, callInfo)
-	lockHealthCheckerMockSubscribe.Unlock()
+	mock.lockSubscribe.Unlock()
 	mock.SubscribeFunc(s, checks...)
 }
 
@@ -256,8 +253,8 @@ func (mock *HealthCheckerMock) SubscribeCalls() []struct {
 		S      healthcheck.Subscriber
 		Checks []*healthcheck.Check
 	}
-	lockHealthCheckerMockSubscribe.RLock()
+	mock.lockSubscribe.RLock()
 	calls = mock.calls.Subscribe
-	lockHealthCheckerMockSubscribe.RUnlock()
+	mock.lockSubscribe.RUnlock()
 	return calls
 }

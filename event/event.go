@@ -7,15 +7,7 @@ import (
 // InstanceStarted provides an avro structure for an Instance Started event
 type InstanceStarted events.CantabularDatasetInstanceStarted
 
-/*
-type CantabularDatasetInstanceStarted struct {
-	RecipeID       string `avro:"recipe_id"`
-	InstanceID     string `avro:"instance_id"`
-	JobID          string `avro:"job_id"`
-	CantabularType string `avro:"cantabular_type"`
-}
-*/
-
+// CategoryDimensionImport provies an avro structure for a Category Dimension Import event
 type CategoryDimensionImport struct {
 	JobID          string `avro:"job_id"`
 	InstanceID     string `avro:"instance_id"`

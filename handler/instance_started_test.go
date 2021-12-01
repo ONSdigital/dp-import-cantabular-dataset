@@ -10,6 +10,7 @@ import (
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/importapi"
 	"github.com/ONSdigital/dp-api-clients-go/v2/recipe"
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
@@ -22,6 +23,11 @@ import (
 	"github.com/ONSdigital/dp-kafka/v3/kafkatest"
 
 	. "github.com/smartystreets/goconvey/convey"
+)
+
+const (
+	workerID   = 1
+	msgTimeout = time.Second
 )
 
 type testError struct {
@@ -46,14 +52,16 @@ func TestInstanceStartedHandler_HandleHappy(t *testing.T) {
 	Convey("Given a successful event handler", t, func() {
 		ctblrClient := cantabularClientHappy()
 		recipeAPIClient := recipeAPIClientHappy()
+		importAPIClient := importAPIClientHappy()
 		datasetAPIClient := datasetAPIClientHappy()
 		producer := kafkatest.NewMessageProducer(true)
 
 		h := handler.NewInstanceStarted(
 			cfg,
-			&ctblrClient,
-			&recipeAPIClient,
-			&datasetAPIClient,
+			ctblrClient,
+			recipeAPIClient,
+			importAPIClient,
+			datasetAPIClient,
 			producer,
 		)
 
@@ -64,12 +72,13 @@ func TestInstanceStartedHandler_HandleHappy(t *testing.T) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				err := h.Handle(ctx, &event.InstanceStarted{
+				msg := kafkaMessage(c, &event.InstanceStarted{
 					RecipeID:       "test-recipe-id",
 					InstanceID:     "test-instance-id",
 					JobID:          "test-job-id",
 					CantabularType: "cantabular_table",
 				})
+				err := h.Handle(ctx, workerID, msg)
 				c.So(err, ShouldBeNil)
 			}()
 
@@ -134,81 +143,88 @@ func TestInstanceStartedHandler_HandleHappy(t *testing.T) {
 	})
 }
 
-func validateMessage(t *testing.T, producer kafka.IProducer, c C, expected event.CategoryDimensionImport) {
-	timeout := time.Second * 1
-
-	select {
-	case b := <-producer.Channels().Output:
-		var got event.CategoryDimensionImport
-		s := schema.CategoryDimensionImport
-		err := s.Unmarshal(b, &got)
-		c.So(err, ShouldBeNil)
-		c.So(got, ShouldResemble, expected)
-	case <-time.After(timeout):
-		t.Fail()
-	}
-}
-
 func TestInstanceStartedHandler_HandleUnhappy(t *testing.T) {
 	cfg := config.Config{}
-
-	ctblrClient := cantabularClientHappy()
-	recipeAPIClient := recipeAPIClientHappy()
-	datasetAPIClient := datasetAPIClientHappy()
-	producer := kafkatest.NewMessageProducer(true)
-
 	ctx := context.Background()
 
-	Convey("Given an event handler, when Handle is triggered with but recipe cannot be found", t, func() {
+	Convey("Given an event handler with a recipe that cannot be found", t, func() {
+		ctblrClient := cantabularClientHappy()
+		recipeAPIClient := recipeAPIClientHappy()
+		importAPIClient := importAPIClientHappy()
+		datasetAPIClient := datasetAPIClientHappy()
+		producer := kafkatest.NewMessageProducer(true)
+
 		recipeAPIClient.GetRecipeFunc = func(ctx context.Context, uaToken, saToken, recipeID string) (*recipe.Recipe, error) {
 			return nil, &testError{http.StatusNotFound}
 		}
 
 		h := handler.NewInstanceStarted(
 			cfg,
-			&ctblrClient,
-			&recipeAPIClient,
-			&datasetAPIClient,
+			ctblrClient,
+			recipeAPIClient,
+			importAPIClient,
+			datasetAPIClient,
 			producer,
 		)
 
-		err := h.Handle(ctx, &event.InstanceStarted{
-			RecipeID:       "test-recipe-id",
-			InstanceID:     "test-instance-id",
-			JobID:          "test-job-id",
-			CantabularType: "cantabular_table",
-		})
-		So(err, ShouldNotBeNil)
-		var cerr statusCoder
+		Convey("When Handle is triggered", func(c C) {
+			msg := kafkaMessage(c, &event.InstanceStarted{
+				RecipeID:       "test-recipe-id",
+				InstanceID:     "test-instance-id",
+				JobID:          "test-job-id",
+				CantabularType: "cantabular_table",
+			})
+			err := h.Handle(ctx, workerID, msg)
 
-		So(errors.As(err, &cerr), ShouldBeTrue)
-		So(cerr.StatusCode(), ShouldEqual, http.StatusNotFound)
+			Convey("Then the expected error is returned, with Status NotFound", func() {
+				So(err, ShouldNotBeNil)
+				var cerr statusCoder
+				So(errors.As(err, &cerr), ShouldBeTrue)
+				So(cerr.StatusCode(), ShouldEqual, http.StatusNotFound)
+			})
+
+			Convey("Then the import job and instance are set to failed state", func() {
+				validateFailure(importAPIClient, datasetAPIClient, "test-job-id", "test-instance-id")
+			})
+		})
 	})
 
-	recipeAPIClient = recipeAPIClientHappy()
-
-	Convey("Given an event handler, when Handle is triggered with but attempting to update instance fails", t, func() {
-		datasetAPIClient = datasetAPIClientUnhappy()
+	Convey("Given an event handler with a dataset api client that fails to update an instance", t, func() {
+		ctblrClient := cantabularClientHappy()
+		recipeAPIClient := recipeAPIClientHappy()
+		importAPIClient := importAPIClientHappy()
+		datasetAPIClient := datasetAPIClientUnhappy()
+		producer := kafkatest.NewMessageProducer(true)
 
 		h := handler.NewInstanceStarted(
 			cfg,
-			&ctblrClient,
-			&recipeAPIClient,
-			&datasetAPIClient,
+			ctblrClient,
+			recipeAPIClient,
+			importAPIClient,
+			datasetAPIClient,
 			producer,
 		)
 
-		err := h.Handle(ctx, &event.InstanceStarted{
-			RecipeID:       "test-recipe-id",
-			InstanceID:     "test-instance-id",
-			JobID:          "test-job-id",
-			CantabularType: "cantabular_table",
-		})
-		So(err, ShouldNotBeNil)
-		var cerr statusCoder
+		Convey("When Handle is triggered", func(c C) {
+			msg := kafkaMessage(c, &event.InstanceStarted{
+				RecipeID:       "test-recipe-id",
+				InstanceID:     "test-instance-id",
+				JobID:          "test-job-id",
+				CantabularType: "cantabular_table",
+			})
+			err := h.Handle(ctx, workerID, msg)
 
-		So(errors.As(err, &cerr), ShouldBeTrue)
-		So(cerr.StatusCode(), ShouldEqual, http.StatusInternalServerError)
+			Convey("Then the expected error is returned, with Status InternalServerError", func() {
+				So(err, ShouldNotBeNil)
+				var cerr statusCoder
+				So(errors.As(err, &cerr), ShouldBeTrue)
+				So(cerr.StatusCode(), ShouldEqual, http.StatusInternalServerError)
+			})
+
+			Convey("Then the import job and instance are set to failed state", func() {
+				validateFailure(importAPIClient, datasetAPIClient, "test-job-id", "test-instance-id")
+			})
+		})
 	})
 }
 
@@ -286,8 +302,8 @@ func testRecipe() *recipe.Recipe {
 	}
 }
 
-func cantabularClientHappy() mock.CantabularClientMock {
-	return mock.CantabularClientMock{
+func cantabularClientHappy() *mock.CantabularClientMock {
+	return &mock.CantabularClientMock{
 		GetCodebookFunc: func(ctx context.Context, req cantabular.GetCodebookRequest) (*cantabular.GetCodebookResponse, error) {
 			return &cantabular.GetCodebookResponse{
 				Codebook: testCodebook(),
@@ -296,16 +312,24 @@ func cantabularClientHappy() mock.CantabularClientMock {
 	}
 }
 
-func recipeAPIClientHappy() mock.RecipeAPIClientMock {
-	return mock.RecipeAPIClientMock{
+func recipeAPIClientHappy() *mock.RecipeAPIClientMock {
+	return &mock.RecipeAPIClientMock{
 		GetRecipeFunc: func(ctx context.Context, uaToken, saToken, recipeID string) (*recipe.Recipe, error) {
 			return testRecipe(), nil
 		},
 	}
 }
 
-func datasetAPIClientHappy() mock.DatasetAPIClientMock {
-	return mock.DatasetAPIClientMock{
+func importAPIClientHappy() *mock.ImportAPIClientMock {
+	return &mock.ImportAPIClientMock{
+		UpdateImportJobStateFunc: func(ctx context.Context, uaToken string, jobID string, state importapi.State) error {
+			return nil
+		},
+	}
+}
+
+func datasetAPIClientHappy() *mock.DatasetAPIClientMock {
+	return &mock.DatasetAPIClientMock{
 		PutInstanceFunc: func(ctx context.Context, uaToken, saToken, collectionID, instanceID string, i dataset.UpdateInstance, mi string) (string, error) {
 			return "", nil
 		},
@@ -315,10 +339,46 @@ func datasetAPIClientHappy() mock.DatasetAPIClientMock {
 	}
 }
 
-func datasetAPIClientUnhappy() mock.DatasetAPIClientMock {
-	return mock.DatasetAPIClientMock{
+func datasetAPIClientUnhappy() *mock.DatasetAPIClientMock {
+	return &mock.DatasetAPIClientMock{
 		PutInstanceFunc: func(ctx context.Context, uaToken, saToken, collectionID, instanceID string, i dataset.UpdateInstance, mi string) (string, error) {
 			return "", &testError{http.StatusInternalServerError}
 		},
+		PutInstanceStateFunc: func(ctx context.Context, uaToken, instanceID string, s dataset.State, mi string) (string, error) {
+			return "", nil
+		},
 	}
+}
+
+// kafkaMessage creates a mocked kafka message with the provided event as data
+func kafkaMessage(c C, e *event.InstanceStarted) *kafkatest.Message {
+	b, err := schema.InstanceStarted.Marshal(e)
+	c.So(err, ShouldBeNil)
+	return kafkatest.NewMessage(b, 0)
+}
+
+// validateMessage waits on the producer output channel,
+// un-marshals the received message with the CategoryDimensionImport schema
+// and checks that it resembles the provided expected event.
+// If no message is received after a timeout (const) then it forces a test failure
+func validateMessage(t *testing.T, producer kafka.IProducer, c C, expected event.CategoryDimensionImport) {
+	select {
+	case b := <-producer.Channels().Output:
+		var got event.CategoryDimensionImport
+		s := schema.CategoryDimensionImport
+		err := s.Unmarshal(b, &got)
+		c.So(err, ShouldBeNil)
+		c.So(got, ShouldResemble, expected)
+	case <-time.After(msgTimeout):
+		t.Fail()
+	}
+}
+
+func validateFailure(i *mock.ImportAPIClientMock, d *mock.DatasetAPIClientMock, jobID, instanceID string) {
+	So(i.UpdateImportJobStateCalls(), ShouldHaveLength, 1)
+	So(i.UpdateImportJobStateCalls()[0].JobID, ShouldEqual, jobID)
+	So(i.UpdateImportJobStateCalls()[0].NewState, ShouldEqual, importapi.StateFailed)
+	So(d.PutInstanceStateCalls(), ShouldHaveLength, 1)
+	So(d.PutInstanceStateCalls()[0].InstanceID, ShouldEqual, instanceID)
+	So(d.PutInstanceStateCalls()[0].State, ShouldEqual, dataset.StateFailed)
 }

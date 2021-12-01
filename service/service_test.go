@@ -10,10 +10,9 @@ import (
 
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
-	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/service"
+	"github.com/ONSdigital/dp-import-cantabular-dataset/service/mock"
 
-	serviceMock "github.com/ONSdigital/dp-import-cantabular-dataset/service/mock"
 	kafka "github.com/ONSdigital/dp-kafka/v3"
 	"github.com/ONSdigital/dp-kafka/v3/kafkatest"
 	. "github.com/smartystreets/goconvey/convey"
@@ -47,7 +46,11 @@ func TestInit(t *testing.T) {
 		cfg, err := config.Get()
 		So(err, ShouldBeNil)
 
-		consumerMock := &kafkatest.IConsumerGroupMock{}
+		consumerMock := &kafkatest.IConsumerGroupMock{
+			RegisterHandlerFunc: func(ctx context.Context, h kafka.Handler) error {
+				return nil
+			},
+		}
 		service.GetKafkaConsumer = func(ctx context.Context, cfg *config.Config) (kafka.IConsumerGroup, error) {
 			return consumerMock, nil
 		}
@@ -58,7 +61,7 @@ func TestInit(t *testing.T) {
 		}
 
 		subscribedTo := []*healthcheck.Check{}
-		hcMock := &serviceMock.HealthCheckerMock{
+		hcMock := &mock.HealthCheckerMock{
 			AddAndGetCheckFunc: func(name string, checker healthcheck.Checker) (*healthcheck.Check, error) {
 				return testChecks[name], nil
 			},
@@ -70,13 +73,13 @@ func TestInit(t *testing.T) {
 			return hcMock, nil
 		}
 
-		serverMock := &serviceMock.HTTPServerMock{}
+		serverMock := &mock.HTTPServerMock{}
 		service.GetHTTPServer = func(bindAddr string, router http.Handler) service.HTTPServer {
 			return serverMock
 		}
 
 		service.GetCantabularClient = func(cfg *config.Config) service.CantabularClient {
-			return &serviceMock.CantabularClientMock{
+			return &mock.CantabularClientMock{
 				CheckerFunc: func(context.Context, *healthcheck.CheckState) error {
 					return nil
 				},
@@ -84,7 +87,7 @@ func TestInit(t *testing.T) {
 		}
 
 		service.GetDatasetAPIClient = func(cfg *config.Config) service.DatasetAPIClient {
-			return &serviceMock.DatasetAPIClientMock{
+			return &mock.DatasetAPIClientMock{
 				CheckerFunc: func(context.Context, *healthcheck.CheckState) error {
 					return nil
 				},
@@ -92,16 +95,10 @@ func TestInit(t *testing.T) {
 		}
 
 		service.GetRecipeAPIClient = func(cfg *config.Config) service.RecipeAPIClient {
-			return &serviceMock.RecipeAPIClientMock{
+			return &mock.RecipeAPIClientMock{
 				CheckerFunc: func(context.Context, *healthcheck.CheckState) error {
 					return nil
 				},
-			}
-		}
-
-		service.GetProcessor = func(cfg *config.Config, i service.ImportAPIClient, d service.DatasetAPIClient) service.Processor {
-			return &serviceMock.ProcessorMock{
-				ConsumeFunc: func(context.Context, kafka.IConsumerGroup, event.Handler) {},
 			}
 		}
 
@@ -215,16 +212,12 @@ func TestStart(t *testing.T) {
 			LogErrorsFunc: func(ctx context.Context) {},
 		}
 
-		hcMock := &serviceMock.HealthCheckerMock{
+		hcMock := &mock.HealthCheckerMock{
 			StartFunc: func(ctx context.Context) {},
 		}
 
-		processorMock := &serviceMock.ProcessorMock{
-			ConsumeFunc: func(context.Context, kafka.IConsumerGroup, event.Handler) {},
-		}
-
 		serverWg := &sync.WaitGroup{}
-		serverMock := &serviceMock.HTTPServerMock{}
+		serverMock := &mock.HTTPServerMock{}
 
 		svc := &service.Service{
 			Cfg:         cfg,
@@ -232,7 +225,6 @@ func TestStart(t *testing.T) {
 			HealthCheck: hcMock,
 			Consumer:    consumerMock,
 			Producer:    producerMock,
-			Processor:   processorMock,
 		}
 
 		Convey("When a service with a successful HTTP server is started", func() {
@@ -295,12 +287,12 @@ func TestClose(t *testing.T) {
 		}
 
 		// healthcheck Stop does not depend on any other service being closed/stopped
-		hcMock := &serviceMock.HealthCheckerMock{
+		hcMock := &mock.HealthCheckerMock{
 			StopFunc: func() { hcStopped = true },
 		}
 
 		// server Shutdown will fail if healthcheck is not stopped
-		serverMock := &serviceMock.HTTPServerMock{
+		serverMock := &mock.HTTPServerMock{
 			ShutdownFunc: func(ctx context.Context) error {
 				if !hcStopped {
 					return fmt.Errorf("server stopped before healthcheck")

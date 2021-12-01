@@ -12,7 +12,6 @@ import (
 	"github.com/ONSdigital/dp-api-clients-go/v2/recipe"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
-	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/handler"
 	kafka "github.com/ONSdigital/dp-kafka/v3"
 	dphttp "github.com/ONSdigital/dp-net/http"
@@ -28,7 +27,6 @@ type Service struct {
 	HealthCheck      HealthChecker
 	Consumer         kafka.IConsumerGroup
 	Producer         kafka.IProducer
-	Processor        Processor
 	cantabularClient CantabularClient
 	datasetAPIClient DatasetAPIClient
 	recipeAPIClient  RecipeAPIClient
@@ -117,10 +115,6 @@ var GetImportAPIClient = func(cfg *config.Config) ImportAPIClient {
 	return importapi.New(cfg.ImportAPIURL)
 }
 
-var GetProcessor = func(cfg *config.Config, i ImportAPIClient, d DatasetAPIClient) Processor {
-	return event.NewProcessor(*cfg, i, d)
-}
-
 // New creates a new empty service
 func New() *Service {
 	return &Service{}
@@ -153,8 +147,15 @@ func (svc *Service) Init(ctx context.Context, cfg *config.Config, buildTime, git
 	svc.datasetAPIClient = GetDatasetAPIClient(cfg)
 	svc.importAPIClient = GetImportAPIClient(cfg)
 
-	// Get processor
-	svc.Processor = GetProcessor(cfg, svc.importAPIClient, svc.datasetAPIClient)
+	h := handler.NewInstanceStarted(
+		*svc.Cfg,
+		svc.cantabularClient,
+		svc.recipeAPIClient,
+		svc.importAPIClient,
+		svc.datasetAPIClient,
+		svc.Producer,
+	)
+	svc.Consumer.RegisterHandler(ctx, h.Handle)
 
 	// Get HealthCheck
 	if svc.HealthCheck, err = GetHealthCheck(cfg, buildTime, gitCommit, version); err != nil {
@@ -180,19 +181,6 @@ func (svc *Service) Start(ctx context.Context, svcErrors chan error) {
 	// Start kafka error logging
 	svc.Consumer.LogErrors(ctx)
 	svc.Producer.LogErrors(ctx)
-
-	// Start consuming Kafka messages with the Event Handler
-	svc.Processor.Consume(
-		ctx,
-		svc.Consumer,
-		handler.NewInstanceStarted(
-			*svc.Cfg,
-			svc.cantabularClient,
-			svc.recipeAPIClient,
-			svc.datasetAPIClient,
-			svc.Producer,
-		),
-	)
 
 	// If start/stop on health updates is disabled, start consuming as soon as possible
 	if !svc.Cfg.StopConsumingOnUnhealthy {

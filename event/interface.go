@@ -3,7 +3,7 @@ package event
 import (
 	"context"
 
-	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/v2/importapi"
 )
 
@@ -29,9 +29,9 @@ type instanceCompleteder interface {
 }
 
 type ImportAPIClient interface {
-	UpdateImportJobState(context.Context, string, string, importapi.State) error
+	UpdateImportJobState(ctx context.Context, jobID, serviceToken string, newState importapi.State) error
 }
 
 type DatasetAPIClient interface {
-	PutInstanceState(context.Context, string, string, dataset.State, string) (string, error)
+	PutInstanceState(ctx context.Context, serviceAuthToken, instanceID string, state dataset.State, ifMatch string) (eTag string, err error)
 }

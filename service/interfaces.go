@@ -9,8 +9,6 @@ import (
 	"github.com/ONSdigital/dp-api-clients-go/v2/importapi"
 	"github.com/ONSdigital/dp-api-clients-go/v2/recipe"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
-	kafka "github.com/ONSdigital/dp-kafka/v3"
 )
 
 //go:generate moq -out mock/server.go -pkg mock . HTTPServer
@@ -18,7 +16,6 @@ import (
 //go:generate moq -out mock/canabular_client.go -pkg mock . CantabularClient
 //go:generate moq -out mock/dataset_api_client.go -pkg mock . DatasetAPIClient
 //go:generate moq -out mock/recipe_api_client.go -pkg mock . RecipeAPIClient
-//go:generate moq -out mock/processor.go -pkg mock . Processor
 
 // HTTPServer defines the required methods from the HTTP server
 type HTTPServer interface {
@@ -53,8 +50,4 @@ type RecipeAPIClient interface {
 
 type ImportAPIClient interface {
 	UpdateImportJobState(context.Context, string, string, importapi.State) error
-}
-
-type Processor interface {
-	Consume(context.Context, kafka.IConsumerGroup, event.Handler)
 }

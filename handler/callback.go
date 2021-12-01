@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+
 	"github.com/ONSdigital/log.go/v2/log"
 )
 
@@ -15,4 +16,15 @@ func logData(err error) log.Data {
 	}
 
 	return nil
+}
+
+// instanceCompleted returns whether or not the instance was successfully completed
+// before the error was thrown
+func instanceCompleted(err error) bool {
+	var icerr instanceCompleteder
+	if errors.As(err, &icerr) {
+		return icerr.InstanceCompleted()
+	}
+
+	return false
 }
