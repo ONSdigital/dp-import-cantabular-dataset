@@ -26,8 +26,12 @@ import (
 )
 
 const (
-	workerID   = 1
-	msgTimeout = time.Second
+	workerID        = 1
+	msgTimeout      = time.Second
+	testRecipeID    = "test-recipe-id"
+	testInstanceID  = "test-instance-id"
+	testJobID       = "test-job-id"
+	cantabularTable = "cantabular_table"
 )
 
 type testError struct {
@@ -73,10 +77,10 @@ func TestInstanceStartedHandler_HandleHappy(t *testing.T) {
 			go func() {
 				defer wg.Done()
 				msg := kafkaMessage(c, &event.InstanceStarted{
-					RecipeID:       "test-recipe-id",
-					InstanceID:     "test-instance-id",
-					JobID:          "test-job-id",
-					CantabularType: "cantabular_table",
+					RecipeID:       testRecipeID,
+					InstanceID:     testInstanceID,
+					JobID:          testJobID,
+					CantabularType: cantabularTable,
 				})
 				err := h.Handle(ctx, workerID, msg)
 				c.So(err, ShouldBeNil)
@@ -85,14 +89,14 @@ func TestInstanceStartedHandler_HandleHappy(t *testing.T) {
 			Convey("Then the expected category dimension import events are produced", func() {
 				expected := []event.CategoryDimensionImport{
 					{
-						JobID:          "test-job-id",
-						InstanceID:     "test-instance-id",
+						JobID:          testJobID,
+						InstanceID:     testInstanceID,
 						DimensionID:    "test-variable",
 						CantabularBlob: "test-cantabular-blob",
 					},
 					{
-						JobID:          "test-job-id",
-						InstanceID:     "test-instance-id",
+						JobID:          testJobID,
+						InstanceID:     testInstanceID,
 						DimensionID:    "test-mapped-variable",
 						CantabularBlob: "test-cantabular-blob",
 					},
@@ -104,15 +108,15 @@ func TestInstanceStartedHandler_HandleHappy(t *testing.T) {
 
 				Convey("And the expected dimensions are updated in dataset api instance, with ID and Href values comming from the corresponding codelist", func() {
 					So(datasetAPIClient.PutInstanceCalls(), ShouldHaveLength, 1)
-					So(datasetAPIClient.PutInstanceCalls()[0].InstanceID, ShouldEqual, "test-instance-id")
+					So(datasetAPIClient.PutInstanceCalls()[0].InstanceID, ShouldEqual, testInstanceID)
 					So(datasetAPIClient.PutInstanceCalls()[0].I, ShouldResemble, dataset.UpdateInstance{
 						Edition:    "2021",
-						CSVHeader:  []string{"cantabular_table", "test-variable", "test-mapped-variable"},
-						InstanceID: "test-instance-id",
-						Type:       "cantabular_table",
+						CSVHeader:  []string{cantabularTable, "test-variable", "test-mapped-variable"},
+						InstanceID: testInstanceID,
+						Type:       cantabularTable,
 						IsBasedOn: &dataset.IsBasedOn{
 							ID:   "test-cantabular-blob",
-							Type: "cantabular_table",
+							Type: cantabularTable,
 						},
 						Dimensions: []dataset.VersionDimension{
 							{
@@ -169,10 +173,10 @@ func TestInstanceStartedHandler_HandleUnhappy(t *testing.T) {
 
 		Convey("When Handle is triggered", func(c C) {
 			msg := kafkaMessage(c, &event.InstanceStarted{
-				RecipeID:       "test-recipe-id",
-				InstanceID:     "test-instance-id",
-				JobID:          "test-job-id",
-				CantabularType: "cantabular_table",
+				RecipeID:       testRecipeID,
+				InstanceID:     testInstanceID,
+				JobID:          testJobID,
+				CantabularType: cantabularTable,
 			})
 			err := h.Handle(ctx, workerID, msg)
 
@@ -184,7 +188,7 @@ func TestInstanceStartedHandler_HandleUnhappy(t *testing.T) {
 			})
 
 			Convey("Then the import job and instance are set to failed state", func() {
-				validateFailure(importAPIClient, datasetAPIClient, "test-job-id", "test-instance-id")
+				validateFailure(importAPIClient, datasetAPIClient, testJobID, testInstanceID)
 			})
 		})
 	})
@@ -207,10 +211,10 @@ func TestInstanceStartedHandler_HandleUnhappy(t *testing.T) {
 
 		Convey("When Handle is triggered", func(c C) {
 			msg := kafkaMessage(c, &event.InstanceStarted{
-				RecipeID:       "test-recipe-id",
-				InstanceID:     "test-instance-id",
-				JobID:          "test-job-id",
-				CantabularType: "cantabular_table",
+				RecipeID:       testRecipeID,
+				InstanceID:     testInstanceID,
+				JobID:          testJobID,
+				CantabularType: cantabularTable,
 			})
 			err := h.Handle(ctx, workerID, msg)
 
@@ -222,7 +226,7 @@ func TestInstanceStartedHandler_HandleUnhappy(t *testing.T) {
 			})
 
 			Convey("Then the import job and instance are set to failed state", func() {
-				validateFailure(importAPIClient, datasetAPIClient, "test-job-id", "test-instance-id")
+				validateFailure(importAPIClient, datasetAPIClient, testJobID, testInstanceID)
 			})
 		})
 	})
@@ -279,7 +283,7 @@ func testCodebook() cantabular.Codebook {
 
 func testRecipe() *recipe.Recipe {
 	return &recipe.Recipe{
-		ID:             "test-recipe-id",
+		ID:             testRecipeID,
 		CantabularBlob: "test-cantabular-blob",
 		OutputInstances: []recipe.Instance{
 			{
