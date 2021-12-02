@@ -11,7 +11,6 @@ require (
 	github.com/ONSdigital/dp-import v1.2.1
 	github.com/ONSdigital/dp-kafka/v3 v3.0.0-beta.4
 	github.com/ONSdigital/dp-net v1.2.0
-	github.com/ONSdigital/log.go v1.1.0
 	github.com/ONSdigital/log.go/v2 v2.0.9
 	github.com/cucumber/godog v0.12.2
 	github.com/gofrs/uuid v4.1.0+incompatible // indirect

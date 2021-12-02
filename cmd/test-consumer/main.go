@@ -14,17 +14,19 @@ import (
 	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
 
 	kafka "github.com/ONSdigital/dp-kafka/v3"
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 )
 
 const serviceName = "kafka-example-consumer"
+
+var consumeCount = 0
 
 func main() {
 	log.Namespace = serviceName
 	ctx := context.Background()
 
 	if err := run(ctx); err != nil {
-		log.Event(ctx, "fatal runtime error", log.Error(err), log.FATAL)
+		log.Fatal(ctx, "fatal runtime error", err)
 		os.Exit(1)
 	}
 }
@@ -46,12 +48,31 @@ func run(ctx context.Context) error {
 
 	// blocks until an os interrupt or a fatal error occurs
 	sig := <-signals
-	log.Event(ctx, "os signal received", log.Data{"signal": sig}, log.INFO)
+	log.Info(ctx, "os signal received", log.Data{"signal": sig})
 	return closeConsumerGroup(ctx, consumerGroup, cfg.GracefulShutdownTimeout)
 }
 
+// handle un-marshals and logs events received by the kafka consumer
+func handle(ctx context.Context, workerID int, msg kafka.Message) error {
+	consumeCount++
+	msgData := msg.GetData()
+
+	var e event.CategoryDimensionImport
+	if err := schema.CategoryDimensionImport.Unmarshal(msgData, &e); err != nil {
+		log.Error(ctx, "failed to unmarshal event", err)
+	}
+
+	log.Info(ctx, "Received message", log.Data{
+		"event":  e,
+		"offest": msg.Offset(),
+		"len":    len(msgData),
+		"count":  consumeCount,
+	})
+	return nil
+}
+
 func runConsumerGroup(ctx context.Context, cfg *config.Config) (*kafka.ConsumerGroup, error) {
-	log.Event(ctx, "[KAFKA-TEST] Starting ConsumerGroup (messages sent to stdout)", log.INFO, log.Data{"config": cfg})
+	log.Info(ctx, "Starting ConsumerGroup (messages sent to stdout)", log.Data{"config": cfg})
 	kafka.SetMaxMessageSize(int32(cfg.KafkaConfig.MaxBytes))
 
 	// Create ConsumerGroup with channels and config
@@ -76,57 +97,23 @@ func runConsumerGroup(ctx context.Context, cfg *config.Config) (*kafka.ConsumerG
 		return nil, err
 	}
 
+	// register handler to log events
+	cg.RegisterHandler(ctx, handle)
+
 	// start consuming as soon as possible
 	cg.Start()
 
 	// go-routine to log errors from error channel
 	cg.LogErrors(ctx)
 
-	// Consumer not initialised at creation time. We need to retry to initialise it.
-	if !cg.IsInitialised() {
-		log.Event(ctx, "[KAFKA-TEST] Consumer could not be initialised at creation time. Waiting until we can initialise it.", log.WARN)
-		waitForInitialised(ctx, cg.Channels())
-	}
+	// Wait until the consumer is initialised (will return if it is already initialised)
+	waitForInitialised(ctx, cg.Channels())
 
-	// eventLoop
-	consumeCount := 0
-	go func() {
-		for {
-			select {
-
-			case consumedMessage, ok := <-cg.Channels().Upstream:
-				if !ok {
-					break
-				}
-				// consumer will be nil if the broker could not be contacted, that's why we use the channel directly instead of consumer.Incoming()
-				consumeCount++
-				logData := log.Data{"consumeCount": consumeCount, "messageOffset": consumedMessage.Offset()}
-				log.Event(ctx, "[KAFKA-TEST] Received message", log.INFO, logData)
-
-				consumedData := consumedMessage.GetData()
-
-				var e event.CategoryDimensionImport
-				var s = schema.CategoryDimensionImport
-
-				if err := s.Unmarshal(consumedMessage.GetData(), &e); err != nil {
-					log.Error(fmt.Errorf("failed to unmarshal event: %s", err))
-				}
-
-				logData["event"] = e
-				logData["messageString"] = string(consumedData)
-				logData["messageRaw"] = consumedData
-				logData["messageLen"] = len(consumedData)
-
-				consumedMessage.CommitAndRelease()
-				log.Event(ctx, "[KAFKA-TEST] committed and released message", log.INFO, log.Data{"messageOffset": consumedMessage.Offset()})
-			}
-		}
-	}()
 	return cg, nil
 }
 
 func closeConsumerGroup(ctx context.Context, cg *kafka.ConsumerGroup, gracefulShutdownTimeout time.Duration) error {
-	log.Event(ctx, "commencing graceful shutdown", log.Data{"graceful_shutdown_timeout": gracefulShutdownTimeout}, log.INFO)
+	log.Info(ctx, "commencing graceful shutdown", log.Data{"graceful_shutdown_timeout": gracefulShutdownTimeout})
 	ctx, cancel := context.WithTimeout(context.Background(), gracefulShutdownTimeout)
 
 	// track shutown gracefully closes up
@@ -135,28 +122,28 @@ func closeConsumerGroup(ctx context.Context, cg *kafka.ConsumerGroup, gracefulSh
 	// background graceful shutdown
 	go func() {
 		defer cancel()
-		log.Event(ctx, "[KAFKA-TEST] Closing kafka consumerGroup", log.INFO)
+		log.Info(ctx, "Closing kafka consumerGroup")
 		if err := cg.Close(ctx); err != nil {
 			hasShutdownError = true
 		}
-		log.Event(ctx, "[KAFKA-TEST] Closed kafka consumerGroup", log.INFO)
+		log.Info(ctx, "Closed kafka consumerGroup")
 	}()
 
 	// wait for timeout or success (via cancel)
 	<-ctx.Done()
 
 	if ctx.Err() == context.DeadlineExceeded {
-		log.Event(ctx, "[KAFKA-TEST] graceful shutdown timed out", log.WARN, log.Error(ctx.Err()))
+		log.Warn(ctx, "graceful shutdown timed out", log.Data{"err": ctx.Err()})
 		return ctx.Err()
 	}
 
 	if hasShutdownError {
 		err := errors.New("failed to shutdown gracefully")
-		log.Event(ctx, "failed to shutdown gracefully ", log.ERROR, log.Error(err))
+		log.Error(ctx, "failed to shutdown gracefully ", err)
 		return err
 	}
 
-	log.Event(ctx, "graceful shutdown was successful", log.INFO)
+	log.Info(ctx, "graceful shutdown was successful")
 	return nil
 }
 
@@ -164,8 +151,8 @@ func closeConsumerGroup(ctx context.Context, cg *kafka.ConsumerGroup, gracefulSh
 func waitForInitialised(ctx context.Context, cgChannels *kafka.ConsumerGroupChannels) {
 	select {
 	case <-cgChannels.Initialised:
-		log.Event(ctx, "[KAFKA-TEST] Consumer is now initialised.", log.WARN)
+		log.Warn(ctx, "Consumer is now initialised.")
 	case <-cgChannels.Closer:
-		log.Event(ctx, "[KAFKA-TEST] Consumer is being closed.", log.WARN)
+		log.Warn(ctx, "Consumer is being closed.")
 	}
 }
