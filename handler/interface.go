@@ -24,7 +24,7 @@ type DatasetAPIClient interface {
 }
 
 type RecipeAPIClient interface {
-	GetRecipe(context.Context, string, string, string) (*recipe.Recipe, error)
+	GetRecipe(ctx context.Context, userAuthToken, serviceAuthToken, recipeID string) (*recipe.Recipe, error)
 }
 
 type ImportAPIClient interface {
