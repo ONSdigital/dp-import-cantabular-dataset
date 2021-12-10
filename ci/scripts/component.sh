@@ -1,10 +1,15 @@
 #!/bin/bash -eux
 
+echo "++++ component.sh starting..."
+echo docker version
+echo docker-compose version
+
 pushd dp-import-cantabular-dataset
-  COMPONENT_TEST_USE_LOG_FILE=true make test-component
+  make test-component
+  # COMPONENT_TEST_USE_LOG_FILE=true make test-component
   e=$?
-  f="log-output.txt"
-  cat $f && rm $f
+  # f="log-output.txt"
+  # cat $f && rm $f
 popd
 exit $e
 

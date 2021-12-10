@@ -17,6 +17,8 @@ run:
     - bash
     - -ceux
     - |
+      echo docker version
+      echo docker-compose version
       dp-import-cantabular-dataset/ci/scripts/component.sh
 
 caches:
