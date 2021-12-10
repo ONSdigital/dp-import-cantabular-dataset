@@ -5,20 +5,19 @@ platform: linux
 image_resource:
   type: docker-image
   source:
-    repository: karlkfi/concourse-dcind
+    repository: taylorsilva/dcind
     tag: latest
 
 inputs:
   - name: dp-import-cantabular-dataset
 
 run:
-  path: entrypoint.sh
+  path: bash
   args:
-    - bash
-    - -ceux
+    - -exc
     - |
-      echo docker version
-      echo docker-compose version
+      source /docker-lib.sh
+      start_docker
       dp-import-cantabular-dataset/ci/scripts/component.sh
 
 caches:
