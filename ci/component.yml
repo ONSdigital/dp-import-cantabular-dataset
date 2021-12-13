@@ -3,10 +3,10 @@
 platform: linux
 
 image_resource:
-  type: docker-image
+  type: registry-image
   source:
     repository: taylorsilva/dcind
-    tag: 20.10.6-20210507
+    tag: latest
 
 inputs:
   - name: dp-import-cantabular-dataset
@@ -20,5 +20,5 @@ run:
       start_docker
       dp-import-cantabular-dataset/ci/scripts/component.sh
 
-caches:
-  - path: /var/run/docker.sock
+# caches:
+#   - path: /var/run/docker.sock
