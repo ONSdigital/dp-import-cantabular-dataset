@@ -6,7 +6,7 @@ image_resource:
   type: docker-image
   source:
     repository: taylorsilva/dcind
-    tag: latest
+    tag: 20.10.8
 
 inputs:
   - name: dp-import-cantabular-dataset
