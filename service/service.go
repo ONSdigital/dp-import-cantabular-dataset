@@ -44,6 +44,7 @@ var GetKafkaConsumer = func(ctx context.Context, cfg *config.Config) (kafka.ICon
 		Topic:        cfg.KafkaConfig.InstanceStartedTopic,
 		GroupName:    cfg.KafkaConfig.InstanceStartedGroup,
 		KafkaVersion: &cfg.KafkaConfig.Version,
+		NumWorkers:   &cfg.KafkaConfig.NumWorkers,
 		Offset:       &kafkaOffset,
 	}
 	if cfg.KafkaConfig.SecProtocol == config.KafkaTLSProtocolFlag {
