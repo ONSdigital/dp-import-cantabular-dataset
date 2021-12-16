@@ -61,7 +61,7 @@ func Get() (*Config, error) {
 		RecipeAPIURL:                 "http://localhost:22300",
 		ImportAPIURL:                 "http://localhost:21800",
 		CantabularURL:                "http://localhost:8491",
-		CantabularHealthcheckEnabled: false,
+		CantabularHealthcheckEnabled: true,
 		ServiceAuthToken:             "",
 		ComponentTestUseLogFile:      false,
 		StopConsumingOnUnhealthy:     true,
