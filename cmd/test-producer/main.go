@@ -21,12 +21,20 @@ func main() {
 	log.Namespace = serviceName
 	ctx := context.Background()
 
+	if err := run(ctx); err != nil {
+		log.Fatal(ctx, "fatal runtime error", err)
+		os.Exit(1)
+	}
+}
+
+func run(ctx context.Context) error {
 	// Get Config
 	cfg, err := config.Get()
 	if err != nil {
-		log.Fatal(ctx, "error getting config", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to get config: %s", err)
 	}
+
+	log.Info(ctx, "Starting Kafka Producer (messages read from stdin)", log.Data{"config": cfg})
 
 	// Create Kafka Producer
 	pConfig := &kafka.ProducerConfig{
@@ -45,29 +53,27 @@ func main() {
 	}
 	kafkaProducer, err := kafka.NewProducer(ctx, pConfig)
 	if err != nil {
-		log.Fatal(ctx, "fatal error trying to create kafka producer", err, log.Data{"topic": cfg.KafkaConfig.InstanceStartedTopic})
-		os.Exit(1)
+		return fmt.Errorf("failed to create kafka producer: %w", err)
 	}
 
 	// kafka error logging go-routines
 	kafkaProducer.LogErrors(ctx)
 
+	// Wait for producer to be initialised plus 500ms
+	<-kafkaProducer.Channels().Initialised
 	time.Sleep(500 * time.Millisecond)
+
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
 		e := scanEvent(scanner)
 		log.Info(ctx, "sending instance-started event", log.Data{"instanceStartedEvent": e})
 
-		s := schema.InstanceStarted
-
-		bytes, err := s.Marshal(e)
+		bytes, err := schema.InstanceStarted.Marshal(e)
 		if err != nil {
-			log.Fatal(ctx, "instance-started event error", err)
-			os.Exit(1)
+			return fmt.Errorf("failed to marshal event: %w", err)
 		}
 
-		// Send bytes to Output channel, after calling Initialise just in case it is not initialised.
-		kafkaProducer.Initialise(ctx)
+		// Send bytes to output channel
 		kafkaProducer.Channels().Output <- bytes
 	}
 }
@@ -76,30 +82,27 @@ func main() {
 func scanEvent(scanner *bufio.Scanner) *event.InstanceStarted {
 	fmt.Println("--- [Send Kafka InstanceStarted] ---")
 
+	e := &event.InstanceStarted{}
+
 	fmt.Println("Please type the recipe id")
 	fmt.Printf("$ ")
 	scanner.Scan()
-	rID := scanner.Text()
+	e.RecipeID = scanner.Text()
 
 	fmt.Println("Please type the instance id")
 	fmt.Printf("$ ")
 	scanner.Scan()
-	iID := scanner.Text()
+	e.InstanceID = scanner.Text()
 
 	fmt.Println("Please type the job id")
 	fmt.Printf("$ ")
 	scanner.Scan()
-	jID := scanner.Text()
+	e.JobID = scanner.Text()
 
 	fmt.Println("Please type the Cantabular Type id")
 	fmt.Printf("$ ")
 	scanner.Scan()
-	cType := scanner.Text()
+	e.CantabularType = scanner.Text()
 
-	return &event.InstanceStarted{
-		RecipeID:       rID,
-		InstanceID:     iID,
-		JobID:          jID,
-		CantabularType: cType,
-	}
+	return e
 }

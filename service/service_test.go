@@ -186,13 +186,30 @@ func TestInit(t *testing.T) {
 					So(hcMock.AddAndGetCheckCalls()[4].Name, ShouldResemble, "Dataset API client")
 				})
 
-				Convey("Then kafka consumer subscribes to the expected healthcheck checks", func() {
+				Convey("And kafka consumer subscribes to the expected healthcheck checks", func() {
 					So(subscribedTo, ShouldHaveLength, 4)
 					So(subscribedTo[0], ShouldEqual, testChecks["Kafka producer"])
 					So(subscribedTo[1], ShouldEqual, testChecks["Recipe API client"])
 					So(subscribedTo[2], ShouldEqual, testChecks["Cantabular client"])
 					So(subscribedTo[3], ShouldEqual, testChecks["Dataset API client"])
 				})
+
+				Convey("And the kafka handler handler is registered to the consumer", func() {
+					So(consumerMock.RegisterHandlerCalls(), ShouldHaveLength, 1)
+				})
+			})
+		})
+
+		Convey("Given that all dependencies are successfully initialised and StopConsumingOnUnhealthy is disabled", func() {
+			cfg.StopConsumingOnUnhealthy = false
+			defer func() {
+				cfg.StopConsumingOnUnhealthy = true
+			}()
+
+			Convey("Then service Init succeeds, and the kafka consumer does not subscribe to the healthcheck library", func() {
+				err := svc.Init(ctx, cfg, testBuildTime, testGitCommit, testVersion)
+				So(err, ShouldBeNil)
+				So(hcMock.SubscribeCalls(), ShouldHaveLength, 0)
 			})
 		})
 	})
@@ -254,6 +271,25 @@ func TestStart(t *testing.T) {
 			Convey("Then HTTP server errors are reported to the provided errors channel", func() {
 				rxErr := <-errChan
 				So(rxErr.Error(), ShouldResemble, fmt.Sprintf("failure in http listen and serve: %s", errServer.Error()))
+			})
+		})
+
+		Convey("When a service with a successful HTTP server is started and StopConsumingOnUnhealthy is false", func() {
+			cfg.StopConsumingOnUnhealthy = false
+			defer func() {
+				cfg.StopConsumingOnUnhealthy = true
+			}()
+
+			consumerMock.StartFunc = func() error { return nil }
+			serverMock.ListenAndServeFunc = func() error {
+				serverWg.Done()
+				return nil
+			}
+			serverWg.Add(1)
+			svc.Start(ctx, make(chan error, 1))
+
+			Convey("Then the kafka consumer is started", func() {
+				So(consumerMock.StartCalls(), ShouldHaveLength, 1)
 			})
 		})
 	})

@@ -23,11 +23,7 @@ var (
 type ComponentTest struct{}
 
 func (f *ComponentTest) InitializeScenario(ctx *godog.ScenarioContext) {
-	component, err := steps.NewComponent()
-	if err != nil {
-		log.Error(context.TODO(), "unable to initialise component", err)
-		os.Exit(1)
-	}
+	component := steps.NewComponent()
 
 	ctx.BeforeScenario(func(*godog.Scenario) {
 		if err := component.Reset(); err != nil {

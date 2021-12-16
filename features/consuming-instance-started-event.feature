@@ -86,8 +86,7 @@ Feature: Import-Cantabular-Dataset
       """
 
   Scenario: Consuming an instance-started event with correct RecipeID and InstanceID
-    When the service starts
-    And this instance-started event is queued, to be consumed:
+    When this instance-started event is queued, to be consumed:
       """
       {
         "RecipeId":       "recipe-happy-01",
@@ -98,6 +97,7 @@ Feature: Import-Cantabular-Dataset
       """
     And the call to update instance "instance-happy-01" is succesful
     And the call to update job "job-happy-01" is succesful
+    And the service starts
 
     Then these category dimension import events should be produced:
       | DimensionID     | InstanceID        | JobID        | CantabularBlob |

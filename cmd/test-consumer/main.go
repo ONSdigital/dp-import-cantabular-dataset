@@ -17,7 +17,10 @@ import (
 	"github.com/ONSdigital/log.go/v2/log"
 )
 
-const serviceName = "kafka-example-consumer"
+const (
+	serviceName       = "kafka-example-consumer"
+	consumerGroupName = "test-consumer-group"
+)
 
 var consumeCount = 0
 
@@ -35,6 +38,7 @@ func run(ctx context.Context) error {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 
+	// Get Config
 	cfg, err := config.Get()
 	if err != nil {
 		return fmt.Errorf("failed to get config: %s", err)
@@ -80,7 +84,7 @@ func runConsumerGroup(ctx context.Context, cfg *config.Config) (*kafka.ConsumerG
 	cgConfig := &kafka.ConsumerGroupConfig{
 		BrokerAddrs:  cfg.KafkaConfig.Addr,
 		Topic:        cfg.KafkaConfig.CategoryDimensionImportTopic,
-		GroupName:    cfg.KafkaConfig.InstanceStartedGroup,
+		GroupName:    consumerGroupName,
 		KafkaVersion: &cfg.KafkaConfig.Version,
 		Offset:       &kafkaOffset,
 	}

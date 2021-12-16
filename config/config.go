@@ -66,7 +66,7 @@ func Get() (*Config, error) {
 		ComponentTestUseLogFile:      false,
 		StopConsumingOnUnhealthy:     true,
 		KafkaConfig: KafkaConfig{
-			Addr:                         []string{"localhost:9092"},
+			Addr:                         []string{"localhost:9092", "localhost:9093", "localhost:9094"},
 			Version:                      "1.0.2",
 			OffsetOldest:                 true,
 			NumWorkers:                   1,
