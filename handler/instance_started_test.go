@@ -34,6 +34,8 @@ const (
 	cantabularTable = "cantabular_table"
 )
 
+var ctx = context.Background()
+
 type testError struct {
 	statusCode int
 }
@@ -69,7 +71,6 @@ func TestInstanceStartedHandler_HandleHappy(t *testing.T) {
 			producer,
 		)
 
-		ctx := context.Background()
 		wg := &sync.WaitGroup{}
 
 		Convey("When Handle is triggered", func(c C) {
@@ -149,7 +150,6 @@ func TestInstanceStartedHandler_HandleHappy(t *testing.T) {
 
 func TestInstanceStartedHandler_HandleUnhappy(t *testing.T) {
 	cfg := config.Config{}
-	ctx := context.Background()
 
 	Convey("Given an event handler with a recipe that cannot be found", t, func() {
 		ctblrClient := cantabularClientHappy()

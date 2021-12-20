@@ -26,6 +26,8 @@ const (
 	WaitEventTimeout      = 5 * time.Second  // maximum time that the component test consumer will wait for a kafka event
 )
 
+var MinBrokersHealthy = 1
+
 var (
 	BuildTime string = "1625046891"
 	GitCommit string = "7434fe334d9f51b7239f978094ea29d10ac33b16"
@@ -74,6 +76,8 @@ func (c *Component) initService(ctx context.Context) error {
 	cfg.StopConsumingOnUnhealthy = true
 	cfg.CantabularHealthcheckEnabled = true
 	cfg.KafkaConfig.Addr = []string{"kafka:9092"}
+	cfg.KafkaConfig.ConsumerMinBrokersHealthy = MinBrokersHealthy
+	cfg.KafkaConfig.ProducerMinBrokersHealthy = MinBrokersHealthy
 	cfg.DatasetAPIURL = c.DatasetAPI.ResolveURL("")
 	cfg.RecipeAPIURL = c.RecipeAPI.ResolveURL("")
 	cfg.CantabularURL = c.CantabularSrv.ResolveURL("")
@@ -85,10 +89,11 @@ func (c *Component) initService(ctx context.Context) error {
 	if c.producer, err = kafka.NewProducer(
 		ctx,
 		&kafka.ProducerConfig{
-			BrokerAddrs:     cfg.KafkaConfig.Addr,
-			Topic:           cfg.KafkaConfig.InstanceStartedTopic,
-			KafkaVersion:    &cfg.KafkaConfig.Version,
-			MaxMessageBytes: &cfg.KafkaConfig.MaxBytes,
+			BrokerAddrs:       cfg.KafkaConfig.Addr,
+			Topic:             cfg.KafkaConfig.InstanceStartedTopic,
+			MinBrokersHealthy: &MinBrokersHealthy,
+			KafkaVersion:      &cfg.KafkaConfig.Version,
+			MaxMessageBytes:   &cfg.KafkaConfig.MaxBytes,
 		},
 	); err != nil {
 		return fmt.Errorf("error creating kafka producer: %w", err)
@@ -101,11 +106,12 @@ func (c *Component) initService(ctx context.Context) error {
 	if c.consumer, err = kafka.NewConsumerGroup(
 		ctx,
 		&kafka.ConsumerGroupConfig{
-			BrokerAddrs:  cfg.KafkaConfig.Addr,
-			Topic:        cfg.KafkaConfig.CategoryDimensionImportTopic,
-			GroupName:    ComponentTestGroup,
-			KafkaVersion: &cfg.KafkaConfig.Version,
-			Offset:       &kafkaOffset,
+			BrokerAddrs:       cfg.KafkaConfig.Addr,
+			Topic:             cfg.KafkaConfig.CategoryDimensionImportTopic,
+			GroupName:         ComponentTestGroup,
+			MinBrokersHealthy: &MinBrokersHealthy,
+			KafkaVersion:      &cfg.KafkaConfig.Version,
+			Offset:            &kafkaOffset,
 		},
 	); err != nil {
 		return fmt.Errorf("error creating kafka consumer: %w", err)

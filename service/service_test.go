@@ -346,7 +346,7 @@ func TestClose(t *testing.T) {
 		}
 
 		Convey("Closing the service results in all the dependencies being closed in the expected order", func() {
-			err := svc.Close(context.Background())
+			err := svc.Close(ctx)
 			So(err, ShouldBeNil)
 			So(consumerMock.StopAndWaitCalls(), ShouldHaveLength, 1)
 			So(hcMock.StopCalls(), ShouldHaveLength, 1)
@@ -367,7 +367,7 @@ func TestClose(t *testing.T) {
 				return errKafkaProducer
 			}
 
-			err = svc.Close(context.Background())
+			err = svc.Close(ctx)
 			So(err, ShouldNotBeNil)
 			So(consumerMock.StopAndWaitCalls(), ShouldHaveLength, 1)
 			So(consumerMock.CloseCalls(), ShouldHaveLength, 1)
