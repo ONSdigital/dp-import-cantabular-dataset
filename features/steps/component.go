@@ -26,8 +26,6 @@ const (
 	WaitEventTimeout      = 5 * time.Second  // maximum time that the component test consumer will wait for a kafka event
 )
 
-var MinBrokersHealthy = 1
-
 var (
 	BuildTime string = "1625046891"
 	GitCommit string = "7434fe334d9f51b7239f978094ea29d10ac33b16"
@@ -73,11 +71,6 @@ func (c *Component) initService(ctx context.Context) error {
 		return fmt.Errorf("failed to get config: %w", err)
 	}
 
-	cfg.StopConsumingOnUnhealthy = true
-	cfg.CantabularHealthcheckEnabled = true
-	cfg.KafkaConfig.Addr = []string{"kafka:9092"}
-	cfg.KafkaConfig.ConsumerMinBrokersHealthy = MinBrokersHealthy
-	cfg.KafkaConfig.ProducerMinBrokersHealthy = MinBrokersHealthy
 	cfg.DatasetAPIURL = c.DatasetAPI.ResolveURL("")
 	cfg.RecipeAPIURL = c.RecipeAPI.ResolveURL("")
 	cfg.CantabularURL = c.CantabularSrv.ResolveURL("")
@@ -91,7 +84,7 @@ func (c *Component) initService(ctx context.Context) error {
 		&kafka.ProducerConfig{
 			BrokerAddrs:       cfg.KafkaConfig.Addr,
 			Topic:             cfg.KafkaConfig.InstanceStartedTopic,
-			MinBrokersHealthy: &MinBrokersHealthy,
+			MinBrokersHealthy: &cfg.KafkaConfig.ProducerMinBrokersHealthy,
 			KafkaVersion:      &cfg.KafkaConfig.Version,
 			MaxMessageBytes:   &cfg.KafkaConfig.MaxBytes,
 		},
@@ -109,7 +102,7 @@ func (c *Component) initService(ctx context.Context) error {
 			BrokerAddrs:       cfg.KafkaConfig.Addr,
 			Topic:             cfg.KafkaConfig.CategoryDimensionImportTopic,
 			GroupName:         ComponentTestGroup,
-			MinBrokersHealthy: &MinBrokersHealthy,
+			MinBrokersHealthy: &cfg.KafkaConfig.ConsumerMinBrokersHealthy,
 			KafkaVersion:      &cfg.KafkaConfig.Version,
 			Offset:            &kafkaOffset,
 		},

@@ -18,5 +18,12 @@ services:
         ports:
             - "26100:26100"
         environment:
-            KAFKA_ADDR: "kafka:9092"
-            COMPONENT_TEST_USE_LOG_FILE: "${COMPONENT_TEST_USE_LOG_FILE-false}"
+            BIND_ADDR:                          ":26300"
+            SERVICE_AUTH_TOKEN:                 "testToken"
+            COMPONENT_TEST_USE_LOG_FILE:        "${COMPONENT_TEST_USE_LOG_FILE-false}"
+            CANTABULAR_HEALTHCHECK_ENABLED:     "true"
+            STOP_CONSUMING_ON_UNHEALTHY:        "true"
+            KAFKA_ADDR:                         "kafka:9092"
+            KAFKA_CONSUMER_MIN_BROKERS_HEALTHY: 1
+            KAFKA_PRODUCER_MIN_BROKERS_HEALTHY: 1
+            KAFKA_SEC_PROTO:                    ""
