@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
+	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular/gql"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/v2/importapi"
 	"github.com/ONSdigital/dp-api-clients-go/v2/recipe"
@@ -112,7 +113,7 @@ func TestInstanceStartedHandler_HandleHappy(t *testing.T) {
 					So(datasetAPIClient.PutInstanceCalls()[0].InstanceID, ShouldEqual, testInstanceID)
 					So(datasetAPIClient.PutInstanceCalls()[0].I, ShouldResemble, dataset.UpdateInstance{
 						Edition:    "2021",
-						CSVHeader:  []string{cantabularTable, "test-variable", "test-mapped-variable"},
+						CSVHeader:  []string{cantabularTable, "NameVar1", "NameVar2"},
 						InstanceID: testInstanceID,
 						Type:       cantabularTable,
 						IsBasedOn: &dataset.IsBasedOn{
@@ -123,18 +124,18 @@ func TestInstanceStartedHandler_HandleHappy(t *testing.T) {
 							{
 								ID:              "test-variable",
 								URL:             "http://recipe-defined-host/code-lists/test-variable",
-								Label:           "Test Variable",
-								Name:            "Test Variable",
-								Variable:        "test-variable",
-								NumberOfOptions: 3,
+								Label:           "LabelVar1",
+								Name:            "LabelVar1",
+								Variable:        "NameVar1",
+								NumberOfOptions: 100,
 							},
 							{
 								ID:              "test-mapped-variable",
 								URL:             "http://recipe-defined-host/code-lists/test-mapped-variable",
-								Label:           "Test Mapped Variable",
-								Name:            "Test Mapped Variable",
-								Variable:        "test-variable",
-								NumberOfOptions: 2,
+								Label:           "LabelVar2",
+								Name:            "LabelVar2",
+								Variable:        "NameVar2",
+								NumberOfOptions: 123,
 							},
 						},
 					})
@@ -232,48 +233,26 @@ func TestInstanceStartedHandler_HandleUnhappy(t *testing.T) {
 	})
 }
 
-func testCodebook() cantabular.Codebook {
-	return cantabular.Codebook{
-		cantabular.Variable{
-			VariableBase: cantabular.VariableBase{
-				Name:  "test-variable",
-				Label: "Test Variable",
-			},
-			Len: 3,
-			Codes: []string{
-				"code1",
-				"code2",
-				"code3",
-			},
-			Labels: []string{
-				"Code 1",
-				"Code 2",
-				"Code 3",
-			},
-		},
-		cantabular.Variable{
-			VariableBase: cantabular.VariableBase{
-				Name:  "test-mapped-variable",
-				Label: "Test Mapped Variable",
-			},
-			Len: 2,
-			Codes: []string{
-				"code-values-1-2",
-				"code-value-3",
-			},
-			Labels: []string{
-				"Codes 1-2",
-				"Code 3",
-			},
-			MapFrom: []cantabular.MapFrom{
-				{
-					SourceNames: []string{
-						"test-variable",
+func testDimensions() *cantabular.GetDimensionsResponse {
+	return &cantabular.GetDimensionsResponse{
+		Dataset: gql.DatasetVariables{
+			Variables: gql.Variables{
+				Edges: []gql.Edge{
+					{
+						Node: gql.Node{
+							Name:       "NameVar1",
+							Label:      "LabelVar1",
+							Categories: gql.Categories{TotalCount: 100},
+							MapFrom:    []gql.Variables{},
+						},
 					},
-					Code: []string{
-						"code-values 1-2",
-						"",
-						"code-value 3",
+					{
+						Node: gql.Node{
+							Name:       "NameVar2",
+							Label:      "LabelVar2",
+							Categories: gql.Categories{TotalCount: 123},
+							MapFrom:    []gql.Variables{},
+						},
 					},
 				},
 			},
@@ -308,10 +287,8 @@ func testRecipe() *recipe.Recipe {
 
 func cantabularClientHappy() *mock.CantabularClientMock {
 	return &mock.CantabularClientMock{
-		GetCodebookFunc: func(ctx context.Context, req cantabular.GetCodebookRequest) (*cantabular.GetCodebookResponse, error) {
-			return &cantabular.GetCodebookResponse{
-				Codebook: testCodebook(),
-			}, nil
+		GetDimensionsByNameFunc: func(ctx context.Context, req cantabular.StaticDatasetQueryRequest) (*cantabular.GetDimensionsResponse, error) {
+			return testDimensions(), nil
 		},
 	}
 }

@@ -24,10 +24,11 @@ var (
 	testGitCommit = "GitCommit"
 	testVersion   = "Version"
 	testChecks    = map[string]*healthcheck.Check{
-		"Kafka producer":     {},
-		"Recipe API client":  {},
-		"Cantabular client":  {},
-		"Dataset API client": {},
+		"Kafka producer":           {},
+		"Recipe API client":        {},
+		"Cantabular client":        {},
+		"Cantabular API extension": {},
+		"Dataset API client":       {},
 	}
 )
 
@@ -178,20 +179,22 @@ func TestInit(t *testing.T) {
 				So(svc.Server, ShouldResemble, serverMock)
 
 				Convey("And all checks are registered", func() {
-					So(hcMock.AddAndGetCheckCalls(), ShouldHaveLength, 5)
+					So(hcMock.AddAndGetCheckCalls(), ShouldHaveLength, 6)
 					So(hcMock.AddAndGetCheckCalls()[0].Name, ShouldResemble, "Kafka consumer")
 					So(hcMock.AddAndGetCheckCalls()[1].Name, ShouldResemble, "Kafka producer")
 					So(hcMock.AddAndGetCheckCalls()[2].Name, ShouldResemble, "Recipe API client")
 					So(hcMock.AddAndGetCheckCalls()[3].Name, ShouldResemble, "Cantabular client")
-					So(hcMock.AddAndGetCheckCalls()[4].Name, ShouldResemble, "Dataset API client")
+					So(hcMock.AddAndGetCheckCalls()[4].Name, ShouldResemble, "Cantabular API Extension")
+					So(hcMock.AddAndGetCheckCalls()[5].Name, ShouldResemble, "Dataset API client")
 				})
 
 				Convey("And kafka consumer subscribes to the expected healthcheck checks", func() {
-					So(subscribedTo, ShouldHaveLength, 4)
+					So(subscribedTo, ShouldHaveLength, 5)
 					So(subscribedTo[0], ShouldEqual, testChecks["Kafka producer"])
 					So(subscribedTo[1], ShouldEqual, testChecks["Recipe API client"])
 					So(subscribedTo[2], ShouldEqual, testChecks["Cantabular client"])
-					So(subscribedTo[3], ShouldEqual, testChecks["Dataset API client"])
+					So(subscribedTo[3], ShouldEqual, testChecks["Cantabular API Extension"])
+					So(subscribedTo[4], ShouldEqual, testChecks["Dataset API client"])
 				})
 
 				Convey("And the kafka handler handler is registered to the consumer", func() {

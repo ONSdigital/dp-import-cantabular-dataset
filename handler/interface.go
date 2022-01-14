@@ -15,7 +15,7 @@ import (
 //go:generate moq -out mock/import_api_client.go -pkg mock . ImportAPIClient
 
 type CantabularClient interface {
-	GetCodebook(context.Context, cantabular.GetCodebookRequest) (*cantabular.GetCodebookResponse, error)
+	GetDimensionsByName(ctx context.Context, req cantabular.StaticDatasetQueryRequest) (*cantabular.GetDimensionsResponse, error)
 }
 
 type DatasetAPIClient interface {

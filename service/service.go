@@ -204,15 +204,25 @@ func (svc *Service) registerCheckers() error {
 	// TODO - when Cantabular server is deployed to Production, remove this placeholder and the flag,
 	// and always use the real Checker instead: svc.cantabularClient.Checker
 	cantabularChecker := svc.cantabularClient.Checker
+	cantabularAPIExtChecker := svc.cantabularClient.CheckerAPIExt
 	if !svc.Cfg.CantabularHealthcheckEnabled {
 		cantabularChecker = func(ctx context.Context, state *healthcheck.CheckState) error {
 			state.Update(healthcheck.StatusOK, "Cantabular healthcheck placeholder", http.StatusOK)
 			return nil
 		}
+
+		cantabularAPIExtChecker = func(ctx context.Context, state *healthcheck.CheckState) error {
+			return state.Update(healthcheck.StatusOK, "Cantabular APIExt healthcheck placeholder", http.StatusOK)
+		}
 	}
 	checkCantabular, err := svc.HealthCheck.AddAndGetCheck("Cantabular client", cantabularChecker)
 	if err != nil {
 		return fmt.Errorf("error adding check for Cantabular client: %w", err)
+	}
+
+	checkCantabularAPIExt, err := svc.HealthCheck.AddAndGetCheck("Cantabular API Extension", cantabularAPIExtChecker)
+	if err != nil {
+		return fmt.Errorf("error adding check for Cantabular api extension: %w", err)
 	}
 
 	checkDatasetApi, err := hc.AddAndGetCheck("Dataset API client", svc.datasetAPIClient.Checker)
@@ -221,7 +231,7 @@ func (svc *Service) registerCheckers() error {
 	}
 
 	if svc.Cfg.StopConsumingOnUnhealthy {
-		svc.HealthCheck.Subscribe(svc.Consumer, checkProducer, checkRecipeApi, checkCantabular, checkDatasetApi)
+		svc.HealthCheck.Subscribe(svc.Consumer, checkProducer, checkRecipeApi, checkCantabular, checkCantabularAPIExt, checkDatasetApi)
 	}
 
 	return nil

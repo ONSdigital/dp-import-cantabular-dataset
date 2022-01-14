@@ -10,6 +10,7 @@ import (
 	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
 
 	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
+	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular/gql"
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/v2/headers"
 	"github.com/ONSdigital/dp-api-clients-go/v2/importapi"
@@ -91,14 +92,13 @@ func (h *InstanceStarted) Handle(ctx context.Context, workerID int, msg kafka.Me
 
 	log.Info(ctx, "Successfully got codelists", log.Data{"num_codelists": len(codelists)})
 
-	req := cantabular.GetCodebookRequest{
-		DatasetName: r.CantabularBlob,
-		Variables:   codelists,
-		Categories:  false,
+	req := cantabular.StaticDatasetQueryRequest{
+		Dataset:   r.CantabularBlob,
+		Variables: codelists,
 	}
 
 	// Validation happens here, if any variables are incorrect, will throw an error
-	resp, err := h.ctblr.GetCodebook(ctx, req)
+	resp, err := h.ctblr.GetDimensionsByName(ctx, req)
 	if err != nil {
 		return h.handleError(ctx, e, &Error{
 			err:     fmt.Errorf("failed to get codebook from Cantabular: %w", err),
@@ -106,7 +106,7 @@ func (h *InstanceStarted) Handle(ctx context.Context, workerID int, msg kafka.Me
 		})
 	}
 
-	if len(resp.Codebook) != len(codelists) {
+	if len(resp.Dataset.Variables.Edges) == 0 {
 		return h.handleError(ctx, e, &Error{
 			err:     fmt.Errorf("failed to get codebook from Cantabular: %w", err),
 			logData: ld,
@@ -115,10 +115,10 @@ func (h *InstanceStarted) Handle(ctx context.Context, workerID int, msg kafka.Me
 
 	log.Info(ctx, "Successfully got Codebook", log.Data{
 		"datablob":      resp.Dataset,
-		"num_variables": len(resp.Codebook),
+		"num_variables": len(resp.Dataset.Variables.Edges),
 	})
 
-	ireq := h.createUpdateInstanceRequest(resp.Codebook, e, r.CantabularBlob, i.CodeLists)
+	ireq := h.createUpdateInstanceRequest(ctx, resp.Dataset.Variables, e, r.CantabularBlob, i.CodeLists)
 
 	log.Info(ctx, "Updating instance", log.Data{
 		"instance_id":    ireq.InstanceID,
@@ -196,7 +196,7 @@ func (h *InstanceStarted) getCodeListsFromInstance(i *recipe.Instance) ([]string
 	return codelists, nil
 }
 
-func (h *InstanceStarted) createUpdateInstanceRequest(cb cantabular.Codebook, e *event.InstanceStarted, ctblrBlob string, codelists []recipe.CodeList) dataset.UpdateInstance {
+func (h *InstanceStarted) createUpdateInstanceRequest(ctx context.Context, mf gql.Variables, e *event.InstanceStarted, ctblrBlob string, codelists []recipe.CodeList) dataset.UpdateInstance {
 	req := dataset.UpdateInstance{
 		Edition:    "2021",
 		CSVHeader:  []string{cantabularTable},
@@ -208,14 +208,18 @@ func (h *InstanceStarted) createUpdateInstanceRequest(cb cantabular.Codebook, e 
 		},
 	}
 
-	for i, v := range cb {
-		sourceName := v.Name
-
-		if len(v.MapFrom) > 0 {
-			if len(v.MapFrom[0].SourceNames) > 0 {
-				sourceName = v.MapFrom[0].SourceNames[0]
-			}
+	for i, edge := range mf.Edges {
+		sourceName := edge.Node.Name
+		if sourceName == "" {
+			log.Warn(ctx, "ignoring empty name for node", log.Data{"node": edge.Node})
+			continue
 		}
+
+		// if len(v.MapFrom) > 0 {
+		// 	if len(v.MapFrom[0].SourceNames) > 0 {
+		// 		sourceName = v.MapFrom[0].SourceNames[0]
+		// 	}
+		// }
 
 		id := sourceName
 		url := fmt.Sprintf("%s/code-lists/%s", h.cfg.RecipeAPIURL, sourceName)
@@ -232,13 +236,13 @@ func (h *InstanceStarted) createUpdateInstanceRequest(cb cantabular.Codebook, e 
 		d := dataset.VersionDimension{
 			ID:              id,
 			URL:             url,
-			Label:           v.Label,
-			Name:            v.Label,
+			Label:           edge.Node.Label,
+			Name:            edge.Node.Label,
 			Variable:        sourceName,
-			NumberOfOptions: v.Len,
+			NumberOfOptions: edge.Node.Categories.TotalCount,
 		}
 		req.Dimensions = append(req.Dimensions, d)
-		req.CSVHeader = append(req.CSVHeader, v.Name)
+		req.CSVHeader = append(req.CSVHeader, edge.Node.Name)
 	}
 
 	return req

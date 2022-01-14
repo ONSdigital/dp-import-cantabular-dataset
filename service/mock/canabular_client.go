@@ -24,8 +24,11 @@ var _ service.CantabularClient = &CantabularClientMock{}
 // 			CheckerFunc: func(contextMoqParam context.Context, checkState *healthcheck.CheckState) error {
 // 				panic("mock out the Checker method")
 // 			},
-// 			GetCodebookFunc: func(contextMoqParam context.Context, getCodebookRequest cantabular.GetCodebookRequest) (*cantabular.GetCodebookResponse, error) {
-// 				panic("mock out the GetCodebook method")
+// 			CheckerAPIExtFunc: func(ctx context.Context, state *healthcheck.CheckState) error {
+// 				panic("mock out the CheckerAPIExt method")
+// 			},
+// 			GetDimensionsByNameFunc: func(ctx context.Context, req cantabular.StaticDatasetQueryRequest) (*cantabular.GetDimensionsResponse, error) {
+// 				panic("mock out the GetDimensionsByName method")
 // 			},
 // 		}
 //
@@ -37,8 +40,11 @@ type CantabularClientMock struct {
 	// CheckerFunc mocks the Checker method.
 	CheckerFunc func(contextMoqParam context.Context, checkState *healthcheck.CheckState) error
 
-	// GetCodebookFunc mocks the GetCodebook method.
-	GetCodebookFunc func(contextMoqParam context.Context, getCodebookRequest cantabular.GetCodebookRequest) (*cantabular.GetCodebookResponse, error)
+	// CheckerAPIExtFunc mocks the CheckerAPIExt method.
+	CheckerAPIExtFunc func(ctx context.Context, state *healthcheck.CheckState) error
+
+	// GetDimensionsByNameFunc mocks the GetDimensionsByName method.
+	GetDimensionsByNameFunc func(ctx context.Context, req cantabular.StaticDatasetQueryRequest) (*cantabular.GetDimensionsResponse, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -49,16 +55,24 @@ type CantabularClientMock struct {
 			// CheckState is the checkState argument value.
 			CheckState *healthcheck.CheckState
 		}
-		// GetCodebook holds details about calls to the GetCodebook method.
-		GetCodebook []struct {
-			// ContextMoqParam is the contextMoqParam argument value.
-			ContextMoqParam context.Context
-			// GetCodebookRequest is the getCodebookRequest argument value.
-			GetCodebookRequest cantabular.GetCodebookRequest
+		// CheckerAPIExt holds details about calls to the CheckerAPIExt method.
+		CheckerAPIExt []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// State is the state argument value.
+			State *healthcheck.CheckState
+		}
+		// GetDimensionsByName holds details about calls to the GetDimensionsByName method.
+		GetDimensionsByName []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Req is the req argument value.
+			Req cantabular.StaticDatasetQueryRequest
 		}
 	}
-	lockChecker     sync.RWMutex
-	lockGetCodebook sync.RWMutex
+	lockChecker             sync.RWMutex
+	lockCheckerAPIExt       sync.RWMutex
+	lockGetDimensionsByName sync.RWMutex
 }
 
 // Checker calls CheckerFunc.
@@ -96,37 +110,72 @@ func (mock *CantabularClientMock) CheckerCalls() []struct {
 	return calls
 }
 
-// GetCodebook calls GetCodebookFunc.
-func (mock *CantabularClientMock) GetCodebook(contextMoqParam context.Context, getCodebookRequest cantabular.GetCodebookRequest) (*cantabular.GetCodebookResponse, error) {
-	if mock.GetCodebookFunc == nil {
-		panic("CantabularClientMock.GetCodebookFunc: method is nil but CantabularClient.GetCodebook was just called")
+// CheckerAPIExt calls CheckerAPIExtFunc.
+func (mock *CantabularClientMock) CheckerAPIExt(ctx context.Context, state *healthcheck.CheckState) error {
+	if mock.CheckerAPIExtFunc == nil {
+		panic("CantabularClientMock.CheckerAPIExtFunc: method is nil but CantabularClient.CheckerAPIExt was just called")
 	}
 	callInfo := struct {
-		ContextMoqParam    context.Context
-		GetCodebookRequest cantabular.GetCodebookRequest
+		Ctx   context.Context
+		State *healthcheck.CheckState
 	}{
-		ContextMoqParam:    contextMoqParam,
-		GetCodebookRequest: getCodebookRequest,
+		Ctx:   ctx,
+		State: state,
 	}
-	mock.lockGetCodebook.Lock()
-	mock.calls.GetCodebook = append(mock.calls.GetCodebook, callInfo)
-	mock.lockGetCodebook.Unlock()
-	return mock.GetCodebookFunc(contextMoqParam, getCodebookRequest)
+	mock.lockCheckerAPIExt.Lock()
+	mock.calls.CheckerAPIExt = append(mock.calls.CheckerAPIExt, callInfo)
+	mock.lockCheckerAPIExt.Unlock()
+	return mock.CheckerAPIExtFunc(ctx, state)
 }
 
-// GetCodebookCalls gets all the calls that were made to GetCodebook.
+// CheckerAPIExtCalls gets all the calls that were made to CheckerAPIExt.
 // Check the length with:
-//     len(mockedCantabularClient.GetCodebookCalls())
-func (mock *CantabularClientMock) GetCodebookCalls() []struct {
-	ContextMoqParam    context.Context
-	GetCodebookRequest cantabular.GetCodebookRequest
+//     len(mockedCantabularClient.CheckerAPIExtCalls())
+func (mock *CantabularClientMock) CheckerAPIExtCalls() []struct {
+	Ctx   context.Context
+	State *healthcheck.CheckState
 } {
 	var calls []struct {
-		ContextMoqParam    context.Context
-		GetCodebookRequest cantabular.GetCodebookRequest
+		Ctx   context.Context
+		State *healthcheck.CheckState
 	}
-	mock.lockGetCodebook.RLock()
-	calls = mock.calls.GetCodebook
-	mock.lockGetCodebook.RUnlock()
+	mock.lockCheckerAPIExt.RLock()
+	calls = mock.calls.CheckerAPIExt
+	mock.lockCheckerAPIExt.RUnlock()
+	return calls
+}
+
+// GetDimensionsByName calls GetDimensionsByNameFunc.
+func (mock *CantabularClientMock) GetDimensionsByName(ctx context.Context, req cantabular.StaticDatasetQueryRequest) (*cantabular.GetDimensionsResponse, error) {
+	if mock.GetDimensionsByNameFunc == nil {
+		panic("CantabularClientMock.GetDimensionsByNameFunc: method is nil but CantabularClient.GetDimensionsByName was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+		Req cantabular.StaticDatasetQueryRequest
+	}{
+		Ctx: ctx,
+		Req: req,
+	}
+	mock.lockGetDimensionsByName.Lock()
+	mock.calls.GetDimensionsByName = append(mock.calls.GetDimensionsByName, callInfo)
+	mock.lockGetDimensionsByName.Unlock()
+	return mock.GetDimensionsByNameFunc(ctx, req)
+}
+
+// GetDimensionsByNameCalls gets all the calls that were made to GetDimensionsByName.
+// Check the length with:
+//     len(mockedCantabularClient.GetDimensionsByNameCalls())
+func (mock *CantabularClientMock) GetDimensionsByNameCalls() []struct {
+	Ctx context.Context
+	Req cantabular.StaticDatasetQueryRequest
+} {
+	var calls []struct {
+		Ctx context.Context
+		Req cantabular.StaticDatasetQueryRequest
+	}
+	mock.lockGetDimensionsByName.RLock()
+	calls = mock.calls.GetDimensionsByName
+	mock.lockGetDimensionsByName.RUnlock()
 	return calls
 }
