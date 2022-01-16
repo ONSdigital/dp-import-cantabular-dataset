@@ -5,11 +5,12 @@ services:
             context: ../..
             dockerfile: Dockerfile.local
         command:
-        - go 
-        - test 
-        - -cover 
-        - -coverpkg=github.com/ONSdigital/dp-import-cantabular-dataset/... 
-        - -component
+            - go 
+            - test 
+            - -cover 
+            - -race
+            - -coverpkg=github.com/ONSdigital/dp-import-cantabular-dataset/... 
+            - -component
         volumes:
             - ../..:/dp-import-cantabular-dataset
         depends_on:
