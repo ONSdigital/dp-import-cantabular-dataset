@@ -7,9 +7,9 @@ replace github.com/coreos/etcd => github.com/coreos/etcd v3.3.24+incompatible
 require (
 	github.com/ONSdigital/dp-api-clients-go/v2 v2.4.8
 	github.com/ONSdigital/dp-component-test v0.6.3
-	github.com/ONSdigital/dp-healthcheck v1.2.2
+	github.com/ONSdigital/dp-healthcheck v1.2.3
 	github.com/ONSdigital/dp-import v1.2.1
-	github.com/ONSdigital/dp-kafka/v3 v3.0.0
+	github.com/ONSdigital/dp-kafka/v3 v3.0.2
 	github.com/ONSdigital/dp-net v1.2.0
 	github.com/ONSdigital/log.go/v2 v2.0.9
 	github.com/cucumber/godog v0.12.2
@@ -42,7 +42,7 @@ require (
 	github.com/go-avro/avro v0.0.0-20171219232920-444163702c11 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/gopherjs/gopherjs v0.0.0-20211219123610-ec9572f70e60 // indirect
+	github.com/gopherjs/gopherjs v0.0.0-20220104163920-15ed2e8cf2bd // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
 	github.com/hashicorp/go-uuid v1.0.2 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
@@ -72,5 +72,5 @@ require (
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a // indirect
 	go.mongodb.org/mongo-driver v1.8.1 // indirect
 	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3 // indirect
-	golang.org/x/net v0.0.0-20211216030914-fe4d6282115f // indirect
+	golang.org/x/net v0.0.0-20220105145211-5b0dc2dfae98 // indirect
 )
