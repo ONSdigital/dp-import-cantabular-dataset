@@ -1,13 +1,17 @@
 package steps
 
 import (
+	"bytes"
 	"context"
+	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
+	"github.com/ONSdigital/dp-api-clients-go/v2/cantabular"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/schema"
 	"github.com/ONSdigital/dp-kafka/v3/kafkatest"
@@ -21,13 +25,13 @@ import (
 func (c *Component) RegisterSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^the following recipe with id "([^"]*)" is available from dp-recipe-api:$`, c.theFollowingRecipeIsAvailable)
 	ctx.Step(`^no recipe with id "([^"]*)" is available from dp-recipe-api`, c.theFollowingRecipeIsNotFound)
-	ctx.Step(`^the following response is available from Cantabular from the codebook "([^"]*)" and query "([^"]*)":$`, c.theFollowingCodebookIsAvailable)
+	ctx.Step(`^the following query response is available from Cantabular api extension for the dataset "([^"]*)" and variables "([^"]*)":$`, c.theFollowingCantabularVariablesAreAvailable)
 	ctx.Step(`^the service starts`, c.theServiceStarts)
 	ctx.Step(`^dp-dataset-api is healthy`, c.datasetAPIIsHealthy)
 	ctx.Step(`^dp-dataset-api is unhealthy`, c.datasetAPIIsUnhealthy)
 	ctx.Step(`^dp-recipe-api is healthy`, c.recipeAPIIsHealthy)
 	ctx.Step(`^cantabular server is healthy`, c.cantabularServerIsHealthy)
-
+	ctx.Step(`^cantabular api extension is healthy`, c.cantabularAPIExtIsHealthy)
 	ctx.Step(`^the call to update job "([^"]*)" is succesful`, c.theCallToUpdateJobIsSuccessful)
 	ctx.Step(`^the call to update instance "([^"]*)" is succesful`, c.theCallToUpdateInstanceIsSuccessful)
 	ctx.Step(`^the call to update job "([^"]*)" is unsuccesful`, c.theCallToUpdateJobIsUnsuccessful)
@@ -87,6 +91,16 @@ func (c *Component) cantabularServerIsHealthy() error {
 	return nil
 }
 
+// cantabularApiExtIsHealthy generates a mocked healthy response for cantabular server
+func (c *Component) cantabularAPIExtIsHealthy() error {
+	const res = `{"status": "OK"}`
+	c.CantabularApiExt.NewHandler().
+		Get("/graphql?query={}").
+		Reply(http.StatusOK).
+		BodyString(res)
+	return nil
+}
+
 func (c *Component) theFollowingRecipeIsAvailable(id string, recipe *godog.DocString) error {
 	c.RecipeAPI.NewHandler().
 		Get("/recipes/" + id).
@@ -104,9 +118,30 @@ func (c *Component) theFollowingRecipeIsNotFound(id string) error {
 	return nil
 }
 
-func (c *Component) theFollowingCodebookIsAvailable(name, q string, cb *godog.DocString) error {
-	c.CantabularSrv.NewHandler().
-		Get("/v9/codebook/" + name + q).
+func (c *Component) theFollowingCantabularVariablesAreAvailable(datast string, variables string, cb *godog.DocString) error {
+	// Parse the variables from csv format to string slice
+	vars, err := csv.NewReader(strings.NewReader(variables)).Read()
+	if err != nil {
+		return fmt.Errorf("could not parse variables as comma separated values, %w", err)
+	}
+
+	// Encode the graphQL query with the provided dataset and variables
+	var b bytes.Buffer
+	enc := json.NewEncoder(&b)
+	if err := enc.Encode(map[string]interface{}{
+		"query": cantabular.QueryDimensionsByName,
+		"variables": map[string]interface{}{
+			"dataset":   datast,
+			"variables": vars,
+		},
+	}); err != nil {
+		return fmt.Errorf("failed to encode GraphQL query: %w", err)
+	}
+
+	// create graphql handler with expected query body
+	c.CantabularApiExt.NewHandler().
+		Post("/graphql").
+		AssertBody(b.Bytes()).
 		Reply(http.StatusOK).
 		BodyString(cb.Content)
 

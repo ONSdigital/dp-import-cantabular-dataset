@@ -20,10 +20,12 @@ var (
 	logFileName = "log-output.txt"
 )
 
-type ComponentTest struct{}
+type ComponentTest struct {
+	t testing.TB
+}
 
 func (f *ComponentTest) InitializeScenario(ctx *godog.ScenarioContext) {
-	component := steps.NewComponent()
+	component := steps.NewComponent(f.t)
 
 	ctx.BeforeScenario(func(*godog.Scenario) {
 		if err := component.Reset(); err != nil {
@@ -70,7 +72,7 @@ func TestComponent(t *testing.T) {
 			Paths:  flag.Args(),
 		}
 
-		f := &ComponentTest{}
+		f := &ComponentTest{t}
 
 		status = godog.TestSuite{
 			Name:                 "feature_tests",

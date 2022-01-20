@@ -4,6 +4,7 @@ Feature: Import-Cantabular-Dataset
     Given dp-dataset-api is healthy
     And dp-recipe-api is healthy
     And cantabular server is healthy
+    And cantabular api extension is healthy
     And the following recipe with id "recipe-happy-01" is available from dp-recipe-api:
       """
       {
@@ -34,57 +35,39 @@ Feature: Import-Cantabular-Dataset
         "title": "Example Cantabular Dataset"
       }
       """
-    And the following response is available from Cantabular from the codebook "Example" and query "?cats=false&v=dimension-01&dimension-02":
+    And the following query response is available from Cantabular api extension for the dataset "Example" and variables "dimension-01,dimension-02":
       """
       {
-        "dataset": {
-          "name": "Example"
-        },
-        "codebook": [
-          {
-            "name": "dimension-01",
-            "label": "Dimension 01",
-            "len": 3,
-            "codes": [
-              "0",
-              "1",
-              "2"
-            ],
-            "labels": [
-              "London",
-              "Liverpool",
-              "Belfast"
-            ]
-          },
-          {
-            "name": "dimension-02",
-            "label": "Dimension 02",
-            "len": 2,
-            "codes": [
-              "E",
-              "N"
-            ],
-            "labels": [
-              "England",
-              "Northern Ireland"
-            ],
-            "mapFrom": [
-              {
-                "sourceNames": [
-                  "dimension-01"
-                ],
-                "codes": [
-                  "E",
-                  "",
-                  "N"
-                ]
-              }
-            ]
+        "data": {
+          "dataset": {
+            "variables": {
+              "edges": [
+                {
+                  "node": {
+                    "categories": {
+                      "totalCount": 3
+                    },
+                    "label": "Dimension 0",
+                    "mapFrom": [],
+                    "name": "dimension-01"
+                  }
+                },
+                {
+                  "node": {
+                    "categories": {
+                      "totalCount": 2
+                    },
+                    "label": "Dimension 02",
+                    "mapFrom": [],
+                    "name": "dimension-01"
+                  }
+                }
+              ]
+            }
           }
-        ]
+        }
       }
       """
-
   Scenario: Consuming an instance-started event with correct RecipeID and InstanceID
     When this instance-started event is queued, to be consumed:
       """

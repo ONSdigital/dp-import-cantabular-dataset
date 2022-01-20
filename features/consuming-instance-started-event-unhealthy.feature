@@ -4,6 +4,7 @@ Feature: Import-Cantabular-Dataset-Unhealthy
     Given dp-dataset-api is unhealthy
     And dp-recipe-api is healthy
     And cantabular server is healthy
+    And cantabular api extension is healthy
   
   Scenario: Not consuming instance-started events, because a dependency is not healthy
     When the service starts

@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"testing"
 	"time"
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
@@ -34,29 +35,31 @@ var (
 
 type Component struct {
 	cmpntest.ErrorFeature
-	producer      kafka.IProducer
-	consumer      kafka.IConsumerGroup
-	errorChan     chan error
-	svc           *service.Service
-	cfg           *config.Config
-	RecipeAPI     *httpfake.HTTPFake
-	DatasetAPI    *httpfake.HTTPFake
-	ImportAPI     *httpfake.HTTPFake
-	CantabularSrv *httpfake.HTTPFake
-	wg            *sync.WaitGroup
-	signals       chan os.Signal
-	ctx           context.Context
+	producer         kafka.IProducer
+	consumer         kafka.IConsumerGroup
+	errorChan        chan error
+	svc              *service.Service
+	cfg              *config.Config
+	RecipeAPI        *httpfake.HTTPFake
+	DatasetAPI       *httpfake.HTTPFake
+	ImportAPI        *httpfake.HTTPFake
+	CantabularSrv    *httpfake.HTTPFake
+	CantabularApiExt *httpfake.HTTPFake
+	wg               *sync.WaitGroup
+	signals          chan os.Signal
+	ctx              context.Context
 }
 
-func NewComponent() *Component {
+func NewComponent(t testing.TB) *Component {
 	return &Component{
-		errorChan:     make(chan error),
-		DatasetAPI:    httpfake.New(),
-		RecipeAPI:     httpfake.New(),
-		ImportAPI:     httpfake.New(),
-		CantabularSrv: httpfake.New(),
-		wg:            &sync.WaitGroup{},
-		ctx:           context.Background(),
+		errorChan:        make(chan error),
+		DatasetAPI:       httpfake.New(),
+		RecipeAPI:        httpfake.New(),
+		ImportAPI:        httpfake.New(),
+		CantabularSrv:    httpfake.New(),
+		CantabularApiExt: httpfake.New(httpfake.WithTesting(t)),
+		wg:               &sync.WaitGroup{},
+		ctx:              context.Background(),
 	}
 }
 
@@ -74,6 +77,7 @@ func (c *Component) initService(ctx context.Context) error {
 	cfg.DatasetAPIURL = c.DatasetAPI.ResolveURL("")
 	cfg.RecipeAPIURL = c.RecipeAPI.ResolveURL("")
 	cfg.CantabularURL = c.CantabularSrv.ResolveURL("")
+	cfg.CantabularExtURL = c.CantabularApiExt.ResolveURL("")
 	cfg.ImportAPIURL = c.ImportAPI.ResolveURL("")
 
 	log.Info(ctx, "config used by component tests", log.Data{"cfg": cfg})
@@ -289,6 +293,7 @@ func (c *Component) Reset() error {
 	c.RecipeAPI.Reset()
 	c.ImportAPI.Reset()
 	c.CantabularSrv.Reset()
+	c.CantabularApiExt.Reset()
 
 	return nil
 }
