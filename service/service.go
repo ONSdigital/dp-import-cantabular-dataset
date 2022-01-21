@@ -131,7 +131,10 @@ func (svc *Service) Close(ctx context.Context) error {
 		// This will automatically stop the event consumer loops and no more messages will be processed.
 		// The kafka consumer will be closed after the service shuts down.
 		if svc.Consumer != nil {
-			svc.Consumer.StopAndWait()
+			if err := svc.Consumer.StopAndWait(); err != nil {
+				log.Error(ctx, "failed to stop kafka consumer", err)
+				hasShutdownError = true
+			}
 			log.Info(ctx, "stopped kafka consumer listener")
 		}
 
