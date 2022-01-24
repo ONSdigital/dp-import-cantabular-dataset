@@ -14,8 +14,8 @@ services:
         volumes:
             - ../..:/dp-import-cantabular-dataset
         depends_on:
-            - kafka
-            - zookeeper
+            - kafka-1
+            - zookeeper-1
         ports:
             - "26100:26100"
         environment:
@@ -24,7 +24,7 @@ services:
             COMPONENT_TEST_USE_LOG_FILE:        "${COMPONENT_TEST_USE_LOG_FILE-false}"
             CANTABULAR_HEALTHCHECK_ENABLED:     "true"
             STOP_CONSUMING_ON_UNHEALTHY:        "true"
-            KAFKA_ADDR:                         "kafka:9092"
+            KAFKA_ADDR:                         "kafka-1:9092"
             KAFKA_CONSUMER_MIN_BROKERS_HEALTHY: 1
             KAFKA_PRODUCER_MIN_BROKERS_HEALTHY: 1
             KAFKA_SEC_PROTO:                    ""

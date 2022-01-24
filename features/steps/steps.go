@@ -46,8 +46,7 @@ func (c *Component) RegisterSteps(ctx *godog.ScenarioContext) {
 // note that this step should be called only after all dependencies have been setup,
 // to prevent any race condition, specially during the first healthcheck iteration.
 func (c *Component) theServiceStarts() error {
-	c.wg.Add(1)
-	go c.startService(c.ctx)
+	c.startService(c.ctx)
 	return nil
 }
 
@@ -118,7 +117,7 @@ func (c *Component) theFollowingRecipeIsNotFound(id string) error {
 	return nil
 }
 
-func (c *Component) theFollowingCantabularVariablesAreAvailable(datast string, variables string, cb *godog.DocString) error {
+func (c *Component) theFollowingCantabularVariablesAreAvailable(dataset string, variables string, cb *godog.DocString) error {
 	// Parse the variables from csv format to string slice
 	vars, err := csv.NewReader(strings.NewReader(variables)).Read()
 	if err != nil {
@@ -131,7 +130,7 @@ func (c *Component) theFollowingCantabularVariablesAreAvailable(datast string, v
 	if err := enc.Encode(map[string]interface{}{
 		"query": cantabular.QueryDimensionsByName,
 		"variables": map[string]interface{}{
-			"dataset":   datast,
+			"dataset":   dataset,
 			"variables": vars,
 		},
 	}); err != nil {
