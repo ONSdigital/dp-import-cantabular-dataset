@@ -62,7 +62,9 @@ func run(ctx context.Context) (err error) {
 	if err := svc.Init(ctx, cfg, BuildTime, GitCommit, Version); err != nil {
 		return fmt.Errorf("running service failed with error: %w", err)
 	}
-	svc.Start(ctx, svcErrors)
+	if err := svc.Start(ctx, svcErrors); err != nil {
+		return fmt.Errorf("service start failed with error: %w", err)
+	}
 
 	// Blocks until an os interrupt or a fatal error occurs
 	select {

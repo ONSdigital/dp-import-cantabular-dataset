@@ -215,12 +215,6 @@ func (h *InstanceStarted) createUpdateInstanceRequest(ctx context.Context, mf gq
 			continue
 		}
 
-		// if len(v.MapFrom) > 0 {
-		// 	if len(v.MapFrom[0].SourceNames) > 0 {
-		// 		sourceName = v.MapFrom[0].SourceNames[0]
-		// 	}
-		// }
-
 		id := sourceName
 		url := fmt.Sprintf("%s/code-lists/%s", h.cfg.RecipeAPIURL, sourceName)
 

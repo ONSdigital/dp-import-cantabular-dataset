@@ -28,9 +28,9 @@ const (
 )
 
 var (
-	BuildTime string = "1625046891"
-	GitCommit string = "7434fe334d9f51b7239f978094ea29d10ac33b16"
-	Version   string = ""
+	BuildTime = "1625046891"
+	GitCommit = "7434fe334d9f51b7239f978094ea29d10ac33b16"
+	Version   = ""
 )
 
 type Component struct {
@@ -115,7 +115,9 @@ func (c *Component) initService(ctx context.Context) error {
 	}
 
 	// start consumer group
-	c.consumer.Start()
+	if c.consumer.Start(); err != nil {
+		return fmt.Errorf("error starting kafka consumer: %w", err)
+	}
 
 	// start kafka consumer logging go-routines
 	c.consumer.LogErrors(ctx)
@@ -140,8 +142,10 @@ func (c *Component) initService(ctx context.Context) error {
 
 // startService starts the service under test and blocks until an error or an os interrupt is received.
 // Then it closes the service (graceful shutdown)
-func (c *Component) startService(ctx context.Context) {
-	c.svc.Start(c.ctx, c.errorChan)
+func (c *Component) startService(ctx context.Context) error {
+	if err := c.svc.Start(c.ctx, c.errorChan); err != nil {
+		return fmt.Errorf("unexpected error while starting service: %w", err)
+	}
 
 	c.wg.Add(1)
 	go func() {
@@ -151,7 +155,9 @@ func (c *Component) startService(ctx context.Context) {
 		select {
 		case err := <-c.errorChan:
 			err = fmt.Errorf("service error received: %w", err)
-			c.svc.Close(ctx)
+			if errClose := c.svc.Close(ctx); errClose != nil {
+				log.Warn(c.ctx, "error closing server during error handing", log.Data{"close_error": errClose})
+			}
 			panic(fmt.Errorf("unexpected error received from errorChan: %w", err))
 		case sig := <-c.signals:
 			log.Info(ctx, "os signal received", log.Data{"signal": sig})
@@ -160,6 +166,8 @@ func (c *Component) startService(ctx context.Context) {
 			panic(fmt.Errorf("unexpected error during service graceful shutdown: %w", err))
 		}
 	}()
+
+	return nil
 }
 
 // drainTopic drains the provided topic and group of any residual messages between scenarios.
@@ -178,7 +186,7 @@ func (c *Component) drainTopic(ctx context.Context, topic, group string, wg *syn
 	kafkaOffset := kafka.OffsetOldest
 	batchSize := DrainTopicMaxMessages
 	batchWaitTime := DrainTopicTimeout
-	consumer, err := kafka.NewConsumerGroup(
+	drainer, err := kafka.NewConsumerGroup(
 		ctx,
 		&kafka.ConsumerGroupConfig{
 			BrokerAddrs:   c.cfg.KafkaConfig.Addr,
@@ -196,25 +204,29 @@ func (c *Component) drainTopic(ctx context.Context, topic, group string, wg *syn
 
 	// register batch handler with 'drained channel'
 	drained := make(chan struct{})
-	consumer.RegisterBatchHandler(
+	if err := drainer.RegisterBatchHandler(
 		ctx,
 		func(ctx context.Context, batch []kafka.Message) error {
 			defer close(drained)
 			msgs = append(msgs, batch...)
 			return nil
 		},
-	)
+	); err != nil {
+		return fmt.Errorf("error creating kafka drainer: %w", err)
+	}
 
 	// start consumer group
-	consumer.Start()
+	if err := drainer.Start(); err != nil {
+		log.Error(c.ctx, "error starting kafka drainer", err)
+	}
 
 	// start kafka logging go-routines
-	consumer.LogErrors(ctx)
+	drainer.LogErrors(ctx)
 
 	// waitUntilDrained is a func that will wait until the batch is consumed or the timeout expires
 	// (with 100 ms of extra time to allow any in-flight drain)
 	waitUntilDrained := func() {
-		consumer.StateWait(kafka.Consuming)
+		drainer.StateWait(kafka.Consuming)
 		log.Info(ctx, "drainer is consuming", log.Data{"topic": topic, "group": group})
 
 		select {
@@ -233,11 +245,11 @@ func (c *Component) drainTopic(ctx context.Context, topic, group string, wg *syn
 			})
 		}()
 
-		if err := consumer.Close(ctx); err != nil {
+		if err := drainer.Close(ctx); err != nil {
 			log.Warn(ctx, "error closing drain consumer", log.Data{"err": err})
 		}
 
-		<-consumer.Channels().Closed
+		<-drainer.Channels().Closed
 		log.Info(ctx, "drain consumer closed")
 	}
 
@@ -265,7 +277,6 @@ func (c *Component) Close() {
 	c.wg.Wait()
 
 	// stop listening to consumer, waiting for any in-flight message to be committed
-	// c.consumer.StopAndWait()
 	if err := c.consumer.StopAndWait(); err != nil {
 		log.Error(c.ctx, "error stopping kafka consumer", err)
 	}
