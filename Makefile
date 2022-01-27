@@ -42,7 +42,7 @@ convey:
 test-component:
 	cd features/compose && docker-compose up --build --abort-on-container-exit
 	cd features/compose && docker-compose down --volume
-	echo "please ignore error codes 0, like so: ERRO[xxxx] 0, as error code 0 means that there was no error"
+	echo "please ignore error codes 0, like so: ERROR[xxxx] 0, as error code 0 means that there was no error"
 
 .PHONY: fmt
 fmt:
