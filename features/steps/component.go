@@ -143,7 +143,7 @@ func (c *Component) initService(ctx context.Context) error {
 // startService starts the service under test and blocks until an error or an os interrupt is received.
 // Then it closes the service (graceful shutdown)
 func (c *Component) startService(ctx context.Context) error {
-	if err := c.svc.Start(c.ctx, c.errorChan); err != nil {
+	if err := c.svc.Start(ctx, c.errorChan); err != nil {
 		return fmt.Errorf("unexpected error while starting service: %w", err)
 	}
 
@@ -156,7 +156,7 @@ func (c *Component) startService(ctx context.Context) error {
 		case err := <-c.errorChan:
 			err = fmt.Errorf("service error received: %w", err)
 			if errClose := c.svc.Close(ctx); errClose != nil {
-				log.Warn(c.ctx, "error closing server during error handing", log.Data{"close_error": errClose})
+				log.Warn(ctx, "error closing server during error handing", log.Data{"close_error": errClose})
 			}
 			panic(fmt.Errorf("unexpected error received from errorChan: %w", err))
 		case sig := <-c.signals:
@@ -217,7 +217,7 @@ func (c *Component) drainTopic(ctx context.Context, topic, group string, wg *syn
 
 	// start consumer group
 	if err := drainer.Start(); err != nil {
-		log.Error(c.ctx, "error starting kafka drainer", err)
+		log.Error(ctx, "error starting kafka drainer", err)
 	}
 
 	// start kafka logging go-routines

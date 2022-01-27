@@ -92,9 +92,9 @@ func (h *InstanceStarted) Handle(ctx context.Context, workerID int, msg kafka.Me
 
 	log.Info(ctx, "Successfully got codelists", log.Data{"num_codelists": len(codelists)})
 
-	req := cantabular.StaticDatasetQueryRequest{
-		Dataset:   r.CantabularBlob,
-		Variables: codelists,
+	req := cantabular.GetDimensionsByNameRequest{
+		Dataset:        r.CantabularBlob,
+		DimensionNames: codelists,
 	}
 
 	// Validation happens here, if any variables are incorrect, will throw an error

@@ -287,7 +287,7 @@ func testRecipe() *recipe.Recipe {
 
 func cantabularClientHappy() *mock.CantabularClientMock {
 	return &mock.CantabularClientMock{
-		GetDimensionsByNameFunc: func(ctx context.Context, req cantabular.StaticDatasetQueryRequest) (*cantabular.GetDimensionsResponse, error) {
+		GetDimensionsByNameFunc: func(ctx context.Context, req cantabular.GetDimensionsByNameRequest) (*cantabular.GetDimensionsResponse, error) {
 			return testDimensions(), nil
 		},
 	}

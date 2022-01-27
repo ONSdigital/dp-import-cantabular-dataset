@@ -20,7 +20,7 @@ var _ handler.CantabularClient = &CantabularClientMock{}
 //
 // 		// make and configure a mocked handler.CantabularClient
 // 		mockedCantabularClient := &CantabularClientMock{
-// 			GetDimensionsByNameFunc: func(ctx context.Context, req cantabular.StaticDatasetQueryRequest) (*cantabular.GetDimensionsResponse, error) {
+// 			GetDimensionsByNameFunc: func(ctx context.Context, req cantabular.GetDimensionsByNameRequest) (*cantabular.GetDimensionsResponse, error) {
 // 				panic("mock out the GetDimensionsByName method")
 // 			},
 // 		}
@@ -31,7 +31,7 @@ var _ handler.CantabularClient = &CantabularClientMock{}
 // 	}
 type CantabularClientMock struct {
 	// GetDimensionsByNameFunc mocks the GetDimensionsByName method.
-	GetDimensionsByNameFunc func(ctx context.Context, req cantabular.StaticDatasetQueryRequest) (*cantabular.GetDimensionsResponse, error)
+	GetDimensionsByNameFunc func(ctx context.Context, req cantabular.GetDimensionsByNameRequest) (*cantabular.GetDimensionsResponse, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -40,20 +40,20 @@ type CantabularClientMock struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// Req is the req argument value.
-			Req cantabular.StaticDatasetQueryRequest
+			Req cantabular.GetDimensionsByNameRequest
 		}
 	}
 	lockGetDimensionsByName sync.RWMutex
 }
 
 // GetDimensionsByName calls GetDimensionsByNameFunc.
-func (mock *CantabularClientMock) GetDimensionsByName(ctx context.Context, req cantabular.StaticDatasetQueryRequest) (*cantabular.GetDimensionsResponse, error) {
+func (mock *CantabularClientMock) GetDimensionsByName(ctx context.Context, req cantabular.GetDimensionsByNameRequest) (*cantabular.GetDimensionsResponse, error) {
 	if mock.GetDimensionsByNameFunc == nil {
 		panic("CantabularClientMock.GetDimensionsByNameFunc: method is nil but CantabularClient.GetDimensionsByName was just called")
 	}
 	callInfo := struct {
 		Ctx context.Context
-		Req cantabular.StaticDatasetQueryRequest
+		Req cantabular.GetDimensionsByNameRequest
 	}{
 		Ctx: ctx,
 		Req: req,
@@ -69,11 +69,11 @@ func (mock *CantabularClientMock) GetDimensionsByName(ctx context.Context, req c
 //     len(mockedCantabularClient.GetDimensionsByNameCalls())
 func (mock *CantabularClientMock) GetDimensionsByNameCalls() []struct {
 	Ctx context.Context
-	Req cantabular.StaticDatasetQueryRequest
+	Req cantabular.GetDimensionsByNameRequest
 } {
 	var calls []struct {
 		Ctx context.Context
-		Req cantabular.StaticDatasetQueryRequest
+		Req cantabular.GetDimensionsByNameRequest
 	}
 	mock.lockGetDimensionsByName.RLock()
 	calls = mock.calls.GetDimensionsByName
