@@ -220,8 +220,7 @@ func (svc *Service) registerCheckers() error {
 	cantabularAPIExtChecker := svc.cantabularClient.CheckerAPIExt
 	if !svc.Cfg.CantabularHealthcheckEnabled {
 		cantabularChecker = func(ctx context.Context, state *healthcheck.CheckState) error {
-			state.Update(healthcheck.StatusOK, "Cantabular healthcheck placeholder", http.StatusOK)
-			return nil
+			return state.Update(healthcheck.StatusOK, "Cantabular healthcheck placeholder", http.StatusOK)
 		}
 
 		cantabularAPIExtChecker = func(ctx context.Context, state *healthcheck.CheckState) error {

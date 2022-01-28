@@ -89,7 +89,7 @@ func (c *Component) cantabularServerIsHealthy() error {
 	return nil
 }
 
-// cantabularApiExtIsHealthy generates a mocked healthy response for cantabular server
+// cantabularAPIExtIsHealthy generates a mocked healthy response for cantabular server
 func (c *Component) cantabularAPIExtIsHealthy() error {
 	const res = `{"status": "OK"}`
 	c.CantabularApiExt.NewHandler().

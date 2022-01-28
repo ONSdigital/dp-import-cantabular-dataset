@@ -115,7 +115,7 @@ func (c *Component) initService(ctx context.Context) error {
 	}
 
 	// start consumer group
-	if c.consumer.Start(); err != nil {
+	if err := c.consumer.Start(); err != nil {
 		return fmt.Errorf("error starting kafka consumer: %w", err)
 	}
 
