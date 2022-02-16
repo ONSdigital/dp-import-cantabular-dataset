@@ -145,6 +145,11 @@ func (h *InstanceStarted) Handle(ctx context.Context, workerID int, msg kafka.Me
 		"num_dimensions": len(codelists),
 	})
 
+	if IsGeography(&r.Format, &i.CodeLists) {
+		log.Info(ctx, "No options triggered for import because geography found")
+		return nil
+	}
+
 	if errs := h.triggerImportDimensionOptions(r.CantabularBlob, codelists, e); len(errs) != 0 {
 		var errdata []map[string]interface{}
 
@@ -167,6 +172,17 @@ func (h *InstanceStarted) Handle(ctx context.Context, workerID int, msg kafka.Me
 	log.Info(ctx, "Successfully triggered options import for all dimensions")
 
 	return nil
+}
+
+func IsGeography(format *string, codelists *[]recipe.CodeList) bool {
+	if *format == "cantabular_flexible_table" {
+		for _, cl := range *codelists {
+			if cl.IsCantabularGeography != nil && *cl.IsCantabularGeography {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (h *InstanceStarted) getInstanceFromRecipe(ctx context.Context, r *recipe.Recipe) (*recipe.Instance, error) {

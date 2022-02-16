@@ -363,3 +363,80 @@ func validateFailure(i *mock.ImportAPIClientMock, d *mock.DatasetAPIClientMock, 
 	So(d.PutInstanceStateCalls()[0].InstanceID, ShouldEqual, instanceID)
 	So(d.PutInstanceStateCalls()[0].State, ShouldEqual, dataset.StateFailed)
 }
+
+func TestIsGeography(t *testing.T) {
+	falseValue := false
+	trueValue := true
+
+	Convey("When IsGeography is called", t, func() {
+		Convey("And the recipe does not have format of cantabular_flexible_table and isCantabularGeography is false", func() {
+			notFlexibleTable := recipe.Recipe{
+				Alias:  "Cantabular Example 1",
+				Format: "cantabular_table",
+				OutputInstances: []recipe.Instance{
+					{
+						CodeLists: []recipe.CodeList{
+							{
+								IsCantabularGeography: &falseValue,
+							},
+							{
+								IsCantabularGeography: &falseValue,
+							},
+							{
+								IsCantabularGeography: &falseValue,
+							},
+						},
+					},
+				},
+			}
+			isGeographyValue := handler.IsGeography(&notFlexibleTable.Format, &notFlexibleTable.OutputInstances[0].CodeLists)
+			So(isGeographyValue, ShouldBeFalse)
+		})
+
+	})
+	Convey("When IsGeography is called", t, func() {
+		Convey("And the recipe does have format of cantabular_flexible_table and isCantabularGeography is true", func() {
+			isFlexibleTableTrue := recipe.Recipe{
+				Alias:  "Cantabular Example 3",
+				Format: "cantabular_flexible_table",
+				OutputInstances: []recipe.Instance{
+					{
+						CodeLists: []recipe.CodeList{
+							{
+								IsCantabularGeography: &trueValue,
+							},
+							{
+								IsCantabularGeography: &falseValue,
+							},
+						},
+					},
+				},
+			}
+			isGeographyValue := handler.IsGeography(&isFlexibleTableTrue.Format, &isFlexibleTableTrue.OutputInstances[0].CodeLists)
+			So(isGeographyValue, ShouldBeTrue)
+		})
+	})
+	Convey("When IsGeography is called", t, func() {
+		Convey("And the recipe does have format of cantabular_flexible_table and isCantabularGeography is false", func() {
+			isFlexibleTableFalse := recipe.Recipe{
+				Alias:  "Cantabular Example 2",
+				Format: "cantabular_flexible_table",
+				OutputInstances: []recipe.Instance{
+					{
+						CodeLists: []recipe.CodeList{
+							{
+								IsCantabularGeography: &falseValue,
+							},
+							{
+								IsCantabularGeography: &falseValue,
+							},
+						},
+					},
+				},
+			}
+			isGeographyValue := handler.IsGeography(&isFlexibleTableFalse.Format, &isFlexibleTableFalse.OutputInstances[0].CodeLists)
+			So(isGeographyValue, ShouldBeFalse)
+		})
+	})
+
+}
