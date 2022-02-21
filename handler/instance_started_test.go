@@ -112,7 +112,7 @@ func TestInstanceStartedHandler_HandleHappy(t *testing.T) {
 					So(datasetAPIClient.PutInstanceCalls(), ShouldHaveLength, 1)
 					So(datasetAPIClient.PutInstanceCalls()[0].InstanceID, ShouldEqual, testInstanceID)
 					So(datasetAPIClient.PutInstanceCalls()[0].I, ShouldResemble, dataset.UpdateInstance{
-						Edition:    "2021",
+						Edition:    "Test Editions 2021",
 						CSVHeader:  []string{cantabularTable, "NameVar1", "NameVar2"},
 						InstanceID: testInstanceID,
 						Type:       cantabularTable,
@@ -264,10 +264,12 @@ func testRecipe() *recipe.Recipe {
 	return &recipe.Recipe{
 		ID:             testRecipeID,
 		CantabularBlob: "test-cantabular-blob",
+		Format:         "cantabular_table",
 		OutputInstances: []recipe.Instance{
 			{
 				DatasetID: "test-dataset-id",
 				Title:     "Test Instance",
+				Editions:  []string{"Test Editions 2021"},
 				CodeLists: []recipe.CodeList{
 					{
 						ID:   "test-variable",
