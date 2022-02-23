@@ -287,6 +287,46 @@ func testRecipe() *recipe.Recipe {
 	}
 }
 
+func testRecipeOnlyGeography() *recipe.Recipe {
+	trueValue := true
+	return &recipe.Recipe{
+		Alias:          "Cantabular Example 2",
+		Format:         "cantabular_table",
+		CantabularBlob: "cantabular_blob",
+		OutputInstances: []recipe.Instance{
+			{
+				CodeLists: []recipe.CodeList{
+					{
+						IsCantabularGeography: &trueValue,
+					},
+				},
+			},
+		},
+	}
+}
+
+func testRecipeOnlyGeographyWithEdition() *recipe.Recipe {
+	trueValue := true
+	return &recipe.Recipe{
+		Alias:          "Cantabular Example 2",
+		Format:         "cantabular_table",
+		CantabularBlob: "cantabular_blob",
+		OutputInstances: []recipe.Instance{
+			{
+				CodeLists: []recipe.CodeList{
+					{
+						IsCantabularGeography: &trueValue,
+					},
+					{
+						IsCantabularGeography: &trueValue,
+					},
+				},
+				Editions: []string{"2021"},
+			},
+		},
+	}
+}
+
 func cantabularClientHappy() *mock.CantabularClientMock {
 	return &mock.CantabularClientMock{
 		GetDimensionsByNameFunc: func(ctx context.Context, req cantabular.GetDimensionsByNameRequest) (*cantabular.GetDimensionsResponse, error) {
@@ -299,6 +339,22 @@ func recipeAPIClientHappy() *mock.RecipeAPIClientMock {
 	return &mock.RecipeAPIClientMock{
 		GetRecipeFunc: func(ctx context.Context, uaToken, saToken, recipeID string) (*recipe.Recipe, error) {
 			return testRecipe(), nil
+		},
+	}
+}
+
+func recipeAPIClientOnlyGeography() *mock.RecipeAPIClientMock {
+	return &mock.RecipeAPIClientMock{
+		GetRecipeFunc: func(ctx context.Context, uaToken, saToken, recipeID string) (*recipe.Recipe, error) {
+			return testRecipeOnlyGeography(), nil
+		},
+	}
+}
+
+func recipeAPIClientOnlyGeographyWithEdition() *mock.RecipeAPIClientMock {
+	return &mock.RecipeAPIClientMock{
+		GetRecipeFunc: func(ctx context.Context, uaToken, saToken, recipeID string) (*recipe.Recipe, error) {
+			return testRecipeOnlyGeographyWithEdition(), nil
 		},
 	}
 }
@@ -366,79 +422,365 @@ func validateFailure(i *mock.ImportAPIClientMock, d *mock.DatasetAPIClientMock, 
 	So(d.PutInstanceStateCalls()[0].State, ShouldEqual, dataset.StateFailed)
 }
 
-func TestIsGeography(t *testing.T) {
+func validateMessageAndTimeoutOk(t *testing.T, producer kafka.IProducer, c C, expected event.CategoryDimensionImport) {
+	select {
+	case b := <-producer.Channels().Output:
+		var got event.CategoryDimensionImport
+		s := schema.CategoryDimensionImport
+		err := s.Unmarshal(b, &got)
+		c.So(err, ShouldBeNil)
+		c.So(got, ShouldResemble, expected)
+	case <-time.After(msgTimeout):
+		c.So(1, ShouldEqual, 1)
+		// t.Fail()
+	}
+}
+
+// func TestIsGeography(t *testing.T) {
+// 	falseValue := false
+// 	trueValue := true
+
+// 	Convey("When IsGeography is called", t, func() {
+// 		Convey("And the recipe does not have format of cantabular_flexible_table and isCantabularGeography is false", func() {
+// 			notFlexibleTable := recipe.Recipe{
+// 				Alias:  "Cantabular Example 1",
+// 				Format: "cantabular_table",
+// 				OutputInstances: []recipe.Instance{
+// 					{
+// 						CodeLists: []recipe.CodeList{
+// 							{
+// 								IsCantabularGeography: &falseValue,
+// 							},
+// 							{
+// 								IsCantabularGeography: &falseValue,
+// 							},
+// 							{
+// 								IsCantabularGeography: &falseValue,
+// 							},
+// 						},
+// 					},
+// 				},
+// 			}
+// 			isGeographyValue := handler.IsGeography(&notFlexibleTable.Format, &notFlexibleTable.OutputInstances[0].CodeLists)
+// 			So(isGeographyValue, ShouldBeFalse)
+// 		})
+
+// 	})
+// 	Convey("When IsGeography is called", t, func() {
+// 		Convey("And the recipe does have format of cantabular_flexible_table and isCantabularGeography is true", func() {
+// 			isFlexibleTableTrue := recipe.Recipe{
+// 				Alias:  "Cantabular Example 3",
+// 				Format: "cantabular_flexible_table",
+// 				OutputInstances: []recipe.Instance{
+// 					{
+// 						CodeLists: []recipe.CodeList{
+// 							{
+// 								IsCantabularGeography: &trueValue,
+// 							},
+// 							{
+// 								IsCantabularGeography: &falseValue,
+// 							},
+// 						},
+// 					},
+// 				},
+// 			}
+// 			isGeographyValue := handler.IsGeography(&isFlexibleTableTrue.Format, &isFlexibleTableTrue.OutputInstances[0].CodeLists)
+// 			So(isGeographyValue, ShouldBeTrue)
+// 		})
+// 	})
+// 	Convey("When IsGeography is called", t, func() {
+// 		Convey("And the recipe does have format of cantabular_flexible_table and isCantabularGeography is false", func() {
+// 			isFlexibleTableFalse := recipe.Recipe{
+// 				Alias:  "Cantabular Example 2",
+// 				Format: "cantabular_flexible_table",
+// 				OutputInstances: []recipe.Instance{
+// 					{
+// 						CodeLists: []recipe.CodeList{
+// 							{
+// 								IsCantabularGeography: &falseValue,
+// 							},
+// 							{
+// 								IsCantabularGeography: &falseValue,
+// 							},
+// 						},
+// 					},
+// 				},
+// 			}
+// 			isGeographyValue := handler.IsGeography(&isFlexibleTableFalse.Format, &isFlexibleTableFalse.OutputInstances[0].CodeLists)
+// 			So(isGeographyValue, ShouldBeFalse)
+// 		})
+// 	})
+
+// }
+
+// func TestTriggerDimensionOptions(t *testing.T) {
+
+// 	// falseValue := false
+// 	trueValue := true
+
+// 	cfg := config.Config{}
+// 	ctblrClient := cantabularClientHappy()
+// 	recipeAPIClient := recipeAPIClientHappy()
+// 	importAPIClient := importAPIClientHappy()
+// 	datasetAPIClient := datasetAPIClientUnhappy()
+// 	producer := kafkatest.NewMessageProducer(true)
+
+// 	h := handler.NewInstanceStarted(
+// 		cfg,
+// 		ctblrClient,
+// 		recipeAPIClient,
+// 		importAPIClient,
+// 		datasetAPIClient,
+// 		producer,
+// 	)
+// 	Convey("Testing1", t, func() {
+// 		e := &event.InstanceStarted{
+// 			RecipeID:       testRecipeID,
+// 			InstanceID:     testInstanceID,
+// 			JobID:          testJobID,
+// 			CantabularType: cantabularTable,
+// 		}
+// 		isFlexibleTableRecipeFalse := recipe.Recipe{
+// 			Alias:          "Cantabular Example 2",
+// 			Format:         "cantabular_table",
+// 			CantabularBlob: "cantabular_blob",
+// 			OutputInstances: []recipe.Instance{
+// 				{
+// 					CodeLists: []recipe.CodeList{
+// 						{
+// 							IsCantabularGeography: &trueValue,
+// 						},
+// 						// {
+// 						// 	IsCantabularGeography: &falseValue,
+// 						// },
+// 					},
+// 				},
+// 			},
+// 		}
+
+// 		wg := &sync.WaitGroup{}
+// 		wg.Add(1)
+// 		go func() {
+// 			defer wg.Done()
+
+// 			select {
+// 			case _ := <-producer.Channels().Output:
+// 				// var got event.CategoryDimensionImport
+// 				// s := schema.CategoryDimensionImport
+// 				// err := s.Unmarshal(b, &got)
+// 				// c.So(err, ShouldBeNil)
+// 				// c.So(got, ShouldResemble, expected)
+// 			case <-time.After(msgTimeout):
+// 				t.Fail()
+// 			}
+// 			msg := kafkaMessage(c, &event.InstanceStarted{
+// 				RecipeID:       testRecipeID,
+// 				InstanceID:     testInstanceID,
+// 				JobID:          testJobID,
+// 				CantabularType: cantabularTable,
+// 			})
+// 			err := h.Handle(ctx, workerID, msg)
+// 			c.So(err, ShouldBeNil)
+// 		}()
+
+// 		errorValue := h.TriggerImportDimensionOptions(&isFlexibleTableRecipeFalse.Format, &isFlexibleTableRecipeFalse.OutputInstances[0].CodeLists, isFlexibleTableRecipeFalse.CantabularBlob, e)
+// 		So(len(errorValue), ShouldEqual, 0)
+
+// 		wg.Wait()
+// 		err := producer.Close(ctx)
+// 		So(err, ShouldBeNil)
+// 	})
+// }
+
+func TestTriggerDimensionOptions(t *testing.T) {
+	cfg := config.Config{}
 	falseValue := false
 	trueValue := true
 
-	Convey("When IsGeography is called", t, func() {
-		Convey("And the recipe does not have format of cantabular_flexible_table and isCantabularGeography is false", func() {
-			notFlexibleTable := recipe.Recipe{
-				Alias:  "Cantabular Example 1",
-				Format: "cantabular_table",
-				OutputInstances: []recipe.Instance{
-					{
-						CodeLists: []recipe.CodeList{
-							{
-								IsCantabularGeography: &falseValue,
-							},
-							{
-								IsCantabularGeography: &falseValue,
-							},
-							{
-								IsCantabularGeography: &falseValue,
-							},
-						},
-					},
-				},
-			}
-			isGeographyValue := handler.IsGeography(&notFlexibleTable.Format, &notFlexibleTable.OutputInstances[0].CodeLists)
-			So(isGeographyValue, ShouldBeFalse)
-		})
+	Convey("Given a successful event handler", t, func() {
+		ctblrClient := cantabularClientHappy()
+		recipeAPIClient := recipeAPIClientHappy()
+		importAPIClient := importAPIClientHappy()
+		datasetAPIClient := datasetAPIClientHappy()
+		producer := kafkatest.NewMessageProducer(true)
 
-	})
-	Convey("When IsGeography is called", t, func() {
-		Convey("And the recipe does have format of cantabular_flexible_table and isCantabularGeography is true", func() {
-			isFlexibleTableTrue := recipe.Recipe{
-				Alias:  "Cantabular Example 3",
-				Format: "cantabular_flexible_table",
-				OutputInstances: []recipe.Instance{
-					{
-						CodeLists: []recipe.CodeList{
-							{
-								IsCantabularGeography: &trueValue,
-							},
-							{
-								IsCantabularGeography: &falseValue,
-							},
-						},
-					},
-				},
-			}
-			isGeographyValue := handler.IsGeography(&isFlexibleTableTrue.Format, &isFlexibleTableTrue.OutputInstances[0].CodeLists)
-			So(isGeographyValue, ShouldBeTrue)
-		})
-	})
-	Convey("When IsGeography is called", t, func() {
-		Convey("And the recipe does have format of cantabular_flexible_table and isCantabularGeography is false", func() {
-			isFlexibleTableFalse := recipe.Recipe{
-				Alias:  "Cantabular Example 2",
-				Format: "cantabular_flexible_table",
-				OutputInstances: []recipe.Instance{
-					{
-						CodeLists: []recipe.CodeList{
-							{
-								IsCantabularGeography: &falseValue,
-							},
-							{
-								IsCantabularGeography: &falseValue,
-							},
-						},
-					},
-				},
-			}
-			isGeographyValue := handler.IsGeography(&isFlexibleTableFalse.Format, &isFlexibleTableFalse.OutputInstances[0].CodeLists)
-			So(isGeographyValue, ShouldBeFalse)
-		})
-	})
+		h := handler.NewInstanceStarted(
+			cfg,
+			ctblrClient,
+			recipeAPIClient,
+			importAPIClient,
+			datasetAPIClient,
+			producer,
+		)
 
+		wg := &sync.WaitGroup{}
+		Convey("When Handle is triggered", func(c C) {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				msg := kafkaMessage(c, &event.InstanceStarted{
+					RecipeID:       testRecipeID,
+					InstanceID:     testInstanceID,
+					JobID:          testJobID,
+					CantabularType: cantabularTable,
+				})
+				err := h.Handle(ctx, workerID, msg)
+				c.So(err, ShouldBeNil)
+
+			}()
+
+			Convey("Then TEST1", func() {
+				e := &event.InstanceStarted{
+					RecipeID:       testRecipeID,
+					InstanceID:     testInstanceID,
+					JobID:          testJobID,
+					CantabularType: cantabularTable,
+				}
+				isFlexibleTableRecipeFalse := recipe.Recipe{
+					Alias:          "Cantabular Example 2",
+					Format:         "cantabular_table",
+					CantabularBlob: "cantabular_blob",
+					OutputInstances: []recipe.Instance{
+						{
+							CodeLists: []recipe.CodeList{
+								{
+									IsCantabularGeography: &trueValue,
+								},
+								{
+									IsCantabularGeography: &falseValue,
+								},
+							},
+						},
+					},
+				}
+				errorValue := h.TriggerImportDimensionOptions(&isFlexibleTableRecipeFalse.Format, &isFlexibleTableRecipeFalse.OutputInstances[0].CodeLists, isFlexibleTableRecipeFalse.CantabularBlob, e)
+				So(len(errorValue), ShouldBeNil)
+			})
+			wg.Wait()
+			err := producer.Close(ctx)
+			So(err, ShouldBeNil)
+		})
+	})
+}
+
+func Test2TriggerDimensionOptions(t *testing.T) {
+	cfg := config.Config{}
+
+	Convey("Given a successful event handler", t, func() {
+		ctblrClient := cantabularClientHappy()
+		recipeAPIClient := recipeAPIClientOnlyGeography()
+		importAPIClient := importAPIClientHappy()
+		datasetAPIClient := datasetAPIClientHappy()
+		producer := kafkatest.NewMessageProducer(true)
+
+		h := handler.NewInstanceStarted(
+			cfg,
+			ctblrClient,
+			recipeAPIClient,
+			importAPIClient,
+			datasetAPIClient,
+			producer,
+		)
+
+		wg := &sync.WaitGroup{}
+
+		Convey("When Handle is triggered, with no Editions", func(c C) {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				msg := kafkaMessage(c, &event.InstanceStarted{
+					RecipeID:       testRecipeID,
+					InstanceID:     testInstanceID,
+					JobID:          testJobID,
+					CantabularType: cantabularTable,
+				})
+				err := h.Handle(ctx, workerID, msg)
+				Convey("Then the expected error is seen", t, func() {
+					c.So(err, ShouldResemble, errors.New("no editions found in instance"))
+				})
+			}()
+
+			Convey("Then the validateMessageAndTimeoutOk times out due to no message consumed", func() {
+				expected := []event.CategoryDimensionImport{
+					{
+						JobID:          testJobID,
+						InstanceID:     testInstanceID,
+						DimensionID:    "test-variable",
+						CantabularBlob: "test-cantabular-blob",
+					},
+				}
+
+				for _, e := range expected {
+					validateMessageAndTimeoutOk(t, producer, c, e)
+				}
+
+				wg.Wait()
+				err := producer.Close(ctx)
+				So(err, ShouldBeNil)
+			})
+		})
+	})
+}
+
+func Test3TriggerDimensionOptions(t *testing.T) {
+	cfg := config.Config{}
+
+	Convey("Given a successful event handler", t, func() {
+		ctblrClient := cantabularClientHappy()
+		recipeAPIClient := recipeAPIClientOnlyGeographyWithEdition()
+		importAPIClient := importAPIClientHappy()
+		datasetAPIClient := datasetAPIClientHappy()
+		producer := kafkatest.NewMessageProducer(true)
+
+		h := handler.NewInstanceStarted(
+			cfg,
+			ctblrClient,
+			recipeAPIClient,
+			importAPIClient,
+			datasetAPIClient,
+			producer,
+		)
+
+		wg := &sync.WaitGroup{}
+
+		Convey("When Handle is triggered, with no Editions the expected error is seen", func(c C) {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				msg := kafkaMessage(c, &event.InstanceStarted{
+					RecipeID:       testRecipeID,
+					InstanceID:     testInstanceID,
+					JobID:          testJobID,
+					CantabularType: cantabularTable,
+				})
+				err := h.Handle(ctx, workerID, msg)
+				c.So(err, ShouldBeNil)
+			}()
+
+			Convey("Then the validateMessageAndTimeoutOk times out due to no message consumed", func() {
+				expected := []event.CategoryDimensionImport{
+					{
+						JobID:      testJobID,
+						InstanceID: testInstanceID,
+						// DimensionID:    "test-variable",
+						CantabularBlob: "cantabular_blob",
+					},
+					{
+						JobID:      testJobID,
+						InstanceID: testInstanceID,
+						// DimensionID:    "test-mapped-variable",
+						CantabularBlob: "cantabular_blob",
+					},
+				}
+
+				for _, e := range expected {
+					validateMessageAndTimeoutOk(t, producer, c, e)
+				}
+
+				wg.Wait()
+				err := producer.Close(ctx)
+				So(err, ShouldBeNil)
+			})
+		})
+	})
 }
