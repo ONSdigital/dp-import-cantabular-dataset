@@ -123,7 +123,7 @@ func (h *InstanceStarted) Handle(ctx context.Context, workerID int, msg kafka.Me
 	}
 	edition := i.Editions[0] // for census, we assume there will only ever be one
 
-	ireq := h.createUpdateInstanceRequest(ctx, &r.Format, resp.Dataset.Variables, e, r.CantabularBlob, i.CodeLists, edition)
+	ireq := h.CreateUpdateInstanceRequest(ctx, &r.Format, resp.Dataset.Variables, e, r.CantabularBlob, i.CodeLists, edition)
 
 	log.Info(ctx, "Updating instance", log.Data{
 		"instance_id":    ireq.InstanceID,
@@ -204,7 +204,7 @@ func (h *InstanceStarted) getCodeListsFromInstance(i *recipe.Instance) ([]string
 	return codelists, nil
 }
 
-func (h *InstanceStarted) createUpdateInstanceRequest(ctx context.Context, format *string, mf gql.Variables, e *event.InstanceStarted, ctblrBlob string, codelists []recipe.CodeList, edition string) dataset.UpdateInstance {
+func (h *InstanceStarted) CreateUpdateInstanceRequest(ctx context.Context, format *string, mf gql.Variables, e *event.InstanceStarted, ctblrBlob string, codelists []recipe.CodeList, edition string) dataset.UpdateInstance {
 	req := dataset.UpdateInstance{
 		Edition:    edition,
 		CSVHeader:  []string{cantabularTable},
