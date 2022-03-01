@@ -14,6 +14,7 @@ import (
 	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/v2/importapi"
 	"github.com/ONSdigital/dp-api-clients-go/v2/recipe"
+	"github.com/ONSdigital/log.go/v2/log"
 
 	"github.com/ONSdigital/dp-import-cantabular-dataset/config"
 	"github.com/ONSdigital/dp-import-cantabular-dataset/event"
@@ -453,20 +454,9 @@ func validateFailure(i *mock.ImportAPIClientMock, d *mock.DatasetAPIClientMock, 
 	So(d.PutInstanceStateCalls()[0].State, ShouldEqual, dataset.StateFailed)
 }
 
-func validateMessageAndTimeoutOk(t *testing.T, producer kafka.IProducer, c C, expected event.CategoryDimensionImport) {
-	select {
-	case b := <-producer.Channels().Output:
-		var got event.CategoryDimensionImport
-		s := schema.CategoryDimensionImport
-		err := s.Unmarshal(b, &got)
-		c.So(err, ShouldBeNil)
-		c.So(got, ShouldResemble, expected)
-	case <-time.After(msgTimeout):
-		c.So(1, ShouldEqual, 1)
-	}
-}
+func validateMessagesCount(t *testing.T, producer kafka.IProducer, c C, expected event.CategoryDimensionImport) bool {
+	var consumed bool
 
-func validateMessageAndTimeoutOk2(t *testing.T, producer kafka.IProducer, c C, expected event.CategoryDimensionImport) {
 	select {
 	case b := <-producer.Channels().Output:
 		var got event.CategoryDimensionImport
@@ -474,9 +464,12 @@ func validateMessageAndTimeoutOk2(t *testing.T, producer kafka.IProducer, c C, e
 		err := s.Unmarshal(b, &got)
 		c.So(err, ShouldBeNil)
 		c.So(got, ShouldResemble, expected)
+		consumed = true
 	case <-time.After(msgTimeout):
+		// a timeout is expected, so the following is a dummy check that passes
 		c.So(1, ShouldEqual, 1)
 	}
+	return consumed
 }
 
 func TestInstanceStartedHandler_HandleUnhappyNoEdition(t *testing.T) {
@@ -516,7 +509,7 @@ func TestInstanceStartedHandler_HandleUnhappyNoEdition(t *testing.T) {
 				})
 			}()
 
-			Convey("Then the validateMessageAndTimeoutOk times out due to no message consumed", func() {
+			Convey("Then the validateMessagesCount consumed no messages", func() {
 				expected := []event.CategoryDimensionImport{
 					{
 						JobID:          testJobID,
@@ -526,11 +519,16 @@ func TestInstanceStartedHandler_HandleUnhappyNoEdition(t *testing.T) {
 					},
 				}
 
+				var result int
 				for _, e := range expected {
-					validateMessageAndTimeoutOk(t, producer, c, e)
+					if validateMessagesCount(t, producer, c, e) == true {
+						result++
+					}
 				}
 
 				wg.Wait()
+				So(result, ShouldEqual, 0)
+
 				err := producer.Close(ctx)
 				So(err, ShouldBeNil)
 			})
@@ -581,7 +579,7 @@ func TestCreateUpdateInstanceRequest_Happy(t *testing.T) {
 			},
 		}
 
-		event := &event.InstanceStarted{
+		e := &event.InstanceStarted{
 			RecipeID:       testRecipeID,
 			InstanceID:     testInstanceID,
 			JobID:          testJobID,
@@ -599,7 +597,7 @@ func TestCreateUpdateInstanceRequest_Happy(t *testing.T) {
 
 		var formatString = "cantabular_table"
 
-		req := h.CreateUpdateInstanceRequest(ctx, &formatString, mfVariables, event, "cantabular_blob", codelists, "2021")
+		req := h.CreateUpdateInstanceRequest(ctx, &formatString, mfVariables, e, "cantabular_blob", codelists, "2021")
 		fmt.Printf("req is: %v", req)
 
 		Convey("Then we get the expected result with two Dimensions", func() {
@@ -687,7 +685,7 @@ func TestCreateUpdateInstanceRequest_Flexible_NoGeography(t *testing.T) {
 			},
 		}
 
-		event := &event.InstanceStarted{
+		e := &event.InstanceStarted{
 			RecipeID:       testRecipeID,
 			InstanceID:     testInstanceID,
 			JobID:          testJobID,
@@ -705,7 +703,7 @@ func TestCreateUpdateInstanceRequest_Flexible_NoGeography(t *testing.T) {
 
 		var formatString = "cantabular_flexible_table"
 
-		req := h.CreateUpdateInstanceRequest(ctx, &formatString, mfVariables, event, "cantabular_blob", codelists, "2021")
+		req := h.CreateUpdateInstanceRequest(ctx, &formatString, mfVariables, e, "cantabular_blob", codelists, "2021")
 		fmt.Printf("req is: %v", req)
 
 		Convey("Then we get the expected result with two Dimensions", func() {
@@ -794,7 +792,7 @@ func TestCreateUpdateInstanceRequest_Flexible_OneGeography(t *testing.T) {
 			},
 		}
 
-		event := &event.InstanceStarted{
+		e := &event.InstanceStarted{
 			RecipeID:       testRecipeID,
 			InstanceID:     testInstanceID,
 			JobID:          testJobID,
@@ -812,7 +810,7 @@ func TestCreateUpdateInstanceRequest_Flexible_OneGeography(t *testing.T) {
 
 		var formatString = "cantabular_flexible_table"
 
-		req := h.CreateUpdateInstanceRequest(ctx, &formatString, mfVariables, event, "cantabular_blob", codelists, "2021")
+		req := h.CreateUpdateInstanceRequest(ctx, &formatString, mfVariables, e, "cantabular_blob", codelists, "2021")
 		fmt.Printf("req is: %v", req)
 
 		Convey("Then we get the expected single non-Geography Dimension", func() {
@@ -892,7 +890,7 @@ func TestCreateUpdateInstanceRequest_Flexible_BothGeography(t *testing.T) {
 			},
 		}
 
-		event := &event.InstanceStarted{
+		e := &event.InstanceStarted{
 			RecipeID:       testRecipeID,
 			InstanceID:     testInstanceID,
 			JobID:          testJobID,
@@ -910,7 +908,7 @@ func TestCreateUpdateInstanceRequest_Flexible_BothGeography(t *testing.T) {
 
 		var formatString = "cantabular_flexible_table"
 
-		req := h.CreateUpdateInstanceRequest(ctx, &formatString, mfVariables, event, "cantabular_blob", codelists, "2021")
+		req := h.CreateUpdateInstanceRequest(ctx, &formatString, mfVariables, e, "cantabular_blob", codelists, "2021")
 		fmt.Printf("req is: %v", req)
 
 		Convey("Then we get the expected result with no Dimensions in it", func() {
@@ -942,7 +940,7 @@ func TestTriggerImportDimensionOptions(t *testing.T) {
 	trueValue := true
 	falseValue := false
 
-	Convey("Given a successful event handler, with two Edges and the format is of type: cantabular_table", t, func() {
+	Convey("Given a successful event handler, with two Edges and the format is of type: cantabular_flexible_table, with one non-geography", t, func() {
 		ctblrClient := cantabularClientHappy()
 		recipeAPIClient := recipeAPIClientGeographyWithEdition()
 		importAPIClient := importAPIClientHappy()
@@ -964,13 +962,12 @@ func TestTriggerImportDimensionOptions(t *testing.T) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				// TODO - replace following line to call function to be tested
 				codelists := []recipe.CodeList{
 					{
 						IsCantabularGeography: &trueValue,
 					},
 					{
-						IsCantabularGeography: &falseValue,
+						IsCantabularGeography: &falseValue, // this indicates the non-geography item
 					},
 				}
 				var formatString = "cantabular_flexible_table"
@@ -985,7 +982,7 @@ func TestTriggerImportDimensionOptions(t *testing.T) {
 				})
 			}()
 
-			Convey("Then the <TODO name of function called here> sees the correct results", func() {
+			Convey("Then the validateMessagesCount consumes one message", func() {
 				expected := []event.CategoryDimensionImport{
 					{
 						JobID:          testJobID,
@@ -995,12 +992,16 @@ func TestTriggerImportDimensionOptions(t *testing.T) {
 					},
 				}
 
+				var result int
 				for _, e := range expected {
-					// TODO - replace following with suitable funtion to test the results
-					validateMessageAndTimeoutOk(t, producer, c, e)
+					if validateMessagesCount(t, producer, c, e) == true {
+						result++
+					}
 				}
 
 				wg.Wait()
+				So(result, ShouldEqual, 1)
+
 				err := producer.Close(ctx)
 				So(err, ShouldBeNil)
 			})
@@ -1008,11 +1009,11 @@ func TestTriggerImportDimensionOptions(t *testing.T) {
 	})
 }
 
-func TestTriggerImportDimensionOptions2(t *testing.T) {
+func TestTriggerImportDimensionOptionsNonGeography(t *testing.T) {
 	cfg := config.Config{}
 	trueValue := true
 
-	Convey("Given a successful event handler, with two Edges and the format is of type: cantabular_table", t, func() {
+	Convey("Given a successful event handler, with two Edges and the format is of type: cantabular_flexible_table, where both edges are geography", t, func() {
 		ctblrClient := cantabularClientHappy()
 		recipeAPIClient := recipeAPIClientGeographyWithEdition()
 		importAPIClient := importAPIClientHappy()
@@ -1034,7 +1035,6 @@ func TestTriggerImportDimensionOptions2(t *testing.T) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				// TODO - replace following line to call function to be tested
 				codelists := []recipe.CodeList{
 					{
 						IsCantabularGeography: &trueValue,
@@ -1043,12 +1043,11 @@ func TestTriggerImportDimensionOptions2(t *testing.T) {
 						IsCantabularGeography: &trueValue,
 					},
 				}
-				var errs []error
-				errs = append(errs, &handler.Error{
-					err: fmt.Errorf("no non-geography variables exist in the codelists"),
-				})
 
-				// var errorString = "no non-geography variables exist in the codelists"
+				errs := handler.NewError(
+					fmt.Errorf("no non-geography variables exist in the codelists"),
+					log.Data{},
+					false)
 
 				var formatString = "cantabular_flexible_table"
 				err := h.TriggerImportDimensionOptions(&formatString, &codelists, "cantabular_blob", &event.InstanceStarted{
@@ -1057,12 +1056,12 @@ func TestTriggerImportDimensionOptions2(t *testing.T) {
 					JobID:          testJobID,
 					CantabularType: cantabularTable,
 				})
-				Convey("Then no error is seen", t, func() {
-					c.So(err[0], ShouldEqual, errorString)
+				Convey("Then the expected error is seen", t, func() {
+					c.So(err[0], ShouldResemble, errs)
 				})
 			}()
 
-			Convey("Then the <TODO name of function called here> sees the correct results", func() {
+			Convey("Then the validateMessagesCount consumes no messages", func() {
 				expected := []event.CategoryDimensionImport{
 					{
 						JobID:          testJobID,
@@ -1072,12 +1071,16 @@ func TestTriggerImportDimensionOptions2(t *testing.T) {
 					},
 				}
 
+				var result int
 				for _, e := range expected {
-					// TODO - replace following with suitable funtion to test the results
-					validateMessageAndTimeoutOk(t, producer, c, e)
+					if validateMessagesCount(t, producer, c, e) == true {
+						result++
+					}
 				}
 
 				wg.Wait()
+				So(result, ShouldEqual, 0)
+
 				err := producer.Close(ctx)
 				So(err, ShouldBeNil)
 			})

@@ -148,11 +148,6 @@ func (h *InstanceStarted) Handle(ctx context.Context, workerID int, msg kafka.Me
 
 	log.Info(ctx, "Triggering dimension options import")
 
-	// if IsGeography(&r.Format, &i.CodeLists) {
-	// 	log.Info(ctx, "No options triggered for import because geography found")
-	// 	return nil
-	// }
-
 	if errs := h.TriggerImportDimensionOptions(&r.Format, &i.CodeLists, r.CantabularBlob, e); len(errs) != 0 {
 		var errdata []map[string]interface{}
 
@@ -297,7 +292,8 @@ func (h *InstanceStarted) TriggerImportDimensionOptions(format *string, codelist
 	if nonGeographyCount == 0 {
 		var errs []error
 		errs = append(errs, &Error{
-			err: fmt.Errorf("no non-geography variables exist in the codelists"),
+			err:     fmt.Errorf("no non-geography variables exist in the codelists"),
+			logData: log.Data{},
 		})
 		return errs
 	}
