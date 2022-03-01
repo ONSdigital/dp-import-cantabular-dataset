@@ -934,7 +934,6 @@ func TestCreateUpdateInstanceRequest_Flexible_BothGeography(t *testing.T) {
 	})
 }
 
-// -------------------------------------------
 func TestTriggerImportDimensionOptions(t *testing.T) {
 	cfg := config.Config{}
 	trueValue := true
