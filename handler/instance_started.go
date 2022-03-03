@@ -118,7 +118,7 @@ func (h *InstanceStarted) Handle(ctx context.Context, workerID int, msg kafka.Me
 		"num_variables": len(resp.Dataset.Variables.Edges),
 	})
 
-	if len(i.Editions) < 1 {
+	if len(i.Editions) == 0 {
 		return errors.New("no editions found in instance")
 	}
 	edition := i.Editions[0] // for census, we assume there will only ever be one
