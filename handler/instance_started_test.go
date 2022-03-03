@@ -595,9 +595,12 @@ func TestCreateUpdateInstanceRequest_Happy(t *testing.T) {
 			},
 		}
 
-		var formatString = "cantabular_table"
+		r := &recipe.Recipe{
+			Format:         "cantabular_table",
+			CantabularBlob: "cantabular_blob",
+		}
 
-		req := h.CreateUpdateInstanceRequest(ctx, &formatString, mfVariables, e, "cantabular_blob", codelists, "2021")
+		req := h.CreateUpdateInstanceRequest(ctx, mfVariables, e, r, codelists, "2021")
 		fmt.Printf("req is: %v", req)
 
 		Convey("Then we get the expected result with two Dimensions", func() {
@@ -701,9 +704,12 @@ func TestCreateUpdateInstanceRequest_Flexible_NoGeography(t *testing.T) {
 			},
 		}
 
-		var formatString = "cantabular_flexible_table"
+		r := &recipe.Recipe{
+			Format:         "cantabular_flexible_table",
+			CantabularBlob: "cantabular_blob",
+		}
 
-		req := h.CreateUpdateInstanceRequest(ctx, &formatString, mfVariables, e, "cantabular_blob", codelists, "2021")
+		req := h.CreateUpdateInstanceRequest(ctx, mfVariables, e, r, codelists, "2021")
 		fmt.Printf("req is: %v", req)
 
 		Convey("Then we get the expected result with two Dimensions", func() {
@@ -808,9 +814,12 @@ func TestCreateUpdateInstanceRequest_Flexible_OneGeography(t *testing.T) {
 			},
 		}
 
-		var formatString = "cantabular_flexible_table"
+		r := &recipe.Recipe{
+			Format:         "cantabular_flexible_table",
+			CantabularBlob: "cantabular_blob",
+		}
 
-		req := h.CreateUpdateInstanceRequest(ctx, &formatString, mfVariables, e, "cantabular_blob", codelists, "2021")
+		req := h.CreateUpdateInstanceRequest(ctx, mfVariables, e, r, codelists, "2021")
 		fmt.Printf("req is: %v", req)
 
 		Convey("Then we get the expected single non-Geography Dimension", func() {
@@ -906,9 +915,12 @@ func TestCreateUpdateInstanceRequest_Flexible_BothGeography(t *testing.T) {
 			},
 		}
 
-		var formatString = "cantabular_flexible_table"
+		r := &recipe.Recipe{
+			Format:         "cantabular_flexible_table",
+			CantabularBlob: "cantabular_blob",
+		}
 
-		req := h.CreateUpdateInstanceRequest(ctx, &formatString, mfVariables, e, "cantabular_blob", codelists, "2021")
+		req := h.CreateUpdateInstanceRequest(ctx, mfVariables, e, r, codelists, "2021")
 		fmt.Printf("req is: %v", req)
 
 		Convey("Then we get the expected result with no Dimensions in it", func() {
@@ -969,8 +981,13 @@ func TestTriggerImportDimensionOptions(t *testing.T) {
 						IsCantabularGeography: &falseValue, // this indicates the non-geography item
 					},
 				}
-				var formatString = "cantabular_flexible_table"
-				err := h.TriggerImportDimensionOptions(&formatString, &codelists, "cantabular_blob", &event.InstanceStarted{
+
+				r := &recipe.Recipe{
+					Format:         "cantabular_flexible_table",
+					CantabularBlob: "cantabular_blob",
+				}
+
+				err := h.TriggerImportDimensionOptions(r, &codelists, &event.InstanceStarted{
 					RecipeID:       testRecipeID,
 					InstanceID:     testInstanceID,
 					JobID:          testJobID,
@@ -1048,8 +1065,12 @@ func TestTriggerImportDimensionOptionsNonGeography(t *testing.T) {
 					log.Data{},
 					false)
 
-				var formatString = "cantabular_flexible_table"
-				err := h.TriggerImportDimensionOptions(&formatString, &codelists, "cantabular_blob", &event.InstanceStarted{
+				r := &recipe.Recipe{
+					Format:         "cantabular_flexible_table",
+					CantabularBlob: "cantabular_blob",
+				}
+
+				err := h.TriggerImportDimensionOptions(r, &codelists, &event.InstanceStarted{
 					RecipeID:       testRecipeID,
 					InstanceID:     testInstanceID,
 					JobID:          testJobID,

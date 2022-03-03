@@ -123,7 +123,7 @@ func (h *InstanceStarted) Handle(ctx context.Context, workerID int, msg kafka.Me
 	}
 	edition := i.Editions[0] // for census, we assume there will only ever be one
 
-	ireq := h.CreateUpdateInstanceRequest(ctx, &r.Format, resp.Dataset.Variables, e, r.CantabularBlob, i.CodeLists, edition)
+	ireq := h.CreateUpdateInstanceRequest(ctx, resp.Dataset.Variables, e, r, i.CodeLists, edition)
 
 	log.Info(ctx, "Updating instance", log.Data{
 		"instance_id":    ireq.InstanceID,
@@ -148,7 +148,7 @@ func (h *InstanceStarted) Handle(ctx context.Context, workerID int, msg kafka.Me
 
 	log.Info(ctx, "Triggering dimension options import")
 
-	if errs := h.TriggerImportDimensionOptions(&r.Format, &i.CodeLists, r.CantabularBlob, e); len(errs) != 0 {
+	if errs := h.TriggerImportDimensionOptions(r, &i.CodeLists, e); len(errs) != 0 {
 		var errdata []map[string]interface{}
 
 		for _, err := range errs {
@@ -199,15 +199,16 @@ func (h *InstanceStarted) getCodeListsFromInstance(i *recipe.Instance) ([]string
 	return codelists, nil
 }
 
-func (h *InstanceStarted) CreateUpdateInstanceRequest(ctx context.Context, format *string, mf gql.Variables, e *event.InstanceStarted, ctblrBlob string, codelists []recipe.CodeList, edition string) dataset.UpdateInstance {
+func (h *InstanceStarted) CreateUpdateInstanceRequest(ctx context.Context, mf gql.Variables, e *event.InstanceStarted, r *recipe.Recipe, codelists []recipe.CodeList, edition string) dataset.UpdateInstance {
+
 	req := dataset.UpdateInstance{
 		Edition:    edition,
 		CSVHeader:  []string{cantabularTable},
 		InstanceID: e.InstanceID,
-		Type:       *format,
+		Type:       r.Format,
 		IsBasedOn: &dataset.IsBasedOn{
-			ID:   ctblrBlob,
-			Type: *format,
+			ID:   r.CantabularBlob,
+			Type: r.Format,
 		},
 	}
 
@@ -218,7 +219,7 @@ func (h *InstanceStarted) CreateUpdateInstanceRequest(ctx context.Context, forma
 			continue
 		}
 
-		if *format == "cantabular_flexible_table" {
+		if r.Format == "cantabular_flexible_table" {
 			if codelists[i].IsCantabularGeography != nil {
 				if *codelists[i].IsCantabularGeography {
 					continue
@@ -253,12 +254,12 @@ func (h *InstanceStarted) CreateUpdateInstanceRequest(ctx context.Context, forma
 	return req
 }
 
-func (h *InstanceStarted) TriggerImportDimensionOptions(format *string, codelists *[]recipe.CodeList, blob string, e *event.InstanceStarted) []error {
+func (h *InstanceStarted) TriggerImportDimensionOptions(r *recipe.Recipe, codelists *[]recipe.CodeList, e *event.InstanceStarted) []error {
 	var errs []error
 	var nonGeographyCount int
 
 	for _, cl := range *codelists {
-		if *format == "cantabular_flexible_table" {
+		if r.Format == "cantabular_flexible_table" {
 			if cl.IsCantabularGeography != nil {
 				if *cl.IsCantabularGeography {
 					continue
@@ -271,7 +272,7 @@ func (h *InstanceStarted) TriggerImportDimensionOptions(format *string, codelist
 			DimensionID:    cl.ID,
 			JobID:          e.JobID,
 			InstanceID:     e.InstanceID,
-			CantabularBlob: blob,
+			CantabularBlob: r.CantabularBlob,
 		}
 
 		s := schema.CategoryDimensionImport
