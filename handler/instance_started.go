@@ -148,7 +148,7 @@ func (h *InstanceStarted) Handle(ctx context.Context, workerID int, msg kafka.Me
 
 	log.Info(ctx, "Triggering dimension options import")
 
-	if errs := h.TriggerImportDimensionOptions(r, &i.CodeLists, e); len(errs) != 0 {
+	if errs := h.TriggerImportDimensionOptions(r, i.CodeLists, e); len(errs) != 0 {
 		var errdata []map[string]interface{}
 
 		for _, err := range errs {
@@ -254,25 +254,26 @@ func (h *InstanceStarted) CreateUpdateInstanceRequest(ctx context.Context, mf gq
 	return req
 }
 
-func (h *InstanceStarted) TriggerImportDimensionOptions(r *recipe.Recipe, codelists *[]recipe.CodeList, e *event.InstanceStarted) []error {
+func (h *InstanceStarted) TriggerImportDimensionOptions(r *recipe.Recipe, codelists []recipe.CodeList, e *event.InstanceStarted) []error {
 	var errs []error
 	var nonGeographyCount int
 
-	for _, cl := range *codelists {
-		if r.Format == "cantabular_flexible_table" {
-			if cl.IsCantabularGeography != nil {
-				if *cl.IsCantabularGeography {
-					continue
-				}
-			}
-		}
-		nonGeographyCount++
-
+	for _, cl := range codelists {
 		ie := event.CategoryDimensionImport{
 			DimensionID:    cl.ID,
 			JobID:          e.JobID,
 			InstanceID:     e.InstanceID,
 			CantabularBlob: r.CantabularBlob,
+		}
+
+		nonGeographyCount++
+		if r.Format == "cantabular_flexible_table" {
+			if cl.IsCantabularGeography != nil {
+				if *cl.IsCantabularGeography {
+					nonGeographyCount--
+					ie.IsGeography = true // dp-import-cantabular-dimension-options is to ignore this message but count it as one of the messages received so that it can determine that all messages have been processed for it to then update mongo db with job finished status
+				}
+			}
 		}
 
 		s := schema.CategoryDimensionImport
