@@ -601,7 +601,6 @@ func TestCreateUpdateInstanceRequest_Happy(t *testing.T) {
 		}
 
 		req := h.CreateUpdateInstanceRequest(ctx, mfVariables, e, r, codelists, "2021")
-		fmt.Printf("req is: %v", req)
 
 		Convey("Then we get the expected result with two Dimensions", func() {
 
@@ -710,7 +709,6 @@ func TestCreateUpdateInstanceRequest_Flexible_NoGeography(t *testing.T) {
 		}
 
 		req := h.CreateUpdateInstanceRequest(ctx, mfVariables, e, r, codelists, "2021")
-		fmt.Printf("req is: %v", req)
 
 		Convey("Then we get the expected result with two Dimensions", func() {
 
@@ -820,7 +818,6 @@ func TestCreateUpdateInstanceRequest_Flexible_OneGeography(t *testing.T) {
 		}
 
 		req := h.CreateUpdateInstanceRequest(ctx, mfVariables, e, r, codelists, "2021")
-		fmt.Printf("req is: %v", req)
 
 		Convey("Then we get the expected single non-Geography Dimension", func() {
 
@@ -921,7 +918,6 @@ func TestCreateUpdateInstanceRequest_Flexible_BothGeography(t *testing.T) {
 		}
 
 		req := h.CreateUpdateInstanceRequest(ctx, mfVariables, e, r, codelists, "2021")
-		fmt.Printf("req is: %v", req)
 
 		Convey("Then we get the expected result with no Dimensions in it", func() {
 
