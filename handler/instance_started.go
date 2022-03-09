@@ -256,7 +256,8 @@ func (h *InstanceStarted) CreateUpdateInstanceRequest(ctx context.Context, mf gq
 
 func (h *InstanceStarted) TriggerImportDimensionOptions(r *recipe.Recipe, codelists []recipe.CodeList, e *event.InstanceStarted) []error {
 	var errs []error
-	var nonGeographyCount int
+	var geographyCount int
+	tc := len(codelists)
 
 	for _, cl := range codelists {
 		ie := event.CategoryDimensionImport{
@@ -266,12 +267,14 @@ func (h *InstanceStarted) TriggerImportDimensionOptions(r *recipe.Recipe, codeli
 			CantabularBlob: r.CantabularBlob,
 		}
 
-		nonGeographyCount++
 		if r.Format == "cantabular_flexible_table" {
 			if cl.IsCantabularGeography != nil {
 				if *cl.IsCantabularGeography {
-					nonGeographyCount--
-					ie.IsGeography = true // dp-import-cantabular-dimension-options is to ignore this message but count it as one of the messages received so that it can determine that all messages have been processed for it to then update mongo db with job finished status
+					geographyCount++
+					// To indicate `dp-import-cantabular-dimension-options` when consuming the kafka message to not update the instance
+					// The message still needs to be consumed to determine that all dimensions have been processed
+					// so that it can mark the job as finished and complete
+					ie.IsGeography = true
 				}
 			}
 		}
@@ -291,10 +294,10 @@ func (h *InstanceStarted) TriggerImportDimensionOptions(r *recipe.Recipe, codeli
 
 		h.producer.Channels().Output <- b
 	}
-	if nonGeographyCount == 0 {
+	if geographyCount == tc {
 		var errs []error
 		errs = append(errs, &Error{
-			err:     fmt.Errorf("no non-geography variables exist in the codelists"),
+			err:     fmt.Errorf("only geography codelists exist in this instance, there must be at least one non-geography in the codelists"),
 			logData: log.Data{},
 		})
 		return errs
