@@ -291,6 +291,7 @@ func testRecipe() *recipe.Recipe {
 
 func testRecipeOnlyGeography() *recipe.Recipe {
 	trueValue := true
+	falseValue := false
 	return &recipe.Recipe{
 		Alias:          "Cantabular Example 2",
 		Format:         "cantabular_table",
@@ -299,7 +300,8 @@ func testRecipeOnlyGeography() *recipe.Recipe {
 			{
 				CodeLists: []recipe.CodeList{
 					{
-						IsCantabularGeography: &trueValue,
+						IsCantabularGeography:        &trueValue,
+						IsCantabularDefaultGeography: &falseValue,
 					},
 				},
 			},
@@ -309,6 +311,7 @@ func testRecipeOnlyGeography() *recipe.Recipe {
 
 func testRecipeOnlyGeographyWithEdition() *recipe.Recipe {
 	trueValue := true
+	falseValue := false
 	return &recipe.Recipe{
 		Alias:          "Cantabular Example 2",
 		Format:         "cantabular_table",
@@ -317,10 +320,12 @@ func testRecipeOnlyGeographyWithEdition() *recipe.Recipe {
 			{
 				CodeLists: []recipe.CodeList{
 					{
-						IsCantabularGeography: &trueValue,
+						IsCantabularGeography:        &trueValue,
+						IsCantabularDefaultGeography: &falseValue,
 					},
 					{
-						IsCantabularGeography: &trueValue,
+						IsCantabularGeography:        &trueValue,
+						IsCantabularDefaultGeography: &falseValue,
 					},
 				},
 				Editions: []string{"2021"},
@@ -539,6 +544,7 @@ func TestInstanceStartedHandler_HandleUnhappyNoEdition(t *testing.T) {
 func TestCreateUpdateInstanceRequest_Happy(t *testing.T) {
 	cfg := config.Config{}
 	trueValue := true
+	falseValue := false
 
 	Convey("Given CreateUpdateInstanceRequest() is called with two Edges and the format is of type: cantabular_table", t, func() {
 		ctblrClient := cantabularClientHappy()
@@ -588,10 +594,12 @@ func TestCreateUpdateInstanceRequest_Happy(t *testing.T) {
 
 		codelists := []recipe.CodeList{
 			{
-				IsCantabularGeography: &trueValue,
+				IsCantabularGeography:        &trueValue,
+				IsCantabularDefaultGeography: &falseValue,
 			},
 			{
-				IsCantabularGeography: &trueValue,
+				IsCantabularGeography:        &trueValue,
+				IsCantabularDefaultGeography: &falseValue,
 			},
 		}
 
@@ -696,10 +704,12 @@ func TestCreateUpdateInstanceRequest_Flexible_NoGeography(t *testing.T) {
 
 		codelists := []recipe.CodeList{
 			{
-				IsCantabularGeography: &falseValue,
+				IsCantabularGeography:        &falseValue,
+				IsCantabularDefaultGeography: &falseValue,
 			},
 			{
-				IsCantabularGeography: &falseValue,
+				IsCantabularGeography:        &falseValue,
+				IsCantabularDefaultGeography: &falseValue,
 			},
 		}
 
@@ -805,10 +815,12 @@ func TestCreateUpdateInstanceRequest_Flexible_OneGeography(t *testing.T) {
 
 		codelists := []recipe.CodeList{
 			{
-				IsCantabularGeography: &trueValue,
+				IsCantabularGeography:        &trueValue,
+				IsCantabularDefaultGeography: &falseValue,
 			},
 			{
-				IsCantabularGeography: &falseValue,
+				IsCantabularGeography:        &falseValue,
+				IsCantabularDefaultGeography: &falseValue,
 			},
 		}
 
@@ -856,6 +868,7 @@ func TestCreateUpdateInstanceRequest_Flexible_OneGeography(t *testing.T) {
 func TestCreateUpdateInstanceRequest_Flexible_BothGeography(t *testing.T) {
 	cfg := config.Config{}
 	trueValue := true
+	falseValue := false
 
 	Convey("Given CreateUpdateInstanceRequest() is called with two Edges and the format is of type: cantabular_flexible_table, and both edges are Geography", t, func() {
 		ctblrClient := cantabularClientHappy()
@@ -905,10 +918,12 @@ func TestCreateUpdateInstanceRequest_Flexible_BothGeography(t *testing.T) {
 
 		codelists := []recipe.CodeList{
 			{
-				IsCantabularGeography: &trueValue,
+				IsCantabularGeography:        &trueValue,
+				IsCantabularDefaultGeography: &falseValue,
 			},
 			{
-				IsCantabularGeography: &trueValue,
+				IsCantabularGeography:        &trueValue,
+				IsCantabularDefaultGeography: &falseValue,
 			},
 		}
 
@@ -968,10 +983,12 @@ func TestTriggerImportDimensionOptions(t *testing.T) {
 		Convey("When TriggerImportDimensionOptions is called", func(c C) {
 			codelists := []recipe.CodeList{
 				{
-					IsCantabularGeography: &trueValue,
+					IsCantabularGeography:        &trueValue,
+					IsCantabularDefaultGeography: &falseValue,
 				},
 				{
-					IsCantabularGeography: &falseValue, // this indicates the non-geography item
+					IsCantabularGeography:        &falseValue, // this indicates the non-geography item
+					IsCantabularDefaultGeography: &falseValue,
 				},
 			}
 
@@ -1028,6 +1045,7 @@ func TestTriggerImportDimensionOptions(t *testing.T) {
 func TestTriggerImportDimensionOptionsNonGeography(t *testing.T) {
 	cfg := config.Config{}
 	trueValue := true
+	falseValue := false
 
 	Convey("Given a successful event handler, with two Edges and the format is of type: cantabular_flexible_table, where both edges are geography", t, func() {
 		ctblrClient := cantabularClientHappy()
@@ -1049,10 +1067,12 @@ func TestTriggerImportDimensionOptionsNonGeography(t *testing.T) {
 		Convey("When TriggerImportDimensionOptions is called", func(c C) {
 			codelists := []recipe.CodeList{
 				{
-					IsCantabularGeography: &trueValue,
+					IsCantabularGeography:        &trueValue,
+					IsCantabularDefaultGeography: &falseValue,
 				},
 				{
-					IsCantabularGeography: &trueValue,
+					IsCantabularGeography:        &trueValue,
+					IsCantabularDefaultGeography: &falseValue,
 				},
 			}
 
