@@ -601,7 +601,6 @@ func TestCreateUpdateInstanceRequest_Happy(t *testing.T) {
 		}
 
 		req := h.CreateUpdateInstanceRequest(ctx, mfVariables, e, r, codelists, "2021")
-		fmt.Printf("req is: %v", req)
 
 		Convey("Then we get the expected result with two Dimensions", func() {
 
@@ -710,7 +709,6 @@ func TestCreateUpdateInstanceRequest_Flexible_NoGeography(t *testing.T) {
 		}
 
 		req := h.CreateUpdateInstanceRequest(ctx, mfVariables, e, r, codelists, "2021")
-		fmt.Printf("req is: %v", req)
 
 		Convey("Then we get the expected result with two Dimensions", func() {
 
@@ -820,7 +818,6 @@ func TestCreateUpdateInstanceRequest_Flexible_OneGeography(t *testing.T) {
 		}
 
 		req := h.CreateUpdateInstanceRequest(ctx, mfVariables, e, r, codelists, "2021")
-		fmt.Printf("req is: %v", req)
 
 		Convey("Then we get the expected single non-Geography Dimension", func() {
 
@@ -921,7 +918,6 @@ func TestCreateUpdateInstanceRequest_Flexible_BothGeography(t *testing.T) {
 		}
 
 		req := h.CreateUpdateInstanceRequest(ctx, mfVariables, e, r, codelists, "2021")
-		fmt.Printf("req is: %v", req)
 
 		Convey("Then we get the expected result with no Dimensions in it", func() {
 
@@ -970,24 +966,24 @@ func TestTriggerImportDimensionOptions(t *testing.T) {
 		wg := &sync.WaitGroup{}
 
 		Convey("When TriggerImportDimensionOptions is called", func(c C) {
+			codelists := []recipe.CodeList{
+				{
+					IsCantabularGeography: &trueValue,
+				},
+				{
+					IsCantabularGeography: &falseValue, // this indicates the non-geography item
+				},
+			}
+
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				codelists := []recipe.CodeList{
-					{
-						IsCantabularGeography: &trueValue,
-					},
-					{
-						IsCantabularGeography: &falseValue, // this indicates the non-geography item
-					},
-				}
-
 				r := &recipe.Recipe{
 					Format:         "cantabular_flexible_table",
 					CantabularBlob: "cantabular_blob",
 				}
 
-				err := h.TriggerImportDimensionOptions(r, &codelists, &event.InstanceStarted{
+				err := h.TriggerImportDimensionOptions(r, codelists, &event.InstanceStarted{
 					RecipeID:       testRecipeID,
 					InstanceID:     testInstanceID,
 					JobID:          testJobID,
@@ -999,13 +995,17 @@ func TestTriggerImportDimensionOptions(t *testing.T) {
 			}()
 
 			Convey("Then the validateMessagesCount consumes one message", func() {
-				expected := []event.CategoryDimensionImport{
-					{
+				expected := make([]event.CategoryDimensionImport, 0)
+
+				for _, cl := range codelists {
+					event := event.CategoryDimensionImport{
 						JobID:          testJobID,
 						InstanceID:     testInstanceID,
 						DimensionID:    "",
 						CantabularBlob: "cantabular_blob",
-					},
+						IsGeography:    *cl.IsCantabularGeography,
+					}
+					expected = append(expected, event)
 				}
 
 				var result int
@@ -1016,7 +1016,7 @@ func TestTriggerImportDimensionOptions(t *testing.T) {
 				}
 
 				wg.Wait()
-				So(result, ShouldEqual, 1)
+				So(result, ShouldEqual, 2)
 
 				err := producer.Close(ctx)
 				So(err, ShouldBeNil)
@@ -1046,22 +1046,22 @@ func TestTriggerImportDimensionOptionsNonGeography(t *testing.T) {
 		)
 
 		wg := &sync.WaitGroup{}
-
 		Convey("When TriggerImportDimensionOptions is called", func(c C) {
+			codelists := []recipe.CodeList{
+				{
+					IsCantabularGeography: &trueValue,
+				},
+				{
+					IsCantabularGeography: &trueValue,
+				},
+			}
+
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				codelists := []recipe.CodeList{
-					{
-						IsCantabularGeography: &trueValue,
-					},
-					{
-						IsCantabularGeography: &trueValue,
-					},
-				}
 
 				errs := handler.NewError(
-					fmt.Errorf("no non-geography variables exist in the codelists"),
+					fmt.Errorf("only geography codelists exist in this instance, there must be at least one non-geography in the codelists"),
 					log.Data{},
 					false)
 
@@ -1070,7 +1070,7 @@ func TestTriggerImportDimensionOptionsNonGeography(t *testing.T) {
 					CantabularBlob: "cantabular_blob",
 				}
 
-				err := h.TriggerImportDimensionOptions(r, &codelists, &event.InstanceStarted{
+				err := h.TriggerImportDimensionOptions(r, codelists, &event.InstanceStarted{
 					RecipeID:       testRecipeID,
 					InstanceID:     testInstanceID,
 					JobID:          testJobID,
@@ -1082,13 +1082,17 @@ func TestTriggerImportDimensionOptionsNonGeography(t *testing.T) {
 			}()
 
 			Convey("Then the validateMessagesCount consumes no messages", func() {
-				expected := []event.CategoryDimensionImport{
-					{
+				expected := make([]event.CategoryDimensionImport, 0)
+
+				for _, cl := range codelists {
+					event := event.CategoryDimensionImport{
 						JobID:          testJobID,
 						InstanceID:     testInstanceID,
 						DimensionID:    "",
 						CantabularBlob: "cantabular_blob",
-					},
+						IsGeography:    *cl.IsCantabularGeography,
+					}
+					expected = append(expected, event)
 				}
 
 				var result int
@@ -1099,7 +1103,7 @@ func TestTriggerImportDimensionOptionsNonGeography(t *testing.T) {
 				}
 
 				wg.Wait()
-				So(result, ShouldEqual, 0)
+				So(result, ShouldEqual, 2)
 
 				err := producer.Close(ctx)
 				So(err, ShouldBeNil)

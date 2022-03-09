@@ -148,7 +148,7 @@ func (h *InstanceStarted) Handle(ctx context.Context, workerID int, msg kafka.Me
 
 	log.Info(ctx, "Triggering dimension options import")
 
-	if errs := h.TriggerImportDimensionOptions(r, &i.CodeLists, e); len(errs) != 0 {
+	if errs := h.TriggerImportDimensionOptions(r, i.CodeLists, e); len(errs) != 0 {
 		var errdata []map[string]interface{}
 
 		for _, err := range errs {
@@ -254,25 +254,29 @@ func (h *InstanceStarted) CreateUpdateInstanceRequest(ctx context.Context, mf gq
 	return req
 }
 
-func (h *InstanceStarted) TriggerImportDimensionOptions(r *recipe.Recipe, codelists *[]recipe.CodeList, e *event.InstanceStarted) []error {
+func (h *InstanceStarted) TriggerImportDimensionOptions(r *recipe.Recipe, codelists []recipe.CodeList, e *event.InstanceStarted) []error {
 	var errs []error
-	var nonGeographyCount int
+	var geographyCount int
+	tc := len(codelists)
 
-	for _, cl := range *codelists {
-		if r.Format == "cantabular_flexible_table" {
-			if cl.IsCantabularGeography != nil {
-				if *cl.IsCantabularGeography {
-					continue
-				}
-			}
-		}
-		nonGeographyCount++
-
+	for _, cl := range codelists {
 		ie := event.CategoryDimensionImport{
 			DimensionID:    cl.ID,
 			JobID:          e.JobID,
 			InstanceID:     e.InstanceID,
 			CantabularBlob: r.CantabularBlob,
+		}
+
+		if r.Format == "cantabular_flexible_table" {
+			if cl.IsCantabularGeography != nil {
+				if *cl.IsCantabularGeography {
+					geographyCount++
+					// To indicate `dp-import-cantabular-dimension-options` when consuming the kafka message to not update the instance
+					// The message still needs to be consumed to determine that all dimensions have been processed
+					// so that it can mark the job as finished and complete
+					ie.IsGeography = true
+				}
+			}
 		}
 
 		s := schema.CategoryDimensionImport
@@ -290,10 +294,10 @@ func (h *InstanceStarted) TriggerImportDimensionOptions(r *recipe.Recipe, codeli
 
 		h.producer.Channels().Output <- b
 	}
-	if nonGeographyCount == 0 {
+	if geographyCount == tc {
 		var errs []error
 		errs = append(errs, &Error{
-			err:     fmt.Errorf("no non-geography variables exist in the codelists"),
+			err:     fmt.Errorf("only geography codelists exist in this instance, there must be at least one non-geography in the codelists"),
 			logData: log.Data{},
 		})
 		return errs
