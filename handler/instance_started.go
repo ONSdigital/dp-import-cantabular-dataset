@@ -268,8 +268,8 @@ func (h *InstanceStarted) TriggerImportDimensionOptions(r *recipe.Recipe, codeli
 		}
 
 		if r.Format == "cantabular_flexible_table" {
-			if cl.IsCantabularGeography != nil {
-				if *cl.IsCantabularGeography {
+			if cl.IsCantabularGeography != nil && cl.IsCantabularDefaultGeography != nil {
+				if *cl.IsCantabularGeography && !*cl.IsCantabularDefaultGeography {
 					geographyCount++
 					// To indicate `dp-import-cantabular-dimension-options` when consuming the kafka message to not update the instance
 					// The message still needs to be consumed to determine that all dimensions have been processed

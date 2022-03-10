@@ -130,6 +130,7 @@ func (c *Component) theFollowingCantabularVariablesAreAvailable(dataset string, 
 		"query": cantabular.QueryDimensionsByName,
 		"variables": map[string]interface{}{
 			"dataset":   dataset,
+			"text":      "",
 			"variables": vars,
 		},
 	}); err != nil {
