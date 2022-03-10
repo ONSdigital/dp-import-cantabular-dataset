@@ -5,6 +5,7 @@ services:
         build:
             context: ../..
             dockerfile: Dockerfile.local
+        user: "${MY_UID}:${MY_UID}"
         command:
             - go 
             - test 
