@@ -10,6 +10,15 @@ type Error struct {
 	instanceCompleted bool
 }
 
+// NewError creates a new Error
+func NewError(err error, logData map[string]interface{}, instanceCompleted bool) *Error {
+	return &Error{
+		err:               err,
+		logData:           logData,
+		instanceCompleted: instanceCompleted,
+	}
+}
+
 // Error implements the Go standard error interface
 func (e *Error) Error() string {
 	return e.err.Error()

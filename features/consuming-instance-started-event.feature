@@ -25,13 +25,13 @@ Feature: Import-Cantabular-Dataset
                 "id": "dimension-02",
                 "name": "Dimension 02"
               }
+            ],
+            "editions": [
+              "2021"
             ]
           }
         ],
         "dataset_id": "cantabular-example-1",
-        "editions": [
-          "2021"
-        ],
         "title": "Example Cantabular Dataset"
       }
       """

@@ -118,7 +118,12 @@ func (h *InstanceStarted) Handle(ctx context.Context, workerID int, msg kafka.Me
 		"num_variables": len(resp.Dataset.Variables.Edges),
 	})
 
-	ireq := h.createUpdateInstanceRequest(ctx, resp.Dataset.Variables, e, r.CantabularBlob, i.CodeLists)
+	if len(i.Editions) == 0 {
+		return errors.New("no editions found in instance")
+	}
+	edition := i.Editions[0] // for census, we assume there will only ever be one
+
+	ireq := h.CreateUpdateInstanceRequest(ctx, resp.Dataset.Variables, e, r, i.CodeLists, edition)
 
 	log.Info(ctx, "Updating instance", log.Data{
 		"instance_id":    ireq.InstanceID,
@@ -141,11 +146,9 @@ func (h *InstanceStarted) Handle(ctx context.Context, workerID int, msg kafka.Me
 		})
 	}
 
-	log.Info(ctx, "Triggering dimension options import", log.Data{
-		"num_dimensions": len(codelists),
-	})
+	log.Info(ctx, "Triggering dimension options import")
 
-	if errs := h.triggerImportDimensionOptions(r.CantabularBlob, codelists, e); len(errs) != 0 {
+	if errs := h.TriggerImportDimensionOptions(r, i.CodeLists, e); len(errs) != 0 {
 		var errdata []map[string]interface{}
 
 		for _, err := range errs {
@@ -196,15 +199,16 @@ func (h *InstanceStarted) getCodeListsFromInstance(i *recipe.Instance) ([]string
 	return codelists, nil
 }
 
-func (h *InstanceStarted) createUpdateInstanceRequest(ctx context.Context, mf gql.Variables, e *event.InstanceStarted, ctblrBlob string, codelists []recipe.CodeList) dataset.UpdateInstance {
+func (h *InstanceStarted) CreateUpdateInstanceRequest(ctx context.Context, mf gql.Variables, e *event.InstanceStarted, r *recipe.Recipe, codelists []recipe.CodeList, edition string) dataset.UpdateInstance {
+
 	req := dataset.UpdateInstance{
-		Edition:    "2021",
+		Edition:    edition,
 		CSVHeader:  []string{cantabularTable},
 		InstanceID: e.InstanceID,
-		Type:       cantabularTable,
+		Type:       r.Format,
 		IsBasedOn: &dataset.IsBasedOn{
-			ID:   ctblrBlob,
-			Type: cantabularTable,
+			ID:   r.CantabularBlob,
+			Type: r.Format,
 		},
 	}
 
@@ -213,6 +217,14 @@ func (h *InstanceStarted) createUpdateInstanceRequest(ctx context.Context, mf gq
 		if sourceName == "" {
 			log.Warn(ctx, "ignoring empty name for node", log.Data{"node": edge.Node})
 			continue
+		}
+
+		if r.Format == "cantabular_flexible_table" {
+			if codelists[i].IsCantabularGeography != nil {
+				if *codelists[i].IsCantabularGeography {
+					continue
+				}
+			}
 		}
 
 		id := sourceName
@@ -242,15 +254,29 @@ func (h *InstanceStarted) createUpdateInstanceRequest(ctx context.Context, mf gq
 	return req
 }
 
-func (h *InstanceStarted) triggerImportDimensionOptions(blob string, dimensions []string, e *event.InstanceStarted) []error {
+func (h *InstanceStarted) TriggerImportDimensionOptions(r *recipe.Recipe, codelists []recipe.CodeList, e *event.InstanceStarted) []error {
 	var errs []error
+	var geographyCount int
+	tc := len(codelists)
 
-	for _, d := range dimensions {
+	for _, cl := range codelists {
 		ie := event.CategoryDimensionImport{
-			DimensionID:    d,
+			DimensionID:    cl.ID,
 			JobID:          e.JobID,
 			InstanceID:     e.InstanceID,
-			CantabularBlob: blob,
+			CantabularBlob: r.CantabularBlob,
+		}
+
+		if r.Format == "cantabular_flexible_table" {
+			if cl.IsCantabularGeography != nil {
+				if *cl.IsCantabularGeography {
+					geographyCount++
+					// To indicate `dp-import-cantabular-dimension-options` when consuming the kafka message to not update the instance
+					// The message still needs to be consumed to determine that all dimensions have been processed
+					// so that it can mark the job as finished and complete
+					ie.IsGeography = true
+				}
+			}
 		}
 
 		s := schema.CategoryDimensionImport
@@ -260,13 +286,21 @@ func (h *InstanceStarted) triggerImportDimensionOptions(blob string, dimensions 
 			errs = append(errs, &Error{
 				err: fmt.Errorf("avro: failed to marshal dimension: %w", err),
 				logData: log.Data{
-					"dimension_id": d,
+					"dimension_id": cl.ID,
 				},
 			})
 			continue
 		}
 
 		h.producer.Channels().Output <- b
+	}
+	if geographyCount == tc {
+		var errs []error
+		errs = append(errs, &Error{
+			err:     fmt.Errorf("only geography codelists exist in this instance, there must be at least one non-geography in the codelists"),
+			logData: log.Data{},
+		})
+		return errs
 	}
 
 	return errs
