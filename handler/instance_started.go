@@ -219,7 +219,7 @@ func (h *InstanceStarted) CreateUpdateInstanceRequest(ctx context.Context, mf gq
 			continue
 		}
 
-		if r.Format == "cantabular_flexible_table" {
+		if r.Format == "cantabular_flexible_table" && isNotCantatularDefaultGeography(codelists, i) {
 			if codelists[i].IsCantabularGeography != nil {
 				if *codelists[i].IsCantabularGeography {
 					continue
@@ -259,7 +259,7 @@ func (h *InstanceStarted) TriggerImportDimensionOptions(r *recipe.Recipe, codeli
 	var geographyCount int
 	tc := len(codelists)
 
-	for _, cl := range codelists {
+	for i, cl := range codelists {
 		ie := event.CategoryDimensionImport{
 			DimensionID:    cl.ID,
 			JobID:          e.JobID,
@@ -267,9 +267,9 @@ func (h *InstanceStarted) TriggerImportDimensionOptions(r *recipe.Recipe, codeli
 			CantabularBlob: r.CantabularBlob,
 		}
 
-		if r.Format == "cantabular_flexible_table" {
-			if cl.IsCantabularGeography != nil && cl.IsCantabularDefaultGeography != nil {
-				if *cl.IsCantabularGeography && !*cl.IsCantabularDefaultGeography {
+		if r.Format == "cantabular_flexible_table" && isNotCantatularDefaultGeography(codelists, i) {
+			if cl.IsCantabularGeography != nil {
+				if *cl.IsCantabularGeography {
 					geographyCount++
 					// To indicate `dp-import-cantabular-dimension-options` when consuming the kafka message to not update the instance
 					// The message still needs to be consumed to determine that all dimensions have been processed
@@ -336,4 +336,8 @@ func (h *InstanceStarted) handleError(ctx context.Context, e *event.InstanceStar
 	}
 
 	return err
+}
+
+func isNotCantatularDefaultGeography(cl []recipe.CodeList, i int) bool {
+	return !(cl[i].IsCantabularDefaultGeography != nil && *cl[i].IsCantabularDefaultGeography)
 }

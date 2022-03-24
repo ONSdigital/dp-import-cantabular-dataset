@@ -654,6 +654,7 @@ func TestCreateUpdateInstanceRequest_Happy(t *testing.T) {
 
 func TestCreateUpdateInstanceRequest_Flexible_NoGeography(t *testing.T) {
 	cfg := config.Config{}
+	trueValue := true
 	falseValue := false
 
 	Convey("Given CreateUpdateInstanceRequest() is called with two Edges and the format is of type: cantabular_flexible_table, and neither edges are Geography", t, func() {
@@ -705,11 +706,11 @@ func TestCreateUpdateInstanceRequest_Flexible_NoGeography(t *testing.T) {
 		codelists := []recipe.CodeList{
 			{
 				IsCantabularGeography:        &falseValue,
-				IsCantabularDefaultGeography: &falseValue,
+				IsCantabularDefaultGeography: &trueValue,
 			},
 			{
 				IsCantabularGeography:        &falseValue,
-				IsCantabularDefaultGeography: &falseValue,
+				IsCantabularDefaultGeography: &trueValue,
 			},
 		}
 
@@ -820,7 +821,7 @@ func TestCreateUpdateInstanceRequest_Flexible_OneGeography(t *testing.T) {
 			},
 			{
 				IsCantabularGeography:        &falseValue,
-				IsCantabularDefaultGeography: &falseValue,
+				IsCantabularDefaultGeography: &trueValue,
 			},
 		}
 
