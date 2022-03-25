@@ -29,7 +29,7 @@ https://github.com/ONSdigital/dp-compose/cantabular-import
 
 ## Component Tests ##
 
-* `sudo make test-component`
+* `make test-component`
 
 ### Configuration
 
