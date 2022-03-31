@@ -127,7 +127,7 @@ func TestInstanceStartedHandler_HandleHappy(t *testing.T) {
 								ID:              "test-variable",
 								URL:             "http://recipe-defined-host/code-lists/test-variable",
 								Label:           "LabelVar1",
-								Name:            "LabelVar1",
+								Name:            "Test Variable",
 								Variable:        "NameVar1",
 								NumberOfOptions: 100,
 							},
@@ -135,7 +135,7 @@ func TestInstanceStartedHandler_HandleHappy(t *testing.T) {
 								ID:              "test-mapped-variable",
 								URL:             "http://recipe-defined-host/code-lists/test-mapped-variable",
 								Label:           "LabelVar2",
-								Name:            "LabelVar2",
+								Name:            "Test Mapped Variable",
 								Variable:        "NameVar2",
 								NumberOfOptions: 123,
 							},
@@ -619,7 +619,7 @@ func TestCreateUpdateInstanceRequest_Happy(t *testing.T) {
 				Dimensions: []dataset.VersionDimension{
 					{
 						ID:              "NameVar1",
-						Name:            "LabelVar1",
+						Name:            "NameVar1",
 						Label:           "LabelVar1",
 						URL:             "/code-lists/NameVar1",
 						Variable:        "NameVar1",
@@ -627,7 +627,7 @@ func TestCreateUpdateInstanceRequest_Happy(t *testing.T) {
 					},
 					{
 						ID:              "NameVar2",
-						Name:            "LabelVar2",
+						Name:            "NameVar2",
 						Label:           "LabelVar2",
 						URL:             "/code-lists/NameVar2",
 						Variable:        "NameVar2",
@@ -730,7 +730,7 @@ func TestCreateUpdateInstanceRequest_Flexible_NoGeography(t *testing.T) {
 				Dimensions: []dataset.VersionDimension{
 					{
 						ID:              "NameVar1",
-						Name:            "LabelVar1",
+						Name:            "NameVar1",
 						Label:           "LabelVar1",
 						URL:             "/code-lists/NameVar1",
 						Variable:        "NameVar1",
@@ -738,7 +738,7 @@ func TestCreateUpdateInstanceRequest_Flexible_NoGeography(t *testing.T) {
 					},
 					{
 						ID:              "NameVar2",
-						Name:            "LabelVar2",
+						Name:            "NameVar2",
 						Label:           "LabelVar2",
 						URL:             "/code-lists/NameVar2",
 						Variable:        "NameVar2",
@@ -841,7 +841,7 @@ func TestCreateUpdateInstanceRequest_Flexible_OneGeography(t *testing.T) {
 				Dimensions: []dataset.VersionDimension{
 					{
 						ID:              "NameVar2",
-						Name:            "LabelVar2",
+						Name:            "NameVar2",
 						Label:           "LabelVar2",
 						URL:             "/code-lists/NameVar2",
 						Variable:        "NameVar2",

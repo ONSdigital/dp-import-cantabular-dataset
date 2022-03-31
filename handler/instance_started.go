@@ -199,8 +199,7 @@ func (h *InstanceStarted) getCodeListsFromInstance(i *recipe.Instance) ([]string
 	return codelists, nil
 }
 
-func (h *InstanceStarted) CreateUpdateInstanceRequest(ctx context.Context, mf gql.Variables, e *event.InstanceStarted, r *recipe.Recipe, codelists []recipe.CodeList, edition string) dataset.UpdateInstance {
-
+func (h *InstanceStarted) CreateUpdateInstanceRequest(ctx context.Context, vars gql.Variables, e *event.InstanceStarted, r *recipe.Recipe, codelists []recipe.CodeList, edition string) dataset.UpdateInstance {
 	req := dataset.UpdateInstance{
 		Edition:    edition,
 		CSVHeader:  []string{cantabularTable},
@@ -212,7 +211,7 @@ func (h *InstanceStarted) CreateUpdateInstanceRequest(ctx context.Context, mf gq
 		},
 	}
 
-	for i, edge := range mf.Edges {
+	for i, edge := range vars.Edges {
 		sourceName := edge.Node.Name
 		if sourceName == "" {
 			log.Warn(ctx, "ignoring empty name for node", log.Data{"node": edge.Node})
@@ -228,6 +227,7 @@ func (h *InstanceStarted) CreateUpdateInstanceRequest(ctx context.Context, mf gq
 		}
 
 		id := sourceName
+		name := sourceName
 		url := fmt.Sprintf("%s/code-lists/%s", h.cfg.RecipeAPIURL, sourceName)
 
 		// id and url values overwritten by codelist values.
@@ -235,15 +235,18 @@ func (h *InstanceStarted) CreateUpdateInstanceRequest(ctx context.Context, mf gq
 		if codelists[i].ID != "" {
 			id = codelists[i].ID
 		}
-		if codelists[i].ID != "" {
+		if codelists[i].HRef != "" {
 			url = codelists[i].HRef
+		}
+		if codelists[i].Name != "" {
+			name = codelists[i].Name
 		}
 
 		d := dataset.VersionDimension{
 			ID:              id,
 			URL:             url,
 			Label:           edge.Node.Label,
-			Name:            edge.Node.Label,
+			Name:            name,
 			Variable:        sourceName,
 			NumberOfOptions: edge.Node.Categories.TotalCount,
 		}
