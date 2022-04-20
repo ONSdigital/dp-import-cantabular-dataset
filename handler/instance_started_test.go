@@ -39,6 +39,9 @@ const (
 
 var ctx = context.Background()
 
+var trueValue = true
+var falseValue = false
+
 type testError struct {
 	statusCode int
 }
@@ -543,8 +546,6 @@ func TestInstanceStartedHandler_HandleUnhappyNoEdition(t *testing.T) {
 
 func TestCreateUpdateInstanceRequest_Happy(t *testing.T) {
 	cfg := config.Config{}
-	trueValue := true
-	falseValue := false
 
 	Convey("Given CreateUpdateInstanceRequest() is called with two Edges and the format is of type: cantabular_table", t, func() {
 		ctblrClient := cantabularClientHappy()
@@ -624,6 +625,7 @@ func TestCreateUpdateInstanceRequest_Happy(t *testing.T) {
 						URL:             "/code-lists/NameVar1",
 						Variable:        "NameVar1",
 						NumberOfOptions: 100,
+						IsAreaType:      &trueValue,
 					},
 					{
 						ID:              "NameVar2",
@@ -632,6 +634,7 @@ func TestCreateUpdateInstanceRequest_Happy(t *testing.T) {
 						URL:             "/code-lists/NameVar2",
 						Variable:        "NameVar2",
 						NumberOfOptions: 123,
+						IsAreaType:      &trueValue,
 					},
 				},
 				ID:         "",
@@ -735,6 +738,7 @@ func TestCreateUpdateInstanceRequest_Flexible_NoGeography(t *testing.T) {
 						URL:             "/code-lists/NameVar1",
 						Variable:        "NameVar1",
 						NumberOfOptions: 100,
+						IsAreaType:      &falseValue,
 					},
 					{
 						ID:              "NameVar2",
@@ -743,6 +747,7 @@ func TestCreateUpdateInstanceRequest_Flexible_NoGeography(t *testing.T) {
 						URL:             "/code-lists/NameVar2",
 						Variable:        "NameVar2",
 						NumberOfOptions: 123,
+						IsAreaType:      &falseValue,
 					},
 				},
 				ID:         "",
@@ -846,6 +851,7 @@ func TestCreateUpdateInstanceRequest_Flexible_OneGeography(t *testing.T) {
 						URL:             "/code-lists/NameVar2",
 						Variable:        "NameVar2",
 						NumberOfOptions: 123,
+						IsAreaType:      &falseValue,
 					},
 				},
 				ID:         "",

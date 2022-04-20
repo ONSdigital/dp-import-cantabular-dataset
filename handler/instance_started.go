@@ -249,7 +249,7 @@ func (h *InstanceStarted) CreateUpdateInstanceRequest(ctx context.Context, vars 
 			Name:            name,
 			Variable:        sourceName,
 			NumberOfOptions: edge.Node.Categories.TotalCount,
-			IsAreaType:      *codelists[i].IsCantabularGeography,
+			IsAreaType:      codelists[i].IsCantabularGeography,
 		}
 		req.Dimensions = append(req.Dimensions, d)
 		req.CSVHeader = append(req.CSVHeader, edge.Node.Name)
