@@ -17,7 +17,6 @@ services:
             - ../..:/dp-import-cantabular-dataset
         depends_on:
             - kafka-1
-            - zookeeper-1
         ports:
             - "26100:26100"
         environment:
