@@ -5,7 +5,7 @@ services:
         build:
             context: ../..
             dockerfile: Dockerfile.local
-        user: "${MY_UID}:${MY_UID}"
+        user: "${MY_UID}:${MY_GID}"
         command:
             - go 
             - test 
@@ -17,7 +17,6 @@ services:
             - ../..:/dp-import-cantabular-dataset
         depends_on:
             - kafka-1
-            - zookeeper-1
         ports:
             - "26100:26100"
         environment:
