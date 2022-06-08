@@ -132,6 +132,9 @@ func (c *Component) theFollowingCantabularVariablesAreAvailable(dataset string, 
 			"dataset":   dataset,
 			"text":      "",
 			"variables": vars,
+			"category":  "",
+			"limit":     20,
+			"offset":    0,
 		},
 	}); err != nil {
 		return fmt.Errorf("failed to encode GraphQL query: %w", err)
