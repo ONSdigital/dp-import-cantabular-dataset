@@ -240,7 +240,7 @@ func TestInstanceStartedHandler_HandleUnhappy(t *testing.T) {
 
 func testDimensions() *cantabular.GetDimensionsResponse {
 	return &cantabular.GetDimensionsResponse{
-		Dataset: gql.DatasetVariables{
+		Dataset: gql.Dataset{
 			Variables: gql.Variables{
 				Edges: []gql.Edge{
 					{

@@ -70,6 +70,8 @@ func (h *InstanceStarted) Handle(ctx context.Context, workerID int, msg kafka.Me
 		})
 	}
 
+	log.Info(ctx, "blah", log.Data{"recipe_alias": r.Alias})
+
 	log.Info(ctx, "Successfully got Recipe", log.Data{"recipe_alias": r.Alias})
 
 	i, err := h.getInstanceFromRecipe(ctx, r)
@@ -131,6 +133,8 @@ func (h *InstanceStarted) Handle(ctx context.Context, workerID int, msg kafka.Me
 		"edition":        ireq.Edition,
 		"num_dimensions": len(ireq.Dimensions),
 	})
+
+	//randome stuff here
 
 	if _, err := h.datasets.PutInstance(ctx, "", h.cfg.ServiceAuthToken, "", e.InstanceID, ireq, headers.IfMatchAnyETag); err != nil {
 		return h.handleError(ctx, e, &Error{
