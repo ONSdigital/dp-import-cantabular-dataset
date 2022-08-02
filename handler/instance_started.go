@@ -70,8 +70,6 @@ func (h *InstanceStarted) Handle(ctx context.Context, workerID int, msg kafka.Me
 		})
 	}
 
-	log.Info(ctx, "blah", log.Data{"recipe_alias": r.Alias})
-
 	log.Info(ctx, "Successfully got Recipe", log.Data{"recipe_alias": r.Alias})
 
 	i, err := h.getInstanceFromRecipe(ctx, r)
