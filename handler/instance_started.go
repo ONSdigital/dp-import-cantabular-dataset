@@ -132,8 +132,6 @@ func (h *InstanceStarted) Handle(ctx context.Context, workerID int, msg kafka.Me
 		"num_dimensions": len(ireq.Dimensions),
 	})
 
-	//randome stuff here
-
 	if _, err := h.datasets.PutInstance(ctx, "", h.cfg.ServiceAuthToken, "", e.InstanceID, ireq, headers.IfMatchAnyETag); err != nil {
 		return h.handleError(ctx, e, &Error{
 			err:     fmt.Errorf("failed to update instance: %w", err),
