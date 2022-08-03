@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -32,10 +33,10 @@ func (c *Component) RegisterSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^dp-recipe-api is healthy`, c.recipeAPIIsHealthy)
 	ctx.Step(`^cantabular server is healthy`, c.cantabularServerIsHealthy)
 	ctx.Step(`^cantabular api extension is healthy`, c.cantabularAPIExtIsHealthy)
-	ctx.Step(`^the call to update job "([^"]*)" is succesful`, c.theCallToUpdateJobIsSuccessful)
-	ctx.Step(`^the call to update instance "([^"]*)" is succesful`, c.theCallToUpdateInstanceIsSuccessful)
-	ctx.Step(`^the call to update job "([^"]*)" is unsuccesful`, c.theCallToUpdateJobIsUnsuccessful)
-	ctx.Step(`^the call to update instance "([^"]*)" is unsuccesful`, c.theCallToUpdateInstanceIsUnsuccessful)
+	ctx.Step(`^the call to update job "([^"]*)" is successful`, c.theCallToUpdateJobIsSuccessful)
+	ctx.Step(`^the call to update instance "([^"]*)" is successful`, c.theCallToUpdateInstanceIsSuccessful)
+	ctx.Step(`^the call to update job "([^"]*)" is unsuccessful`, c.theCallToUpdateJobIsUnsuccessful)
+	ctx.Step(`^the call to update instance "([^"]*)" is unsuccessful`, c.theCallToUpdateInstanceIsUnsuccessful)
 
 	ctx.Step(`^this instance-started event is queued, to be consumed:$`, c.thisInstanceStartedEventIsQueued)
 	ctx.Step(`^these category dimension import events should be produced:$`, c.theseCategoryDimensionImportEventsShouldBeProduced)
@@ -135,6 +136,8 @@ func (c *Component) theFollowingCantabularVariablesAreAvailable(dataset string, 
 			"category":  "",
 			"limit":     20,
 			"offset":    0,
+			"rule":      false,
+			"base":      false,
 		},
 	}); err != nil {
 		return fmt.Errorf("failed to encode GraphQL query: %w", err)
@@ -183,7 +186,9 @@ func (c *Component) theCallToUpdateJobIsUnsuccessful(job string) error {
 }
 
 func (c *Component) theseCategoryDimensionImportEventsShouldBeProduced(events *godog.Table) error {
-	expected, err := assistdog.NewDefault().CreateSlice(new(event.CategoryDimensionImport), events)
+	assist := assistdog.NewDefault()
+	assist.RegisterParser(false, boolParser)
+	expected, err := assist.CreateSlice(new(event.CategoryDimensionImport), events)
 	if err != nil {
 		return fmt.Errorf("failed to create slice from godog table: %w", err)
 	}
@@ -279,4 +284,13 @@ func (c *Component) thisInstanceStartedEventIsQueued(input *godog.DocString) err
 
 	log.Info(ctx, "thisInstanceStartedEventIsConsumed done")
 	return nil
+}
+
+//this is required to support bool values being used in kafka test messages
+func boolParser(raw string) (interface{}, error) {
+	b, err := strconv.ParseBool(raw)
+	if err != nil {
+		return false, fmt.Errorf("failed to parse bool from string: %w", err)
+	}
+	return b, nil
 }
