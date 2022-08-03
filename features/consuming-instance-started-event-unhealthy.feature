@@ -11,9 +11,9 @@ Feature: Import-Cantabular-Dataset-Unhealthy
     And this instance-started event is queued, to be consumed:
       """
       {
-        "RecipeId":       "recipe-happy-01",
-        "InstanceId":     "instance-happy-01",
-        "JobId":          "job-happy-01",
+        "RecipeId":       "recipe-happy-03",
+        "InstanceId":     "instance-happy-03",
+        "JobId":          "job-happy-03",
         "CantabularType": "table"
       }
       """
