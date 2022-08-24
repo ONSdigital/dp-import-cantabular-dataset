@@ -21,7 +21,9 @@ import (
 )
 
 const (
-	cantabularTable = "cantabular_table"
+	cantabularTable             = "cantabular_table"
+	cantabularFlexibleTable     = "cantabular_flexible_table"
+	cantabularMultivariateTable = "cantabular_multivariate_table"
 )
 
 // InstanceStarted is the handler for the InstanceStarted event
@@ -218,12 +220,10 @@ func (h *InstanceStarted) CreateUpdateInstanceRequest(ctx context.Context, vars 
 			continue
 		}
 
-		if r.Format == "cantabular_flexible_table" && isNotCantatularDefaultGeography(codelists, i) {
-			if codelists[i].IsCantabularGeography != nil {
-				if *codelists[i].IsCantabularGeography {
-					continue
-				}
-			}
+		cl := codelists[i]
+
+		if isCantabularFlexibleType(r) && isCantabularGeography(cl) && !isCantabularDefaultGeography(cl) {
+			continue
 		}
 
 		id := sourceName
@@ -232,14 +232,14 @@ func (h *InstanceStarted) CreateUpdateInstanceRequest(ctx context.Context, vars 
 
 		// id and url values overwritten by codelist values.
 		// Note that cantabular codebook is sorted with exactly the same order as codelists array.
-		if codelists[i].ID != "" {
-			id = codelists[i].ID
+		if cl.ID != "" {
+			id = cl.ID
 		}
-		if codelists[i].HRef != "" {
-			url = codelists[i].HRef
+		if cl.HRef != "" {
+			url = cl.HRef
 		}
-		if codelists[i].Name != "" {
-			name = codelists[i].Name
+		if cl.Name != "" {
+			name = cl.Name
 		}
 
 		d := dataset.VersionDimension{
@@ -249,7 +249,7 @@ func (h *InstanceStarted) CreateUpdateInstanceRequest(ctx context.Context, vars 
 			Name:            name,
 			Variable:        sourceName,
 			NumberOfOptions: edge.Node.Categories.TotalCount,
-			IsAreaType:      codelists[i].IsCantabularGeography,
+			IsAreaType:      cl.IsCantabularGeography,
 		}
 		req.Dimensions = append(req.Dimensions, d)
 		req.CSVHeader = append(req.CSVHeader, edge.Node.Name)
@@ -263,7 +263,7 @@ func (h *InstanceStarted) TriggerImportDimensionOptions(r *recipe.Recipe, codeli
 	var geographyCount int
 	tc := len(codelists)
 
-	for i, cl := range codelists {
+	for _, cl := range codelists {
 		ie := event.CategoryDimensionImport{
 			DimensionID:    cl.ID,
 			JobID:          e.JobID,
@@ -271,16 +271,12 @@ func (h *InstanceStarted) TriggerImportDimensionOptions(r *recipe.Recipe, codeli
 			CantabularBlob: r.CantabularBlob,
 		}
 
-		if r.Format == "cantabular_flexible_table" && isNotCantatularDefaultGeography(codelists, i) {
-			if cl.IsCantabularGeography != nil {
-				if *cl.IsCantabularGeography {
-					geographyCount++
-					// To indicate `dp-import-cantabular-dimension-options` when consuming the kafka message to not update the instance
-					// The message still needs to be consumed to determine that all dimensions have been processed
-					// so that it can mark the job as finished and complete
-					ie.IsGeography = true
-				}
-			}
+		if isCantabularFlexibleType((r)) && isCantabularGeography(cl) && !isCantabularDefaultGeography(cl) {
+			geographyCount++
+			// To indicate `dp-import-cantabular-dimension-options` when consuming the kafka message to not update the instance
+			// The message still needs to be consumed to determine that all dimensions have been processed
+			// so that it can mark the job as finished and complete
+			ie.IsGeography = true
 		}
 
 		s := schema.CategoryDimensionImport
@@ -342,6 +338,14 @@ func (h *InstanceStarted) handleError(ctx context.Context, e *event.InstanceStar
 	return err
 }
 
-func isNotCantatularDefaultGeography(cl []recipe.CodeList, i int) bool {
-	return !(cl[i].IsCantabularDefaultGeography != nil && *cl[i].IsCantabularDefaultGeography)
+func isCantabularFlexibleType(r *recipe.Recipe) bool {
+	return r.Format == cantabularFlexibleTable || r.Format == cantabularMultivariateTable
+}
+
+func isCantabularGeography(cl recipe.CodeList) bool {
+	return cl.IsCantabularGeography != nil && *cl.IsCantabularGeography
+}
+
+func isCantabularDefaultGeography(cl recipe.CodeList) bool {
+	return cl.IsCantabularDefaultGeography != nil && *cl.IsCantabularDefaultGeography
 }
