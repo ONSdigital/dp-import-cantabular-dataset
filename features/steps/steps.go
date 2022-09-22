@@ -132,6 +132,7 @@ func (c *Component) theFollowingCantabularVariablesAreAvailable(dataset string, 
 		"variables": map[string]interface{}{
 			"dataset":   dataset,
 			"text":      "",
+			"filters":   nil,
 			"variables": vars,
 			"category":  "",
 			"limit":     20,
@@ -286,7 +287,7 @@ func (c *Component) thisInstanceStartedEventIsQueued(input *godog.DocString) err
 	return nil
 }
 
-//this is required to support bool values being used in kafka test messages
+// this is required to support bool values being used in kafka test messages
 func boolParser(raw string) (interface{}, error) {
 	b, err := strconv.ParseBool(raw)
 	if err != nil {
