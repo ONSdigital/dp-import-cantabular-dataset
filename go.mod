@@ -11,12 +11,12 @@ exclude github.com/gorilla/sessions v1.2.1
 replace github.com/spf13/cobra => github.com/spf13/cobra v1.4.0
 
 require (
-	github.com/ONSdigital/dp-api-clients-go/v2 v2.159.1
+	github.com/ONSdigital/dp-api-clients-go/v2 v2.181.1
 	github.com/ONSdigital/dp-component-test v0.7.0
 	github.com/ONSdigital/dp-healthcheck v1.3.0
 	github.com/ONSdigital/dp-import v1.3.1
 	github.com/ONSdigital/dp-kafka/v3 v3.3.2
-	github.com/ONSdigital/dp-net v1.4.1
+	github.com/ONSdigital/dp-net v1.5.0
 	github.com/ONSdigital/log.go/v2 v2.2.0
 	github.com/cucumber/godog v0.12.5
 	github.com/google/go-cmp v0.5.7
@@ -33,7 +33,7 @@ require (
 	github.com/ONSdigital/dp-mongodb-in-memory v1.3.0 // indirect
 	github.com/ONSdigital/dp-net/v2 v2.4.0 // indirect
 	github.com/Shopify/sarama v1.35.0 // indirect
-	github.com/aws/aws-sdk-go v1.44.43 // indirect
+	github.com/aws/aws-sdk-go v1.44.76 // indirect
 	github.com/chromedp/cdproto v0.0.0-20220408044303-8559a4e76b35 // indirect
 	github.com/chromedp/chromedp v0.8.0 // indirect
 	github.com/chromedp/sysutil v1.0.0 // indirect
@@ -71,7 +71,7 @@ require (
 	github.com/klauspost/compress v1.15.8 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
-	github.com/mattn/go-isatty v0.0.14 // indirect
+	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/pierrec/lz4/v4 v4.1.15 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -88,9 +88,9 @@ require (
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a // indirect
 	go.mongodb.org/mongo-driver v1.9.0 // indirect
 	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4 // indirect
-	golang.org/x/net v0.0.0-20220708220712-1185a9018129 // indirect
+	golang.org/x/net v0.0.0-20220812174116-3211cb980234 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.0.0-20220627191245-f75cf1eec38b // indirect
+	golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab // indirect
 	golang.org/x/text v0.3.7 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
