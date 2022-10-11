@@ -136,6 +136,7 @@ func TestInstanceStartedHandler_HandleHappy(t *testing.T) {
 								Name:            "Test Variable",
 								Variable:        "NameVar1",
 								NumberOfOptions: 100,
+								IsAreaType:      &falseValue,
 							},
 							{
 								ID:              "test-mapped-variable",
@@ -144,6 +145,7 @@ func TestInstanceStartedHandler_HandleHappy(t *testing.T) {
 								Name:            "Test Mapped Variable",
 								Variable:        "NameVar2",
 								NumberOfOptions: 123,
+								IsAreaType:      &falseValue,
 							},
 						},
 					})

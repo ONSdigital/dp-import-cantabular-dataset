@@ -202,6 +202,8 @@ func (h *InstanceStarted) getCodeListsFromInstance(i *recipe.Instance) ([]string
 }
 
 func (h *InstanceStarted) CreateUpdateInstanceRequest(ctx context.Context, vars gql.Variables, e *event.InstanceStarted, r *recipe.Recipe, codelists []recipe.CodeList, edition string) dataset.UpdateInstance {
+	var falseValue = false
+
 	req := dataset.UpdateInstance{
 		Edition:    edition,
 		CSVHeader:  []string{cantabularTable},
@@ -251,6 +253,11 @@ func (h *InstanceStarted) CreateUpdateInstanceRequest(ctx context.Context, vars 
 			NumberOfOptions: edge.Node.Categories.TotalCount,
 			IsAreaType:      cl.IsCantabularGeography,
 		}
+
+		if d.IsAreaType == nil {
+			d.IsAreaType = &falseValue
+		}
+
 		req.Dimensions = append(req.Dimensions, d)
 		req.CSVHeader = append(req.CSVHeader, edge.Node.Name)
 	}
