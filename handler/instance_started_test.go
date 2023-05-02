@@ -61,23 +61,38 @@ type statusCoder interface {
 	StatusCode() int
 }
 
+func testCfg() config.Config {
+	return config.Config{
+		KafkaConfig: config.KafkaConfig{
+			Addr:                         []string{"localhost:9092", "localhost:9093"},
+			InstanceStartedGroup:         "dp-import-cantabular-dataset",
+			InstanceStartedTopic:         "cantabular-dataset-instance-started",
+			CategoryDimensionImportTopic: "cantabular-dataset-category-dimension-import",
+		},
+	}
+}
+
 func TestInstanceStartedHandler_HandleHappy(t *testing.T) {
-	cfg := config.Config{}
+	testCfg := testCfg()
 
 	Convey("Given a successful event handler", t, func() {
 		ctblrClient := cantabularClientHappy()
 		recipeAPIClient := recipeAPIClientHappy()
 		importAPIClient := importAPIClientHappy()
 		datasetAPIClient := datasetAPIClientHappy()
-		producer := kafkatest.NewMessageProducer(true)
+		producer, _ := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
+			BrokerAddrs: testCfg.KafkaConfig.Addr,
+			Topic:       testCfg.KafkaConfig.InstanceStartedTopic,
+		},
+			nil)
 
 		h := handler.NewInstanceStarted(
-			cfg,
+			testCfg,
 			ctblrClient,
 			recipeAPIClient,
 			importAPIClient,
 			datasetAPIClient,
-			producer,
+			producer.Mock,
 		)
 
 		wg := &sync.WaitGroup{}
@@ -113,7 +128,8 @@ func TestInstanceStartedHandler_HandleHappy(t *testing.T) {
 				}
 
 				for _, e := range expected {
-					validateMessage(t, producer, c, e)
+					err := producer.WaitForMessageSent(schema.CategoryDimensionImport, &e, 5*time.Second)
+					So(err, ShouldBeNil)
 				}
 
 				Convey("And the expected dimensions are updated in dataset api instance, with ID and Href values comming from the corresponding codelist", func() {
@@ -152,7 +168,7 @@ func TestInstanceStartedHandler_HandleHappy(t *testing.T) {
 				})
 
 				wg.Wait()
-				err := producer.Close(ctx)
+				err := producer.Mock.CloseFunc(ctx)
 				So(err, ShouldBeNil)
 			})
 		})
@@ -160,26 +176,30 @@ func TestInstanceStartedHandler_HandleHappy(t *testing.T) {
 }
 
 func TestInstanceStartedHandler_HandleUnhappy(t *testing.T) {
-	cfg := config.Config{}
+	testCfg := testCfg()
 
 	Convey("Given an event handler with a recipe that cannot be found", t, func() {
 		ctblrClient := cantabularClientHappy()
 		recipeAPIClient := recipeAPIClientHappy()
 		importAPIClient := importAPIClientHappy()
 		datasetAPIClient := datasetAPIClientHappy()
-		producer := kafkatest.NewMessageProducer(true)
+		producer, _ := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
+			BrokerAddrs: testCfg.KafkaConfig.Addr,
+			Topic:       testCfg.KafkaConfig.InstanceStartedTopic,
+		},
+			nil)
 
 		recipeAPIClient.GetRecipeFunc = func(ctx context.Context, uaToken, saToken, recipeID string) (*recipe.Recipe, error) {
 			return nil, &testError{http.StatusNotFound}
 		}
 
 		h := handler.NewInstanceStarted(
-			cfg,
+			testCfg,
 			ctblrClient,
 			recipeAPIClient,
 			importAPIClient,
 			datasetAPIClient,
-			producer,
+			producer.Mock,
 		)
 
 		Convey("When Handle is triggered", func(c C) {
@@ -209,15 +229,19 @@ func TestInstanceStartedHandler_HandleUnhappy(t *testing.T) {
 		recipeAPIClient := recipeAPIClientHappy()
 		importAPIClient := importAPIClientHappy()
 		datasetAPIClient := datasetAPIClientUnhappy()
-		producer := kafkatest.NewMessageProducer(true)
+		producer, _ := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
+			BrokerAddrs: testCfg.KafkaConfig.Addr,
+			Topic:       testCfg.KafkaConfig.InstanceStartedTopic,
+		},
+			nil)
 
 		h := handler.NewInstanceStarted(
-			cfg,
+			testCfg,
 			ctblrClient,
 			recipeAPIClient,
 			importAPIClient,
 			datasetAPIClient,
-			producer,
+			producer.Mock,
 		)
 
 		Convey("When Handle is triggered", func(c C) {
@@ -438,7 +462,9 @@ func datasetAPIClientUnhappy() *mock.DatasetAPIClientMock {
 func kafkaMessage(c C, e *event.InstanceStarted) *kafkatest.Message {
 	b, err := schema.InstanceStarted.Marshal(e)
 	c.So(err, ShouldBeNil)
-	return kafkatest.NewMessage(b, 0)
+	message, err := kafkatest.NewMessage(b, 0)
+	c.So(err, ShouldBeNil)
+	return message
 }
 
 // validateMessage waits on the producer output channel,
@@ -451,9 +477,12 @@ func validateMessage(t *testing.T, producer kafka.IProducer, c C, expected event
 		var got event.CategoryDimensionImport
 		s := schema.CategoryDimensionImport
 		err := s.Unmarshal(b, &got)
+		fmt.Println("TESTING")
+		fmt.Println(err)
 		c.So(err, ShouldBeNil)
 		c.So(got, ShouldResemble, expected)
 	case <-time.After(msgTimeout):
+		fmt.Println("IN TEST FAILURE")
 		t.Fail()
 	}
 }
@@ -486,22 +515,26 @@ func validateMessagesCount(t *testing.T, producer kafka.IProducer, c C, expected
 }
 
 func TestInstanceStartedHandler_HandleUnhappyNoEdition(t *testing.T) {
-	cfg := config.Config{}
+	testCfg := testCfg()
 
 	Convey("Given a successful event handler, with no Editions", t, func() {
 		ctblrClient := cantabularClientHappy()
 		recipeAPIClient := recipeAPIClientOnlyGeography()
 		importAPIClient := importAPIClientHappy()
 		datasetAPIClient := datasetAPIClientHappy()
-		producer := kafkatest.NewMessageProducer(true)
+		producer, _ := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
+			BrokerAddrs: testCfg.KafkaConfig.Addr,
+			Topic:       testCfg.KafkaConfig.InstanceStartedTopic,
+		},
+			nil)
 
 		h := handler.NewInstanceStarted(
-			cfg,
+			testCfg,
 			ctblrClient,
 			recipeAPIClient,
 			importAPIClient,
 			datasetAPIClient,
-			producer,
+			producer.Mock,
 		)
 
 		wg := &sync.WaitGroup{}
@@ -534,15 +567,19 @@ func TestInstanceStartedHandler_HandleUnhappyNoEdition(t *testing.T) {
 
 				var result int
 				for _, e := range expected {
-					if validateMessagesCount(t, producer, c, e) == true {
+					err := producer.WaitForMessageSent(schema.CategoryDimensionImport, &e, 5*time.Second)
+					if err == nil {
 						result++
 					}
+					// if validateMessagesCount(t, producer.Mock, c, e) == true {
+					// 	result++
+					// }
 				}
 
 				wg.Wait()
 				So(result, ShouldEqual, 0)
 
-				err := producer.Close(ctx)
+				err := producer.Mock.CloseFunc(ctx)
 				So(err, ShouldBeNil)
 			})
 		})
@@ -550,22 +587,26 @@ func TestInstanceStartedHandler_HandleUnhappyNoEdition(t *testing.T) {
 }
 
 func TestCreateUpdateInstanceRequest_Happy(t *testing.T) {
-	cfg := config.Config{}
+	testCfg := testCfg()
 
 	Convey("Given CreateUpdateInstanceRequest() is called with two Edges and the format is of type: cantabular_table", t, func() {
 		ctblrClient := cantabularClientHappy()
 		recipeAPIClient := recipeAPIClientOnlyGeographyWithEdition()
 		importAPIClient := importAPIClientHappy()
 		datasetAPIClient := datasetAPIClientHappy()
-		producer := kafkatest.NewMessageProducer(true)
+		producer, _ := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
+			BrokerAddrs: testCfg.KafkaConfig.Addr,
+			Topic:       testCfg.KafkaConfig.InstanceStartedTopic,
+		},
+			nil)
 
 		h := handler.NewInstanceStarted(
-			cfg,
+			testCfg,
 			ctblrClient,
 			recipeAPIClient,
 			importAPIClient,
 			datasetAPIClient,
-			producer,
+			producer.Mock,
 		)
 
 		var mfVariables gql.Variables
@@ -661,7 +702,7 @@ func TestCreateUpdateInstanceRequest_Happy(t *testing.T) {
 }
 
 func TestCreateUpdateInstanceRequest_Flexible_NoGeography(t *testing.T) {
-	cfg := config.Config{}
+	testCfg := testCfg()
 	trueValue := true
 	falseValue := false
 
@@ -670,15 +711,19 @@ func TestCreateUpdateInstanceRequest_Flexible_NoGeography(t *testing.T) {
 		recipeAPIClient := recipeAPIClientOnlyGeographyWithEdition()
 		importAPIClient := importAPIClientHappy()
 		datasetAPIClient := datasetAPIClientHappy()
-		producer := kafkatest.NewMessageProducer(true)
+		producer, _ := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
+			BrokerAddrs: testCfg.KafkaConfig.Addr,
+			Topic:       testCfg.KafkaConfig.InstanceStartedTopic,
+		},
+			nil)
 
 		h := handler.NewInstanceStarted(
-			cfg,
+			testCfg,
 			ctblrClient,
 			recipeAPIClient,
 			importAPIClient,
 			datasetAPIClient,
-			producer,
+			producer.Mock,
 		)
 
 		var mfVariables gql.Variables
@@ -774,7 +819,7 @@ func TestCreateUpdateInstanceRequest_Flexible_NoGeography(t *testing.T) {
 }
 
 func TestCreateUpdateInstanceRequest_Flexible_OneGeography(t *testing.T) {
-	cfg := config.Config{}
+	testCfg := testCfg()
 	falseValue := false
 	trueValue := true
 
@@ -783,15 +828,19 @@ func TestCreateUpdateInstanceRequest_Flexible_OneGeography(t *testing.T) {
 		recipeAPIClient := recipeAPIClientOnlyGeographyWithEdition()
 		importAPIClient := importAPIClientHappy()
 		datasetAPIClient := datasetAPIClientHappy()
-		producer := kafkatest.NewMessageProducer(true)
+		producer, _ := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
+			BrokerAddrs: testCfg.KafkaConfig.Addr,
+			Topic:       testCfg.KafkaConfig.InstanceStartedTopic,
+		},
+			nil)
 
 		h := handler.NewInstanceStarted(
-			cfg,
+			testCfg,
 			ctblrClient,
 			recipeAPIClient,
 			importAPIClient,
 			datasetAPIClient,
-			producer,
+			producer.Mock,
 		)
 
 		var mfVariables gql.Variables
@@ -878,7 +927,7 @@ func TestCreateUpdateInstanceRequest_Flexible_OneGeography(t *testing.T) {
 }
 
 func TestCreateUpdateInstanceRequest_Flexible_BothGeography(t *testing.T) {
-	cfg := config.Config{}
+	testCfg := testCfg()
 	trueValue := true
 	falseValue := false
 
@@ -887,15 +936,19 @@ func TestCreateUpdateInstanceRequest_Flexible_BothGeography(t *testing.T) {
 		recipeAPIClient := recipeAPIClientOnlyGeographyWithEdition()
 		importAPIClient := importAPIClientHappy()
 		datasetAPIClient := datasetAPIClientHappy()
-		producer := kafkatest.NewMessageProducer(true)
+		producer, _ := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
+			BrokerAddrs: testCfg.KafkaConfig.Addr,
+			Topic:       testCfg.KafkaConfig.InstanceStartedTopic,
+		},
+			nil)
 
 		h := handler.NewInstanceStarted(
-			cfg,
+			testCfg,
 			ctblrClient,
 			recipeAPIClient,
 			importAPIClient,
 			datasetAPIClient,
-			producer,
+			producer.Mock,
 		)
 
 		var mfVariables gql.Variables
@@ -970,7 +1023,7 @@ func TestCreateUpdateInstanceRequest_Flexible_BothGeography(t *testing.T) {
 }
 
 func TestTriggerImportDimensionOptions(t *testing.T) {
-	cfg := config.Config{}
+	testCfg := testCfg()
 	trueValue := true
 	falseValue := false
 
@@ -979,15 +1032,19 @@ func TestTriggerImportDimensionOptions(t *testing.T) {
 		recipeAPIClient := recipeAPIClientGeographyWithEdition()
 		importAPIClient := importAPIClientHappy()
 		datasetAPIClient := datasetAPIClientHappy()
-		producer := kafkatest.NewMessageProducer(true)
+		producer, _ := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
+			BrokerAddrs: testCfg.KafkaConfig.Addr,
+			Topic:       testCfg.KafkaConfig.InstanceStartedTopic,
+		},
+			nil)
 
 		h := handler.NewInstanceStarted(
-			cfg,
+			testCfg,
 			ctblrClient,
 			recipeAPIClient,
 			importAPIClient,
 			datasetAPIClient,
-			producer,
+			producer.Mock,
 		)
 
 		wg := &sync.WaitGroup{}
@@ -1039,15 +1096,19 @@ func TestTriggerImportDimensionOptions(t *testing.T) {
 
 				var result int
 				for _, e := range expected {
-					if validateMessagesCount(t, producer, c, e) == true {
+					err := producer.WaitForMessageSent(schema.CategoryDimensionImport, &e, 5*time.Second)
+					if err == nil {
 						result++
 					}
+					// if validateMessagesCount(t, producer.Mock, c, e) == true {
+					// 	result++
+					// }
 				}
 
 				wg.Wait()
 				So(result, ShouldEqual, 2)
 
-				err := producer.Close(ctx)
+				err := producer.Mock.CloseFunc(ctx)
 				So(err, ShouldBeNil)
 			})
 		})
@@ -1055,7 +1116,7 @@ func TestTriggerImportDimensionOptions(t *testing.T) {
 }
 
 func TestTriggerImportDimensionOptionsNonGeography(t *testing.T) {
-	cfg := config.Config{}
+	testCfg := testCfg()
 	trueValue := true
 	falseValue := false
 
@@ -1064,15 +1125,19 @@ func TestTriggerImportDimensionOptionsNonGeography(t *testing.T) {
 		recipeAPIClient := recipeAPIClientGeographyWithEdition()
 		importAPIClient := importAPIClientHappy()
 		datasetAPIClient := datasetAPIClientHappy()
-		producer := kafkatest.NewMessageProducer(true)
+		producer, _ := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
+			BrokerAddrs: testCfg.KafkaConfig.Addr,
+			Topic:       testCfg.KafkaConfig.InstanceStartedTopic,
+		},
+			nil)
 
 		h := handler.NewInstanceStarted(
-			cfg,
+			testCfg,
 			ctblrClient,
 			recipeAPIClient,
 			importAPIClient,
 			datasetAPIClient,
-			producer,
+			producer.Mock,
 		)
 
 		wg := &sync.WaitGroup{}
@@ -1129,15 +1194,19 @@ func TestTriggerImportDimensionOptionsNonGeography(t *testing.T) {
 
 				var result int
 				for _, e := range expected {
-					if validateMessagesCount(t, producer, c, e) == true {
+					err := producer.WaitForMessageSent(schema.CategoryDimensionImport, &e, 5*time.Second)
+					if err == nil {
 						result++
 					}
+					// if validateMessagesCount(t, producer.Mock, c, e) == true {
+					// 	result++
+					// }
 				}
 
 				wg.Wait()
 				So(result, ShouldEqual, 2)
 
-				err := producer.Close(ctx)
+				err := producer.Mock.CloseFunc(ctx)
 				So(err, ShouldBeNil)
 			})
 		})
@@ -1145,7 +1214,7 @@ func TestTriggerImportDimensionOptionsNonGeography(t *testing.T) {
 }
 
 func TestCreateUpdateInstanceRequest_Multivariate_NoGeography(t *testing.T) {
-	cfg := config.Config{}
+	testCfg := testCfg()
 	trueValue := true
 	falseValue := false
 
@@ -1154,15 +1223,19 @@ func TestCreateUpdateInstanceRequest_Multivariate_NoGeography(t *testing.T) {
 		recipeAPIClient := recipeAPIClientOnlyGeographyWithEdition()
 		importAPIClient := importAPIClientHappy()
 		datasetAPIClient := datasetAPIClientHappy()
-		producer := kafkatest.NewMessageProducer(true)
+		producer, _ := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
+			BrokerAddrs: testCfg.KafkaConfig.Addr,
+			Topic:       testCfg.KafkaConfig.InstanceStartedTopic,
+		},
+			nil)
 
 		h := handler.NewInstanceStarted(
-			cfg,
+			testCfg,
 			ctblrClient,
 			recipeAPIClient,
 			importAPIClient,
 			datasetAPIClient,
-			producer,
+			producer.Mock,
 		)
 
 		var mfVariables gql.Variables
@@ -1258,7 +1331,7 @@ func TestCreateUpdateInstanceRequest_Multivariate_NoGeography(t *testing.T) {
 }
 
 func TestCreateUpdateInstanceRequest_Multivariate_OneGeography(t *testing.T) {
-	cfg := config.Config{}
+	testCfg := testCfg()
 	falseValue := false
 	trueValue := true
 
@@ -1267,15 +1340,19 @@ func TestCreateUpdateInstanceRequest_Multivariate_OneGeography(t *testing.T) {
 		recipeAPIClient := recipeAPIClientOnlyGeographyWithEdition()
 		importAPIClient := importAPIClientHappy()
 		datasetAPIClient := datasetAPIClientHappy()
-		producer := kafkatest.NewMessageProducer(true)
+		producer, _ := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
+			BrokerAddrs: testCfg.KafkaConfig.Addr,
+			Topic:       testCfg.KafkaConfig.InstanceStartedTopic,
+		},
+			nil)
 
 		h := handler.NewInstanceStarted(
-			cfg,
+			testCfg,
 			ctblrClient,
 			recipeAPIClient,
 			importAPIClient,
 			datasetAPIClient,
-			producer,
+			producer.Mock,
 		)
 
 		var mfVariables gql.Variables
@@ -1362,7 +1439,7 @@ func TestCreateUpdateInstanceRequest_Multivariate_OneGeography(t *testing.T) {
 }
 
 func TestCreateUpdateInstanceRequest_Multivariate_BothGeography(t *testing.T) {
-	cfg := config.Config{}
+	testCfg := testCfg()
 	trueValue := true
 	falseValue := false
 
@@ -1371,15 +1448,19 @@ func TestCreateUpdateInstanceRequest_Multivariate_BothGeography(t *testing.T) {
 		recipeAPIClient := recipeAPIClientOnlyGeographyWithEdition()
 		importAPIClient := importAPIClientHappy()
 		datasetAPIClient := datasetAPIClientHappy()
-		producer := kafkatest.NewMessageProducer(true)
+		producer, _ := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
+			BrokerAddrs: testCfg.KafkaConfig.Addr,
+			Topic:       testCfg.KafkaConfig.InstanceStartedTopic,
+		},
+			nil)
 
 		h := handler.NewInstanceStarted(
-			cfg,
+			testCfg,
 			ctblrClient,
 			recipeAPIClient,
 			importAPIClient,
 			datasetAPIClient,
-			producer,
+			producer.Mock,
 		)
 
 		var mfVariables gql.Variables

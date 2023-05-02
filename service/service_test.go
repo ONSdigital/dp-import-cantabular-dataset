@@ -316,7 +316,7 @@ func TestClose(t *testing.T) {
 				consumerListening = false
 				return nil
 			},
-			CloseFunc: func(ctx context.Context) error { return nil },
+			CloseFunc: func(ctx context.Context, optFuncs ...kafka.OptFunc) error { return nil },
 		}
 
 		// kafka producer mock, close will fail if consumer is still listening
@@ -364,7 +364,7 @@ func TestClose(t *testing.T) {
 
 		Convey("If services fail to stop, the Close operation tries to close all dependencies and returns an error", func() {
 			consumerMock.StopAndWaitFunc = func() error { return nil }
-			consumerMock.CloseFunc = func(ctx context.Context) error {
+			consumerMock.CloseFunc = func(ctx context.Context, optFuncs ...kafka.OptFunc) error {
 				return errKafkaConsumer
 			}
 			serverMock.ShutdownFunc = func(ctx context.Context) error {
