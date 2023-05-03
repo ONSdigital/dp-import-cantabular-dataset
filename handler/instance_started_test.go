@@ -467,26 +467,6 @@ func kafkaMessage(c C, e *event.InstanceStarted) *kafkatest.Message {
 	return message
 }
 
-// validateMessage waits on the producer output channel,
-// un-marshals the received message with the CategoryDimensionImport schema
-// and checks that it resembles the provided expected event.
-// If no message is received after a timeout (const) then it forces a test failure
-func validateMessage(t *testing.T, producer kafka.IProducer, c C, expected event.CategoryDimensionImport) {
-	select {
-	case b := <-producer.Channels().Output:
-		var got event.CategoryDimensionImport
-		s := schema.CategoryDimensionImport
-		err := s.Unmarshal(b, &got)
-		fmt.Println("TESTING")
-		fmt.Println(err)
-		c.So(err, ShouldBeNil)
-		c.So(got, ShouldResemble, expected)
-	case <-time.After(msgTimeout):
-		fmt.Println("IN TEST FAILURE")
-		t.Fail()
-	}
-}
-
 func validateFailure(i *mock.ImportAPIClientMock, d *mock.DatasetAPIClientMock, jobID, instanceID string) {
 	So(i.UpdateImportJobStateCalls(), ShouldHaveLength, 1)
 	So(i.UpdateImportJobStateCalls()[0].JobID, ShouldEqual, jobID)
@@ -494,24 +474,6 @@ func validateFailure(i *mock.ImportAPIClientMock, d *mock.DatasetAPIClientMock, 
 	So(d.PutInstanceStateCalls(), ShouldHaveLength, 1)
 	So(d.PutInstanceStateCalls()[0].InstanceID, ShouldEqual, instanceID)
 	So(d.PutInstanceStateCalls()[0].State, ShouldEqual, dataset.StateFailed)
-}
-
-func validateMessagesCount(t *testing.T, producer kafka.IProducer, c C, expected event.CategoryDimensionImport) bool {
-	var consumed bool
-
-	select {
-	case b := <-producer.Channels().Output:
-		var got event.CategoryDimensionImport
-		s := schema.CategoryDimensionImport
-		err := s.Unmarshal(b, &got)
-		c.So(err, ShouldBeNil)
-		c.So(got, ShouldResemble, expected)
-		consumed = true
-	case <-time.After(msgTimeout):
-		// a timeout is expected, so the following is a dummy check that passes
-		c.So(1, ShouldEqual, 1)
-	}
-	return consumed
 }
 
 func TestInstanceStartedHandler_HandleUnhappyNoEdition(t *testing.T) {
@@ -555,7 +517,7 @@ func TestInstanceStartedHandler_HandleUnhappyNoEdition(t *testing.T) {
 				})
 			}()
 
-			Convey("Then the validateMessagesCount consumed no messages", func() {
+			Convey("Then there were no consumed messages", func() {
 				expected := []event.CategoryDimensionImport{
 					{
 						JobID:          testJobID,
@@ -571,9 +533,6 @@ func TestInstanceStartedHandler_HandleUnhappyNoEdition(t *testing.T) {
 					if err == nil {
 						result++
 					}
-					// if validateMessagesCount(t, producer.Mock, c, e) == true {
-					// 	result++
-					// }
 				}
 
 				wg.Wait()
@@ -1080,7 +1039,7 @@ func TestTriggerImportDimensionOptions(t *testing.T) {
 				})
 			}()
 
-			Convey("Then the validateMessagesCount consumes one message", func() {
+			Convey("Then one message is consumed", func() {
 				expected := make([]event.CategoryDimensionImport, 0)
 
 				for _, cl := range codelists {
@@ -1100,9 +1059,6 @@ func TestTriggerImportDimensionOptions(t *testing.T) {
 					if err == nil {
 						result++
 					}
-					// if validateMessagesCount(t, producer.Mock, c, e) == true {
-					// 	result++
-					// }
 				}
 
 				wg.Wait()
@@ -1178,7 +1134,7 @@ func TestTriggerImportDimensionOptionsNonGeography(t *testing.T) {
 				})
 			}()
 
-			Convey("Then the validateMessagesCount consumes no messages", func() {
+			Convey("Then no messages are consumed", func() {
 				expected := make([]event.CategoryDimensionImport, 0)
 
 				for _, cl := range codelists {
@@ -1198,9 +1154,6 @@ func TestTriggerImportDimensionOptionsNonGeography(t *testing.T) {
 					if err == nil {
 						result++
 					}
-					// if validateMessagesCount(t, producer.Mock, c, e) == true {
-					// 	result++
-					// }
 				}
 
 				wg.Wait()
