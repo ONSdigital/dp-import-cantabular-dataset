@@ -115,8 +115,6 @@ func (h *InstanceStarted) Handle(ctx context.Context, workerID int, msg kafka.Me
 		})
 	}
 
-	// some stuff here
-
 	log.Info(ctx, "Successfully got Codebook", log.Data{
 		"datablob":      resp.Dataset,
 		"num_variables": len(resp.Dataset.Variables.Edges),
