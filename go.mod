@@ -10,13 +10,11 @@ exclude github.com/gorilla/sessions v1.2.1
 //     - sonatype-2021-1401 # pkg:golang/github.com/miekg/dns@v1.0.14
 replace github.com/spf13/cobra => github.com/spf13/cobra v1.4.0
 
-replace github.com/ONSdigital/dp-import => /Users/francesmoore/src/github.com/ONSdigital/dp-import
-
 require (
 	github.com/ONSdigital/dp-api-clients-go/v2 v2.252.1
 	github.com/ONSdigital/dp-component-test v0.7.0
 	github.com/ONSdigital/dp-healthcheck v1.6.1
-	github.com/ONSdigital/dp-import v1.3.1
+	github.com/ONSdigital/dp-import v1.4.0
 	github.com/ONSdigital/dp-kafka/v3 v3.10.0
 	github.com/ONSdigital/dp-net v1.5.0
 	github.com/ONSdigital/log.go/v2 v2.4.1
