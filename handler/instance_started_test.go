@@ -80,11 +80,12 @@ func TestInstanceStartedHandler_HandleHappy(t *testing.T) {
 		recipeAPIClient := recipeAPIClientHappy()
 		importAPIClient := importAPIClientHappy()
 		datasetAPIClient := datasetAPIClientHappy()
-		producer, _ := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
+		producer, err := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
 			BrokerAddrs: testCfg.KafkaConfig.Addr,
 			Topic:       testCfg.KafkaConfig.InstanceStartedTopic,
 		},
 			nil)
+		So(err, ShouldBeNil)
 
 		h := handler.NewInstanceStarted(
 			testCfg,
@@ -183,11 +184,12 @@ func TestInstanceStartedHandler_HandleUnhappy(t *testing.T) {
 		recipeAPIClient := recipeAPIClientHappy()
 		importAPIClient := importAPIClientHappy()
 		datasetAPIClient := datasetAPIClientHappy()
-		producer, _ := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
+		producer, err := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
 			BrokerAddrs: testCfg.KafkaConfig.Addr,
 			Topic:       testCfg.KafkaConfig.InstanceStartedTopic,
 		},
 			nil)
+		So(err, ShouldBeNil)
 
 		recipeAPIClient.GetRecipeFunc = func(ctx context.Context, uaToken, saToken, recipeID string) (*recipe.Recipe, error) {
 			return nil, &testError{http.StatusNotFound}
@@ -229,11 +231,12 @@ func TestInstanceStartedHandler_HandleUnhappy(t *testing.T) {
 		recipeAPIClient := recipeAPIClientHappy()
 		importAPIClient := importAPIClientHappy()
 		datasetAPIClient := datasetAPIClientUnhappy()
-		producer, _ := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
+		producer, err := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
 			BrokerAddrs: testCfg.KafkaConfig.Addr,
 			Topic:       testCfg.KafkaConfig.InstanceStartedTopic,
 		},
 			nil)
+		So(err, ShouldBeNil)
 
 		h := handler.NewInstanceStarted(
 			testCfg,
@@ -484,11 +487,12 @@ func TestInstanceStartedHandler_HandleUnhappyNoEdition(t *testing.T) {
 		recipeAPIClient := recipeAPIClientOnlyGeography()
 		importAPIClient := importAPIClientHappy()
 		datasetAPIClient := datasetAPIClientHappy()
-		producer, _ := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
+		producer, err := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
 			BrokerAddrs: testCfg.KafkaConfig.Addr,
 			Topic:       testCfg.KafkaConfig.InstanceStartedTopic,
 		},
 			nil)
+		So(err, ShouldBeNil)
 
 		h := handler.NewInstanceStarted(
 			testCfg,
@@ -553,11 +557,12 @@ func TestCreateUpdateInstanceRequest_Happy(t *testing.T) {
 		recipeAPIClient := recipeAPIClientOnlyGeographyWithEdition()
 		importAPIClient := importAPIClientHappy()
 		datasetAPIClient := datasetAPIClientHappy()
-		producer, _ := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
+		producer, err := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
 			BrokerAddrs: testCfg.KafkaConfig.Addr,
 			Topic:       testCfg.KafkaConfig.InstanceStartedTopic,
 		},
 			nil)
+		So(err, ShouldBeNil)
 
 		h := handler.NewInstanceStarted(
 			testCfg,
@@ -670,11 +675,12 @@ func TestCreateUpdateInstanceRequest_Flexible_NoGeography(t *testing.T) {
 		recipeAPIClient := recipeAPIClientOnlyGeographyWithEdition()
 		importAPIClient := importAPIClientHappy()
 		datasetAPIClient := datasetAPIClientHappy()
-		producer, _ := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
+		producer, err := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
 			BrokerAddrs: testCfg.KafkaConfig.Addr,
 			Topic:       testCfg.KafkaConfig.InstanceStartedTopic,
 		},
 			nil)
+		So(err, ShouldBeNil)
 
 		h := handler.NewInstanceStarted(
 			testCfg,
@@ -787,11 +793,12 @@ func TestCreateUpdateInstanceRequest_Flexible_OneGeography(t *testing.T) {
 		recipeAPIClient := recipeAPIClientOnlyGeographyWithEdition()
 		importAPIClient := importAPIClientHappy()
 		datasetAPIClient := datasetAPIClientHappy()
-		producer, _ := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
+		producer, err := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
 			BrokerAddrs: testCfg.KafkaConfig.Addr,
 			Topic:       testCfg.KafkaConfig.InstanceStartedTopic,
 		},
 			nil)
+		So(err, ShouldBeNil)
 
 		h := handler.NewInstanceStarted(
 			testCfg,
@@ -895,11 +902,12 @@ func TestCreateUpdateInstanceRequest_Flexible_BothGeography(t *testing.T) {
 		recipeAPIClient := recipeAPIClientOnlyGeographyWithEdition()
 		importAPIClient := importAPIClientHappy()
 		datasetAPIClient := datasetAPIClientHappy()
-		producer, _ := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
+		producer, err := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
 			BrokerAddrs: testCfg.KafkaConfig.Addr,
 			Topic:       testCfg.KafkaConfig.InstanceStartedTopic,
 		},
 			nil)
+		So(err, ShouldBeNil)
 
 		h := handler.NewInstanceStarted(
 			testCfg,
@@ -991,11 +999,12 @@ func TestTriggerImportDimensionOptions(t *testing.T) {
 		recipeAPIClient := recipeAPIClientGeographyWithEdition()
 		importAPIClient := importAPIClientHappy()
 		datasetAPIClient := datasetAPIClientHappy()
-		producer, _ := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
+		producer, err := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
 			BrokerAddrs: testCfg.KafkaConfig.Addr,
 			Topic:       testCfg.KafkaConfig.InstanceStartedTopic,
 		},
 			nil)
+		So(err, ShouldBeNil)
 
 		h := handler.NewInstanceStarted(
 			testCfg,
@@ -1081,11 +1090,12 @@ func TestTriggerImportDimensionOptionsNonGeography(t *testing.T) {
 		recipeAPIClient := recipeAPIClientGeographyWithEdition()
 		importAPIClient := importAPIClientHappy()
 		datasetAPIClient := datasetAPIClientHappy()
-		producer, _ := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
+		producer, err := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
 			BrokerAddrs: testCfg.KafkaConfig.Addr,
 			Topic:       testCfg.KafkaConfig.InstanceStartedTopic,
 		},
 			nil)
+		So(err, ShouldBeNil)
 
 		h := handler.NewInstanceStarted(
 			testCfg,
@@ -1176,11 +1186,12 @@ func TestCreateUpdateInstanceRequest_Multivariate_NoGeography(t *testing.T) {
 		recipeAPIClient := recipeAPIClientOnlyGeographyWithEdition()
 		importAPIClient := importAPIClientHappy()
 		datasetAPIClient := datasetAPIClientHappy()
-		producer, _ := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
+		producer, err := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
 			BrokerAddrs: testCfg.KafkaConfig.Addr,
 			Topic:       testCfg.KafkaConfig.InstanceStartedTopic,
 		},
 			nil)
+		So(err, ShouldBeNil)
 
 		h := handler.NewInstanceStarted(
 			testCfg,
@@ -1293,11 +1304,12 @@ func TestCreateUpdateInstanceRequest_Multivariate_OneGeography(t *testing.T) {
 		recipeAPIClient := recipeAPIClientOnlyGeographyWithEdition()
 		importAPIClient := importAPIClientHappy()
 		datasetAPIClient := datasetAPIClientHappy()
-		producer, _ := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
+		producer, err := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
 			BrokerAddrs: testCfg.KafkaConfig.Addr,
 			Topic:       testCfg.KafkaConfig.InstanceStartedTopic,
 		},
 			nil)
+		So(err, ShouldBeNil)
 
 		h := handler.NewInstanceStarted(
 			testCfg,
@@ -1401,11 +1413,12 @@ func TestCreateUpdateInstanceRequest_Multivariate_BothGeography(t *testing.T) {
 		recipeAPIClient := recipeAPIClientOnlyGeographyWithEdition()
 		importAPIClient := importAPIClientHappy()
 		datasetAPIClient := datasetAPIClientHappy()
-		producer, _ := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
+		producer, err := kafkatest.NewProducer(ctx, &kafka.ProducerConfig{
 			BrokerAddrs: testCfg.KafkaConfig.Addr,
 			Topic:       testCfg.KafkaConfig.InstanceStartedTopic,
 		},
 			nil)
+		So(err, ShouldBeNil)
 
 		h := handler.NewInstanceStarted(
 			testCfg,

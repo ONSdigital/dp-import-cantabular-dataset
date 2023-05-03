@@ -280,7 +280,10 @@ func (c *Component) thisInstanceStartedEventIsQueued(input *godog.DocString) err
 		"event": b,
 	})
 
-	msg, _ := kafkatest.NewMessage(b, 1)
+	msg, err := kafkatest.NewMessage(b, 1)
+	if err != nil {
+		return fmt.Errorf("failed to create new message: %w", err)
+	}
 	c.producer.Channels().Output <- msg.GetData()
 
 	log.Info(ctx, "thisInstanceStartedEventIsConsumed done")
