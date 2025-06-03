@@ -2,9 +2,12 @@ module github.com/ONSdigital/dp-import-cantabular-dataset
 
 go 1.24
 
-exclude github.com/hashicorp/consul/sdk v0.16.2
-exclude github.com/prometheus/client_golang v0.9.3
 exclude github.com/hashicorp/consul/api v1.1.0
+
+exclude github.com/hashicorp/consul/sdk v0.16.2
+
+exclude github.com/prometheus/client_golang v0.9.3
+
 
 require (
 	github.com/ONSdigital/dp-api-clients-go/v2 v2.266.0
