@@ -16,6 +16,5 @@ run:
   args:
     - -exc
     - |
-      source /docker-lib.sh
-      start_docker
+      /start_docker.sh
       dp-import-cantabular-dataset/ci/scripts/component.sh
