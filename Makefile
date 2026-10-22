@@ -49,6 +49,7 @@ test-component:
 .PHONY: fmt
 fmt:
 	go fmt ./...
+
 .PHONY: lint
 lint:
 	exit
